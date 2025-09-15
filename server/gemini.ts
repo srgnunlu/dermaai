@@ -29,14 +29,19 @@ export async function analyzeWithGemini(
   const startTime = Date.now();
 
   try {
-    // Fetch image and convert to base64
-    const imageResponse = await fetch(imageUrl);
-    if (!imageResponse.ok) {
-      throw new Error("Failed to fetch image");
-    }
+    // Import ObjectStorageService here to avoid circular dependencies
+    const { ObjectStorageService } = await import("./objectStorage");
+    const objectStorageService = new ObjectStorageService();
     
-    const imageBuffer = await imageResponse.arrayBuffer();
+    // Normalize the path and get the image file from object storage
+    const normalizedPath = objectStorageService.normalizeObjectEntityPath(imageUrl);
+    const file = await objectStorageService.getObjectEntityFile(normalizedPath);
+    
+    // Get image data and metadata directly from the file
+    const [imageBuffer] = await file.download();
+    const [metadata] = await file.getMetadata();
     const imageBase64 = Buffer.from(imageBuffer).toString("base64");
+    const mimeType = metadata.contentType || "image/jpeg";
     
     const systemPrompt = `You are an expert dermatologist AI assistant. Analyze the provided skin lesion image and patient information to provide differential diagnoses.
 
@@ -65,7 +70,7 @@ Respond with JSON in this exact format:
       {
         inlineData: {
           data: imageBase64,
-          mimeType: imageResponse.headers.get("content-type") || "image/jpeg",
+          mimeType: mimeType,
         },
       },
       systemPrompt,

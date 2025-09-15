@@ -15,6 +15,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
+import { nanoid } from "nanoid";
 
 export interface IStorage {
   // User operations
@@ -56,7 +57,6 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  private caseCounter: number = 1;
 
   // User operations
   // (IMPORTANT) these user operations are mandatory for Replit Auth.
@@ -141,11 +141,40 @@ export class DatabaseStorage implements IStorage {
 
   // Patient operations
   async createPatient(insertPatient: InsertPatient): Promise<Patient> {
-    const [patient] = await db
-      .insert(patients)
-      .values(insertPatient)
-      .returning();
-    return patient;
+    // Add retry logic for patient ID uniqueness constraint violations
+    let attempts = 0;
+    const maxAttempts = 3;
+    
+    while (attempts < maxAttempts) {
+      try {
+        // If no patientId provided, generate a unique one
+        const patientData = {
+          ...insertPatient,
+          patientId: insertPatient.patientId || `PAT-${Date.now()}-${nanoid(8)}`
+        };
+        
+        const [patient] = await db
+          .insert(patients)
+          .values(patientData)
+          .returning();
+        return patient;
+      } catch (error: any) {
+        attempts++;
+        if (error.code === '23505' && error.constraint === 'patients_patient_id_unique') {
+          if (attempts < maxAttempts) {
+            console.log(`Patient ID collision detected for ID: ${insertPatient.patientId}, retrying (attempt ${attempts + 1}/${maxAttempts})`);
+            // Generate a new unique patient ID by appending timestamp and random string
+            insertPatient.patientId = `${insertPatient.patientId || 'PAT'}-${Date.now()}-${nanoid(6)}`;
+            continue;
+          } else {
+            throw new Error(`Patient ID '${insertPatient.patientId}' already exists. Please use a different patient ID.`);
+          }
+        }
+        throw error;
+      }
+    }
+    
+    throw new Error('Failed to create patient record after maximum attempts');
   }
 
   async getPatient(id: string): Promise<Patient | undefined> {
@@ -160,24 +189,48 @@ export class DatabaseStorage implements IStorage {
 
   // Case operations  
   async createCase(insertCase: InsertCase, userId: string): Promise<Case> {
-    const caseId = `DR-${new Date().getFullYear()}-${String(this.caseCounter++).padStart(3, '0')}`;
-    const [caseRecord] = await db
-      .insert(cases)
-      .values({
-        caseId: caseId,
-        userId: userId,
-        patientId: insertCase.patientId || null,
-        imageUrl: insertCase.imageUrl,
-        lesionLocation: insertCase.lesionLocation || null,
-        symptoms: insertCase.symptoms || null,
-        medicalHistory: insertCase.medicalHistory || null,
-        geminiAnalysis: insertCase.geminiAnalysis || null,
-        openaiAnalysis: insertCase.openaiAnalysis || null,
-        finalDiagnoses: insertCase.finalDiagnoses || null,
-        status: "pending",
-      } as any)
-      .returning();
-    return caseRecord;
+    // Generate truly unique case ID with timestamp and random component
+    const timestamp = Date.now();
+    const randomId = nanoid(8);
+    const year = new Date().getFullYear();
+    const caseId = `DR-${year}-${timestamp}-${randomId}`;
+    
+    // Add retry logic for unique constraint violations
+    let attempts = 0;
+    const maxAttempts = 3;
+    
+    while (attempts < maxAttempts) {
+      try {
+        const [caseRecord] = await db
+          .insert(cases)
+          .values({
+            caseId: attempts === 0 ? caseId : `DR-${year}-${Date.now()}-${nanoid(10)}`,
+            userId: userId,
+            patientId: insertCase.patientId || null,
+            imageUrl: insertCase.imageUrl,
+            lesionLocation: insertCase.lesionLocation || null,
+            symptoms: insertCase.symptoms || null,
+            medicalHistory: insertCase.medicalHistory || null,
+            geminiAnalysis: insertCase.geminiAnalysis || null,
+            openaiAnalysis: insertCase.openaiAnalysis || null,
+            finalDiagnoses: insertCase.finalDiagnoses || null,
+            status: "pending",
+          } as any)
+          .returning();
+        return caseRecord;
+      } catch (error: any) {
+        attempts++;
+        if (error.code === '23505' && error.constraint === 'cases_case_id_unique' && attempts < maxAttempts) {
+          console.log(`Case ID collision detected, retrying (attempt ${attempts + 1}/${maxAttempts})`);
+          // Add small delay before retry
+          await new Promise(resolve => setTimeout(resolve, 10));
+          continue;
+        }
+        throw error;
+      }
+    }
+    
+    throw new Error('Failed to create unique case ID after maximum attempts');
   }
 
   async getCase(id: string, userId: string): Promise<Case | undefined> {

@@ -39,7 +39,11 @@ export function ImageUpload({ onImageUploaded, uploadedImage }: ImageUploadProps
       const imageUrl = uploadedFile.uploadURL;
       
       if (imageUrl) {
-        setPreviewUrl(imageUrl);
+        // Normalize the uploaded image URL for preview
+        const normalizedUrl = imageUrl.startsWith('https://storage.googleapis.com') 
+          ? `/objects/${imageUrl.split('/.private/')[1]}`
+          : imageUrl;
+        setPreviewUrl(normalizedUrl);
         onImageUploaded(imageUrl);
       }
     }

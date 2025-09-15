@@ -90,7 +90,7 @@ Respond with JSON in this exact format:
         },
       ],
       response_format: { type: "json_object" },
-      max_tokens: 2000,
+      max_completion_tokens: 2000,
     });
 
     const analysisTime = (Date.now() - startTime) / 1000;

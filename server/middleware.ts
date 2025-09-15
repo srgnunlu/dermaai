@@ -68,7 +68,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   }
 }
 
-// Authorization middleware - verifies user owns the requested case
+// Authorization middleware - verifies user owns the requested case OR is admin
 export async function requireCaseOwnership(req: Request, res: Response, next: NextFunction) {
   try {
     if (!req.customUser) {
@@ -86,7 +86,17 @@ export async function requireCaseOwnership(req: Request, res: Response, next: Ne
       });
     }
 
-    // Check if user owns this case
+    // Get user to check role
+    const user = await storage.getUser(req.customUser.id);
+    
+    // If user is admin, allow access to any case
+    if (user && user.role === 'admin') {
+      // Log admin access attempt for audit trail
+      logAccess(req, req.customUser.id, req.customUser.email || 'unknown', `Admin accessed case ${caseId}`);
+      return next();
+    }
+
+    // For regular users, check if they own this case
     const caseRecord = await storage.getCase(caseId, req.customUser.id);
     
     if (!caseRecord) {

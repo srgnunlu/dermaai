@@ -246,9 +246,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...csvRows.map(row => row.map(cell => `"${cell}"`).join(','))
       ].join('\n');
       
-      // Set response headers for CSV download
+      // Set response headers for CSV download with cache busting
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', `attachment; filename="cases-export-${new Date().toISOString().split('T')[0]}.csv"`);
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       res.send(csvContent);
       
     } catch (error) {

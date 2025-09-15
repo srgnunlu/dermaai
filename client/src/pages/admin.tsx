@@ -773,10 +773,17 @@ export default function AdminPage() {
                   <h3 className="font-semibold mb-2">Case Image</h3>
                   <div className="border rounded-lg p-4 bg-gray-50">
                     <img 
-                      src={selectedCase.imageUrl} 
+                      src={selectedCase.imageUrl.startsWith('https://storage.googleapis.com') 
+                        ? `/objects/${selectedCase.imageUrl.split('/.private/')[1]}`
+                        : selectedCase.imageUrl
+                      } 
                       alt="Case image" 
                       className="max-w-full h-64 object-contain mx-auto rounded"
                       data-testid="case-image"
+                      onError={(e) => {
+                        console.error("Failed to load image:", selectedCase.imageUrl);
+                        e.currentTarget.style.display = 'none';
+                      }}
                     />
                   </div>
                 </div>

@@ -14,7 +14,9 @@ interface PatientData {
   gender: string;
   skinType: string;
   lesionLocation: string;
-  symptoms: string;
+  symptoms: string[];
+  additionalSymptoms: string;
+  symptomDuration: string;
   medicalHistory: string[];
 }
 
@@ -30,7 +32,9 @@ export function PatientForm({ onSubmit, isLoading = false }: PatientFormProps) {
     gender: "",
     skinType: "",
     lesionLocation: "",
-    symptoms: "",
+    symptoms: [],
+    additionalSymptoms: "",
+    symptomDuration: "",
     medicalHistory: []
   });
 
@@ -47,6 +51,38 @@ export function PatientForm({ onSubmit, isLoading = false }: PatientFormProps) {
         : prev.medicalHistory.filter(item => item !== condition)
     }));
   };
+
+  const handleSymptomChange = (symptom: string, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      symptoms: checked 
+        ? [...prev.symptoms, symptom]
+        : prev.symptoms.filter(item => item !== symptom)
+    }));
+  };
+
+  const dermatologicalSymptoms = [
+    "Kaşıntı (itching)",
+    "Ağrı (pain)",
+    "Yanma hissi (burning sensation)",
+    "Kızarıklık (redness)",
+    "Şişlik (swelling)",
+    "Sızıntı/akıntı (discharge/oozing)",
+    "Kabuklanma (crusting)",
+    "Pullanma (scaling)",
+    "Kuruluk (dryness)",
+    "Hassasiyet (sensitivity)",
+    "Numbness/uyuşma",
+    "Sertlik (hardness)"
+  ];
+
+  const symptomDurationOptions = [
+    { value: "less-than-1-day", label: "1 günden az (Less than 1 day)" },
+    { value: "1-7-days", label: "1-7 gün (1-7 days)" },
+    { value: "1-4-weeks", label: "1-4 hafta (1-4 weeks)" },
+    { value: "1-6-months", label: "1-6 ay (1-6 months)" },
+    { value: "more-than-6-months", label: "6 aydan fazla (More than 6 months)" }
+  ];
 
   const medicalConditions = [
     "Previous skin cancer",
@@ -152,20 +188,70 @@ export function PatientForm({ onSubmit, isLoading = false }: PatientFormProps) {
             />
           </div>
 
-          {/* Symptom Description */}
-          <div>
-            <Label htmlFor="symptoms" className="text-sm font-medium text-foreground mb-2">
-              Symptom Description
-            </Label>
-            <Textarea
-              id="symptoms"
-              rows={4}
-              placeholder="Describe symptoms: itching, pain, changes in size/color, duration, etc."
-              value={formData.symptoms}
-              onChange={(e) => setFormData(prev => ({ ...prev, symptoms: e.target.value }))}
-              className="w-full"
-              data-testid="textarea-symptoms"
-            />
+          {/* Structured Symptoms Collection */}
+          <div className="space-y-6">
+            {/* Common Dermatological Symptoms */}
+            <div>
+              <Label className="text-sm font-medium text-foreground mb-4 block">
+                Common Dermatological Symptoms / Yaygın Dermatolojik Semptomlar
+              </Label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {dermatologicalSymptoms.map((symptom) => (
+                  <div key={symptom} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={symptom}
+                      checked={formData.symptoms.includes(symptom)}
+                      onCheckedChange={(checked) => handleSymptomChange(symptom, checked as boolean)}
+                      data-testid={`checkbox-symptom-${symptom.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
+                    />
+                    <Label
+                      htmlFor={symptom}
+                      className="text-sm text-foreground leading-5"
+                    >
+                      {symptom}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Additional Symptoms */}
+            <div>
+              <Label htmlFor="additionalSymptoms" className="text-sm font-medium text-foreground mb-2">
+                Ek semptomlar ve açıklamalar (Additional symptoms and descriptions)
+              </Label>
+              <Textarea
+                id="additionalSymptoms"
+                rows={3}
+                placeholder="Describe any additional symptoms, changes in size/color, other observations..."
+                value={formData.additionalSymptoms}
+                onChange={(e) => setFormData(prev => ({ ...prev, additionalSymptoms: e.target.value }))}
+                className="w-full"
+                data-testid="textarea-additional-symptoms"
+              />
+            </div>
+
+            {/* Symptom Duration */}
+            <div>
+              <Label className="text-sm font-medium text-foreground mb-2">
+                Semptom Süresi (Symptom Duration)
+              </Label>
+              <Select 
+                value={formData.symptomDuration} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, symptomDuration: value }))}
+              >
+                <SelectTrigger className="w-full" data-testid="select-symptom-duration">
+                  <SelectValue placeholder="Select duration / Süre seçiniz" />
+                </SelectTrigger>
+                <SelectContent>
+                  {symptomDurationOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Medical History */}

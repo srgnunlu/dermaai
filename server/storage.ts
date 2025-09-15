@@ -217,6 +217,8 @@ export class DatabaseStorage implements IStorage {
             imageUrl: insertCase.imageUrl,
             lesionLocation: insertCase.lesionLocation || null,
             symptoms: insertCase.symptoms || null,
+            additionalSymptoms: insertCase.additionalSymptoms || null,
+            symptomDuration: insertCase.symptomDuration || null,
             medicalHistory: insertCase.medicalHistory || null,
             geminiAnalysis: insertCase.geminiAnalysis || null,
             openaiAnalysis: insertCase.openaiAnalysis || null,

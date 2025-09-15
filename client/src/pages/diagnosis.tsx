@@ -5,6 +5,7 @@ import { ImageUpload } from "@/components/ImageUpload";
 import { PatientForm } from "@/components/PatientForm";
 import { DiagnosisResults } from "@/components/DiagnosisResults";
 import { CaseHistory } from "@/components/CaseHistory";
+import { AnalysisProgress } from "@/components/AnalysisProgress";
 import { useToast } from "@/hooks/use-toast";
 import { Microscope, Bell, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,9 @@ interface PatientData {
   gender: string;
   skinType: string;
   lesionLocation: string;
-  symptoms: string;
+  symptoms: string[];
+  additionalSymptoms: string;
+  symptomDuration: string;
   medicalHistory: string[];
 }
 
@@ -47,6 +50,8 @@ export default function DiagnosisPage() {
         imageUrl: data.imageUrl,
         lesionLocation: data.patientData.lesionLocation,
         symptoms: data.patientData.symptoms,
+        additionalSymptoms: data.patientData.additionalSymptoms,
+        symptomDuration: data.patientData.symptomDuration,
         medicalHistory: data.patientData.medicalHistory,
       };
 
@@ -163,24 +168,38 @@ export default function DiagnosisPage() {
           <p className="text-muted-foreground">AI-powered analysis of skin lesions using advanced machine learning models</p>
         </div>
 
-        {/* Diagnosis Workflow */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Image Upload Section */}
-          <div className="lg:col-span-1">
-            <ImageUpload 
-              onImageUploaded={setUploadedImageUrl}
-              uploadedImage={uploadedImageUrl}
+        {/* Analysis Progress */}
+        {analyzeMutation.isPending && (
+          <div className="mb-8">
+            <AnalysisProgress 
+              isActive={analyzeMutation.isPending}
+              onComplete={() => {
+                // Progress animation completion will be handled by the mutation
+              }}
             />
           </div>
+        )}
 
-          {/* Patient Information Form */}
-          <div className="lg:col-span-2">
-            <PatientForm 
-              onSubmit={handleFormSubmit}
-              isLoading={analyzeMutation.isPending}
-            />
+        {/* Diagnosis Workflow */}
+        {!analyzeMutation.isPending && !analysisResult && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Image Upload Section */}
+            <div className="lg:col-span-1">
+              <ImageUpload 
+                onImageUploaded={setUploadedImageUrl}
+                uploadedImage={uploadedImageUrl}
+              />
+            </div>
+
+            {/* Patient Information Form */}
+            <div className="lg:col-span-2">
+              <PatientForm 
+                onSubmit={handleFormSubmit}
+                isLoading={false}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* AI Analysis Results */}
         {analysisResult && (

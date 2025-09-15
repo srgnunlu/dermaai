@@ -49,7 +49,9 @@ export const cases = pgTable("cases", {
   patientId: varchar("patient_id").references(() => patients.id),
   imageUrl: text("image_url").notNull(),
   lesionLocation: text("lesion_location"),
-  symptoms: text("symptoms"),
+  symptoms: jsonb("symptoms").$type<string[]>(),
+  additionalSymptoms: text("additional_symptoms"),
+  symptomDuration: text("symptom_duration"),
   medicalHistory: jsonb("medical_history").$type<string[]>(),
   geminiAnalysis: jsonb("gemini_analysis").$type<{
     diagnoses: Array<{

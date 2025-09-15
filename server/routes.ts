@@ -220,35 +220,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Helper function to map duration values to Turkish display text
+  const mapDurationToTurkish = (duration: string | null): string => {
+    const durationMap: { [key: string]: string } = {
+      "less-than-1-day": "1 günden az",
+      "1-7-days": "1-7 gün", 
+      "1-4-weeks": "1-4 hafta",
+      "1-6-months": "1-6 ay",
+      "more-than-6-months": "6 aydan fazla"
+    };
+    
+    if (!duration) return 'Belirtilmedi';
+    return durationMap[duration] || duration;
+  };
+
+  // Helper function to sanitize CSV fields against formula injection
+  const sanitizeCSVFormula = (value: string | null | undefined): string => {
+    if (!value) return '';
+    const strValue = String(value);
+    
+    // Check if the value starts with dangerous formula characters
+    if (strValue.startsWith('=') || strValue.startsWith('+') || 
+        strValue.startsWith('-') || strValue.startsWith('@')) {
+      // Prefix with single quote to neutralize formula execution
+      return `'${strValue}`;
+    }
+    return strValue;
+  };
+
+  // Helper function to format symptoms array for CSV
+  const formatSymptomsForCSV = (symptoms: string[] | null): string => {
+    if (!symptoms || symptoms.length === 0) return 'Yok';
+    // Sanitize each symptom before joining
+    const sanitizedSymptoms = symptoms.map(symptom => sanitizeCSVFormula(symptom));
+    return sanitizedSymptoms.join(', ');
+  };
+
   app.get('/api/admin/export/cases', isAuthenticated, requireAdmin, async (req: any, res) => {
     try {
       const cases = await storage.getAllCasesForAdmin();
       
-      // Create CSV content
-      const csvHeaders = ['Case ID', 'User Email', 'Patient ID', 'Status', 'Created Date', 'Top Diagnosis', 'Confidence', 'Is Urgent'];
+      // Create CSV content with new Turkish symptom columns
+      const csvHeaders = [
+        'Vaka ID', 
+        'Kullanıcı Email', 
+        'Hasta ID', 
+        'Durum', 
+        'Oluşturma Tarihi', 
+        'Ana Teşhis', 
+        'Güven Oranı', 
+        'Acil mi',
+        'Belirtiler',
+        'Ek Belirtiler', 
+        'Belirti Süresi'
+      ];
+      
       const csvRows = cases.map(c => {
         const topDiagnosis = c.finalDiagnoses && c.finalDiagnoses[0] ? c.finalDiagnoses[0] : null;
         return [
           c.caseId,
-          c.user?.email || 'Unknown',
-          c.patientId || 'N/A',
-          c.status,
-          c.createdAt ? new Date(c.createdAt).toLocaleDateString() : 'N/A',
-          topDiagnosis?.name || 'N/A',
-          topDiagnosis?.confidence || 'N/A',
-          topDiagnosis?.isUrgent ? 'Yes' : 'No'
+          sanitizeCSVFormula(c.user?.email) || 'Bilinmiyor',
+          c.patientId || 'Yok',
+          c.status === 'pending' ? 'Beklemede' : c.status === 'completed' ? 'Tamamlandı' : c.status,
+          c.createdAt ? new Date(c.createdAt).toLocaleDateString('tr-TR') : 'Yok',
+          sanitizeCSVFormula(topDiagnosis?.name) || 'Yok',
+          topDiagnosis?.confidence ? `%${topDiagnosis.confidence}` : 'Yok',
+          topDiagnosis?.isUrgent ? 'Evet' : 'Hayır',
+          formatSymptomsForCSV(c.symptoms as string[]),
+          sanitizeCSVFormula(c.additionalSymptoms) || 'Yok',
+          mapDurationToTurkish(c.symptomDuration)
         ];
       });
       
-      // Combine headers and rows
-      const csvContent = [
+      // Add UTF-8 BOM for proper Turkish character support
+      const BOM = '\uFEFF';
+      
+      // Combine headers and rows with proper CSV escaping
+      const csvContent = BOM + [
         csvHeaders.join(','),
-        ...csvRows.map(row => row.map(cell => `"${cell}"`).join(','))
+        ...csvRows.map(row => row.map(cell => {
+          // Properly escape CSV values containing commas, quotes, or newlines
+          const cellStr = String(cell || '');
+          if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+            return `"${cellStr.replace(/"/g, '""')}"`;
+          }
+          return cellStr;
+        }).join(','))
       ].join('\n');
       
-      // Set response headers for CSV download with cache busting
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename="cases-export-${new Date().toISOString().split('T')[0]}.csv"`);
+      // Set response headers for CSV download with UTF-8 charset
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="vaka-disa-aktarimi-${new Date().toISOString().split('T')[0]}.csv"`);
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');

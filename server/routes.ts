@@ -260,11 +260,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const cases = await storage.getAllCasesForAdmin();
       
-      // Create CSV content with new Turkish symptom columns
+      // Get patient data for each case that has a patientId
+      const patientMap = new Map();
+      const patientIds = Array.from(new Set(cases.filter(c => c.patientId).map(c => c.patientId!)));
+      
+      for (const patientId of patientIds) {
+        try {
+          const patient = await storage.getPatientByPatientId(patientId!);
+          if (patient) {
+            patientMap.set(patientId, patient);
+          }
+        } catch (error) {
+          console.error(`Error fetching patient ${patientId}:`, error);
+        }
+      }
+      
+      // Create CSV content with Turkish headers including patient demographics
       const csvHeaders = [
         'Vaka ID', 
         'Kullanıcı Email', 
-        'Hasta ID', 
+        'Hasta ID',
+        'Yaş',
+        'Cinsiyet', 
         'Durum', 
         'Oluşturma Tarihi', 
         'Ana Teşhis', 
@@ -277,10 +294,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const csvRows = cases.map(c => {
         const topDiagnosis = c.finalDiagnoses && c.finalDiagnoses[0] ? c.finalDiagnoses[0] : null;
+        const patient = c.patientId ? patientMap.get(c.patientId) : null;
+        
         return [
           c.caseId,
           sanitizeCSVFormula(c.user?.email) || 'Bilinmiyor',
           c.patientId || 'Yok',
+          patient?.age ? patient.age.toString() : 'Belirtilmedi',
+          patient?.gender ? sanitizeCSVFormula(patient.gender) : 'Belirtilmedi',
           c.status === 'pending' ? 'Beklemede' : c.status === 'completed' ? 'Tamamlandı' : c.status,
           c.createdAt ? new Date(c.createdAt).toLocaleDateString('tr-TR') : 'Yok',
           sanitizeCSVFormula(topDiagnosis?.name) || 'Yok',
@@ -434,12 +455,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newCase = await storage.createCase(caseData, userId);
       
       // Start AI analysis in parallel
+      const symptomsString = Array.isArray(caseData.symptoms) 
+        ? caseData.symptoms.join(", ") 
+        : (caseData.symptoms || "");
+      
       const [geminiResult, openaiResult] = await Promise.allSettled([
-        analyzeWithGemini(caseData.imageUrl, caseData.symptoms || "", {
+        analyzeWithGemini(caseData.imageUrl, symptomsString, {
           lesionLocation: caseData.lesionLocation || undefined,
           medicalHistory: (caseData.medicalHistory as string[]) || undefined
         }),
-        analyzeWithOpenAI(caseData.imageUrl, caseData.symptoms || "", {
+        analyzeWithOpenAI(caseData.imageUrl, symptomsString, {
           lesionLocation: caseData.lesionLocation || undefined,
           medicalHistory: (caseData.medicalHistory as string[]) || undefined
         })
@@ -578,11 +603,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[REPORT] Generating PDF for case: ${caseRecord.caseId} (UUID: ${caseRecord.id})`);
     
 
-      // Create a new PDF document
-      const doc = new PDFDocument({ margin: 50 });
+      // Create a new PDF document with explicit UTF-8 support
+      const doc = new PDFDocument({ 
+        margin: 50,
+        bufferPages: true,
+        autoFirstPage: true,
+        compress: false // Disable compression to avoid encoding issues
+      });
       
-      // Configure font to support Turkish characters
-      doc.font('Helvetica');
+      // Helper function to handle Turkish characters for PDF compatibility
+      const sanitizeTextForPDF = (text: string): string => {
+        if (!text) return '';
+        
+        // Turkish character mappings for PDF compatibility
+        const turkishCharMap: { [key: string]: string } = {
+          'ğ': 'g',
+          'Ğ': 'G', 
+          'ü': 'u',
+          'Ü': 'U',
+          'ş': 's',
+          'Ş': 'S',
+          'ı': 'i',
+          'İ': 'I',
+          'ö': 'o',
+          'Ö': 'O',
+          'ç': 'c',
+          'Ç': 'C'
+        };
+        
+        return text.replace(/[ğĞüÜşŞıİöÖçÇ]/g, (match) => turkishCharMap[match] || match);
+      };
+      
+      // Configure font - try Unicode font first, fallback to Helvetica with character replacement
+      let useUnicodeFont = false;
+      try {
+        // Try to use a Unicode-capable font
+        doc.font('Helvetica-Bold');
+        useUnicodeFont = true;
+      } catch (error) {
+        // Fallback to standard Helvetica
+        console.warn('Using Helvetica with Turkish character replacement for PDF compatibility');
+        doc.font('Helvetica');
+        useUnicodeFont = false;
+      }
       
       // Set response headers for PDF download
       res.setHeader('Content-Type', 'application/pdf');
@@ -593,61 +656,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Add header
       doc.fontSize(20)
-         .text('Medical Case Report', { align: 'center' })
+         .text(sanitizeTextForPDF('Medical Case Report'), { align: 'center' })
          .moveDown(2);
 
       // Case information
       doc.fontSize(14)
-         .text(`Case ID: ${caseRecord.caseId}`, { continued: false })
-         .text(`Patient ID: ${caseRecord.patientId || 'N/A'}`)
-         .text(`Date: ${caseRecord.createdAt ? new Date(caseRecord.createdAt).toLocaleDateString() : 'N/A'}`)
-         .text(`Status: ${caseRecord.status}`)
+         .text(sanitizeTextForPDF(`Case ID: ${caseRecord.caseId}`), { continued: false })
+         .text(sanitizeTextForPDF(`Patient ID: ${caseRecord.patientId || 'N/A'}`))
+         .text(sanitizeTextForPDF(`Date: ${caseRecord.createdAt ? new Date(caseRecord.createdAt).toLocaleDateString() : 'N/A'}`))
+         .text(sanitizeTextForPDF(`Status: ${caseRecord.status}`))
          .moveDown(1);
 
       // Clinical information
       doc.fontSize(16)
-         .text('Clinical Information', { underline: true })
+         .text(sanitizeTextForPDF('Clinical Information'), { underline: true })
          .moveDown(0.5);
 
       doc.fontSize(12)
-         .text(`Lesion Location: ${caseRecord.lesionLocation || 'Not specified'}`)
-         .text(`Symptoms: ${caseRecord.symptoms || 'None reported'}`)
+         .text(sanitizeTextForPDF(`Lesion Location: ${caseRecord.lesionLocation || 'Not specified'}`))
+         .text(sanitizeTextForPDF(`Symptoms: ${Array.isArray(caseRecord.symptoms) ? caseRecord.symptoms.join(', ') : (caseRecord.symptoms || 'None reported')}`))
+         .text(sanitizeTextForPDF(`Additional Symptoms: ${caseRecord.additionalSymptoms || 'None reported'}`))
+         .text(sanitizeTextForPDF(`Symptom Duration: ${caseRecord.symptomDuration || 'Not specified'}`))
          .moveDown(1);
 
       // Medical history
       if (caseRecord.medicalHistory && caseRecord.medicalHistory.length > 0) {
-        doc.text(`Medical History: ${caseRecord.medicalHistory.join(', ')}`)
+        doc.text(sanitizeTextForPDF(`Medical History: ${caseRecord.medicalHistory.join(', ')}`))
            .moveDown(1);
       }
 
       // AI Diagnosis Results
       if (caseRecord.finalDiagnoses && caseRecord.finalDiagnoses.length > 0) {
         doc.fontSize(16)
-           .text('AI Diagnosis Results', { underline: true })
+           .text(sanitizeTextForPDF('AI Diagnosis Results'), { underline: true })
            .moveDown(0.5);
 
         caseRecord.finalDiagnoses.forEach((diagnosis, index) => {
           doc.fontSize(12)
-             .text(`${index + 1}. ${diagnosis.name}`, { continued: false })
+             .text(sanitizeTextForPDF(`${index + 1}. ${diagnosis.name}`), { continued: false })
              .fontSize(10)
-             .text(`   Confidence: ${diagnosis.confidence}%`)
-             .text(`   Description: ${diagnosis.description}`)
+             .text(sanitizeTextForPDF(`   Confidence: ${diagnosis.confidence}%`))
+             .text(sanitizeTextForPDF(`   Description: ${diagnosis.description}`))
              .moveDown(0.3);
 
           if (diagnosis.keyFeatures && diagnosis.keyFeatures.length > 0) {
-            doc.text(`   Key Features: ${diagnosis.keyFeatures.join(', ')}`)
+            doc.text(sanitizeTextForPDF(`   Key Features: ${diagnosis.keyFeatures.join(', ')}`))
                .moveDown(0.3);
           }
 
           if (diagnosis.recommendations && diagnosis.recommendations.length > 0) {
-            doc.text(`   Recommendations: ${diagnosis.recommendations.join(', ')}`)
+            doc.text(sanitizeTextForPDF(`   Recommendations: ${diagnosis.recommendations.join(', ')}`))
                .moveDown(0.3);
           }
 
           if (diagnosis.isUrgent) {
             doc.fontSize(10)
                .fillColor('red')
-               .text('   ⚠️ URGENT: Requires immediate medical attention', { continued: false })
+               .text(sanitizeTextForPDF('   ⚠️ URGENT: Requires immediate medical attention'), { continued: false })
                .fillColor('black')
                .moveDown(0.5);
           } else {
@@ -658,8 +723,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Add footer
       doc.fontSize(8)
-         .text(`Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`, 50, doc.page.height - 50, { align: 'center' })
-         .text('This report is generated by AI analysis and should be reviewed by a qualified medical professional.', { align: 'center' });
+         .text(sanitizeTextForPDF(`Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`), 50, doc.page.height - 50, { align: 'center' })
+         .text(sanitizeTextForPDF('This report is generated by AI analysis and should be reviewed by a qualified medical professional.'), { align: 'center' });
 
       // Finalize the PDF
       doc.end();

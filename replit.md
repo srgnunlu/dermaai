@@ -51,3 +51,10 @@ Preferred communication style: Simple, everyday language.
   - TypeScript for type safety across the entire stack
 
 The architecture emphasizes medical data security, AI model diversity for improved diagnostic accuracy, and a responsive user interface optimized for healthcare workflows. The dual AI approach provides cross-validation of diagnostic results, while the comprehensive data model supports full case management from patient intake through diagnosis and treatment recommendations.
+
+## Admin Panel Features
+The application includes a comprehensive admin panel with role-based access control:
+- **Case Management**: View and export individual case reports with full patient details and AI analysis results
+- **User Management**: Complete user administration with promote/demote functionality for role management
+- **System Statistics**: Real-time analytics including total cases, active users, and system performance metrics
+- **Data Export**: CSV export capabilities for cases and comprehensive PDF reporting for individual diagnoses

@@ -166,6 +166,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // User management endpoints
+  app.get('/api/admin/users', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching all users:", error);
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  app.put('/api/admin/users/:userId/promote', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const updatedUser = await storage.promoteUserToAdmin(userId);
+      res.json({ 
+        message: `User ${updatedUser.email} promoted to admin`,
+        user: updatedUser 
+      });
+    } catch (error) {
+      console.error("Error promoting user to admin:", error);
+      res.status(500).json({ error: "Failed to promote user" });
+    }
+  });
+
+  app.put('/api/admin/users/:userId/demote', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const updatedUser = await storage.demoteUserFromAdmin(userId);
+      res.json({ 
+        message: `User ${updatedUser.email} demoted from admin`,
+        user: updatedUser 
+      });
+    } catch (error) {
+      console.error("Error demoting user from admin:", error);
+      res.status(500).json({ error: "Failed to demote user" });
+    }
+  });
+
+  // Legacy endpoint for backward compatibility
   app.post('/api/admin/promote/:userId', isAuthenticated, requireAdmin, async (req: any, res) => {
     try {
       const { userId } = req.params;

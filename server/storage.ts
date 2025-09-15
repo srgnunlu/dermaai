@@ -53,7 +53,9 @@ export interface IStorage {
     activeUsers: number;
     avgDiagnosisTime: number;
   }>;
+  getAllUsers(): Promise<User[]>;
   promoteUserToAdmin(userId: string): Promise<User>;
+  demoteUserFromAdmin(userId: string): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -437,6 +439,22 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
+  async getAllUsers(): Promise<User[]> {
+    const allUsers = await db.select().from(users);
+    
+    // Sort by creation date (newest first) and role (admins first)
+    return allUsers.sort((a, b) => {
+      // First sort by role (admin users first)
+      if (a.role === 'admin' && b.role !== 'admin') return -1;
+      if (b.role === 'admin' && a.role !== 'admin') return 1;
+      
+      // Then sort by creation date (newest first)
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bTime - aTime;
+    });
+  }
+
   async promoteUserToAdmin(userId: string): Promise<User> {
     const [updatedUser] = await db
       .update(users)
@@ -452,6 +470,24 @@ export class DatabaseStorage implements IStorage {
     }
     
     console.log(`[ADMIN] User ${updatedUser.email} (${userId}) promoted to admin role`);
+    return updatedUser;
+  }
+
+  async demoteUserFromAdmin(userId: string): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        role: 'user',
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    if (!updatedUser) {
+      throw new Error('User not found');
+    }
+    
+    console.log(`[ADMIN] User ${updatedUser.email} (${userId}) demoted from admin role`);
     return updatedUser;
   }
 }

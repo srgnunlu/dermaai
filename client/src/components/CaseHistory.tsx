@@ -105,11 +105,7 @@ export function CaseHistory() {
                             size="sm"
                             className="text-primary hover:underline"
                             onClick={() => {
-                              toast({
-                                title: "Case Details",
-                                description: `Opening detailed view for case ${caseRecord.caseId}`,
-                              });
-                              // TODO: Navigate to case detail view  
+                              alert(`Viewing case ${caseRecord.caseId}`);
                               console.log('Viewing case:', caseRecord);
                             }}
                             data-testid={`button-view-${caseRecord.caseId}`}
@@ -122,11 +118,7 @@ export function CaseHistory() {
                             size="sm"
                             className="text-secondary hover:underline"
                             onClick={() => {
-                              toast({
-                                title: "Report Generation",
-                                description: `Generating medical report for case ${caseRecord.caseId}`,
-                              });
-                              // TODO: Generate and download PDF report
+                              alert(`Generating report for case ${caseRecord.caseId}`);
                               console.log('Generating report for case:', caseRecord);
                             }}
                             data-testid={`button-report-${caseRecord.caseId}`}

@@ -21,6 +21,7 @@ export const patients = pgTable("patients", {
 export const cases = pgTable("cases", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   caseId: text("case_id").notNull().unique(),
+  userId: varchar("user_id").notNull().references(() => users.id),
   patientId: varchar("patient_id").references(() => patients.id),
   imageUrl: text("image_url").notNull(),
   lesionLocation: text("lesion_location"),
@@ -67,6 +68,7 @@ export const insertPatientSchema = createInsertSchema(patients).omit({
 export const insertCaseSchema = createInsertSchema(cases).omit({
   id: true,
   caseId: true,
+  userId: true, // Set by server based on authenticated user
   createdAt: true,
   status: true,
 });

@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { requireAuth } from "./middleware";
 
 const app = express();
 app.use(express.json());
@@ -37,6 +38,10 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // CRITICAL SECURITY: Global auth guard for all case endpoints MUST come before registerRoutes
+  // This prevents unauthorized access to patient medical data (HIPAA compliance)
+  app.use('/api/cases', requireAuth);
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

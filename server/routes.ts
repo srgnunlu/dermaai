@@ -5,12 +5,15 @@ import { ObjectStorageService } from "./objectStorage";
 import { analyzeWithGemini } from "./gemini";
 import { analyzeWithOpenAI } from "./openai";
 import { insertPatientSchema, insertCaseSchema } from "@shared/schema";
+import { requireAuth, requireCaseOwnership, logAccessAttempt } from "./middleware";
 import multer from "multer";
 import PDFDocument from "pdfkit";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Add access logging middleware for all protected endpoints
+  app.use('/api/cases', logAccessAttempt);
   // Object storage routes
   app.get("/objects/:objectPath(*)", async (req, res) => {
     const objectStorageService = new ObjectStorageService();
@@ -60,12 +63,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Case management and AI analysis
-  app.post("/api/cases/analyze", async (req, res) => {
+  app.post("/api/cases/analyze", requireAuth, async (req, res) => {
     try {
       const caseData = insertCaseSchema.parse(req.body);
       
-      // Create case record
-      const newCase = await storage.createCase(caseData);
+      // Create case record with authenticated user
+      const newCase = await storage.createCase(caseData, req.user!.id);
       
       // Start AI analysis in parallel
       const [geminiResult, openaiResult] = await Promise.allSettled([
@@ -98,7 +101,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const finalDiagnoses = combineAnalyses(geminiAnalysis, openaiAnalysis);
       
       // Update case with analysis results
-      const updatedCase = await storage.updateCase(newCase.id, {
+      const updatedCase = await storage.updateCase(newCase.id, req.user!.id, {
         geminiAnalysis,
         openaiAnalysis,
         finalDiagnoses,
@@ -112,9 +115,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/cases", async (req, res) => {
+  app.get("/api/cases", requireAuth, async (req, res) => {
     try {
-      const cases = await storage.getCases();
+      // Only return cases owned by the authenticated user
+      const cases = await storage.getCases(req.user!.id);
       res.json(cases);
     } catch (error) {
       console.error("Error fetching cases:", error);
@@ -122,11 +126,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/cases/:id", async (req, res) => {
+  app.get("/api/cases/:id", requireAuth, requireCaseOwnership, async (req, res) => {
     try {
-      const caseRecord = await storage.getCase(req.params.id);
+      // Case ownership already verified by requireCaseOwnership middleware
+      const caseRecord = await storage.getCase(req.params.id, req.user!.id);
       if (!caseRecord) {
-        return res.status(404).json({ error: "Case not found" });
+        return res.status(403).json({ error: "Access denied" });
       }
       res.json(caseRecord);
     } catch (error) {
@@ -136,11 +141,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PDF report generation endpoint
-  app.post("/api/cases/:id/report", async (req, res) => {
+  app.post("/api/cases/:id/report", requireAuth, requireCaseOwnership, async (req, res) => {
     try {
-      const caseRecord = await storage.getCase(req.params.id);
+      // Case ownership already verified by requireCaseOwnership middleware
+      const caseRecord = await storage.getCase(req.params.id, req.user!.id);
       if (!caseRecord) {
-        return res.status(404).json({ error: "Case not found" });
+        return res.status(403).json({ error: "Access denied" });
       }
 
       // Create a new PDF document

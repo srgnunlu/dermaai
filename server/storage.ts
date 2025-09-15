@@ -10,10 +10,10 @@ export interface IStorage {
   getPatient(id: string): Promise<Patient | undefined>;
   getPatientByPatientId(patientId: string): Promise<Patient | undefined>;
   
-  createCase(caseData: InsertCase): Promise<Case>;
-  getCase(id: string): Promise<Case | undefined>;
-  getCases(): Promise<Case[]>;
-  updateCase(id: string, updates: Partial<Case>): Promise<Case>;
+  createCase(caseData: InsertCase, userId: string): Promise<Case>;
+  getCase(id: string, userId: string): Promise<Case | undefined>;
+  getCases(userId: string): Promise<Case[]>;
+  updateCase(id: string, userId: string, updates: Partial<Case>): Promise<Case>;
 }
 
 export class MemStorage implements IStorage {
@@ -26,6 +26,17 @@ export class MemStorage implements IStorage {
     this.users = new Map();
     this.patients = new Map();
     this.cases = new Map();
+    
+    // Create a temporary dev user for testing authentication
+    // In production, this should be removed and handled by proper user registration
+    const devUserId = "dev-user-123";
+    const devUser: User = {
+      id: devUserId,
+      username: "dev-user",
+      password: "dev-password"
+    };
+    this.users.set(devUserId, devUser);
+    console.log(`[SECURITY] Created temporary dev user with ID: ${devUserId} for authentication testing`);
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -50,6 +61,9 @@ export class MemStorage implements IStorage {
     const patient: Patient = { 
       ...insertPatient, 
       id,
+      age: insertPatient.age ?? null,
+      gender: insertPatient.gender ?? null,
+      skinType: insertPatient.skinType ?? null,
       createdAt: new Date()
     };
     this.patients.set(id, patient);
@@ -66,13 +80,21 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async createCase(insertCase: InsertCase): Promise<Case> {
+  async createCase(insertCase: InsertCase, userId: string): Promise<Case> {
     const id = randomUUID();
     const caseId = `DR-${new Date().getFullYear()}-${String(this.caseCounter++).padStart(3, '0')}`;
     const caseRecord: Case = {
       ...insertCase,
       id,
       caseId,
+      userId,
+      patientId: insertCase.patientId ?? null,
+      lesionLocation: insertCase.lesionLocation ?? null,
+      symptoms: insertCase.symptoms ?? null,
+      medicalHistory: insertCase.medicalHistory ?? null,
+      geminiAnalysis: null,
+      openaiAnalysis: null,
+      finalDiagnoses: null,
       status: "pending",
       createdAt: new Date()
     };
@@ -80,20 +102,29 @@ export class MemStorage implements IStorage {
     return caseRecord;
   }
 
-  async getCase(id: string): Promise<Case | undefined> {
-    return this.cases.get(id);
+  async getCase(id: string, userId: string): Promise<Case | undefined> {
+    const caseRecord = this.cases.get(id);
+    // Only return the case if it belongs to the requesting user
+    if (caseRecord && caseRecord.userId === userId) {
+      return caseRecord;
+    }
+    return undefined;
   }
 
-  async getCases(): Promise<Case[]> {
-    return Array.from(this.cases.values()).sort(
-      (a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0)
-    );
+  async getCases(userId: string): Promise<Case[]> {
+    return Array.from(this.cases.values())
+      .filter(caseRecord => caseRecord.userId === userId)
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
   }
 
-  async updateCase(id: string, updates: Partial<Case>): Promise<Case> {
+  async updateCase(id: string, userId: string, updates: Partial<Case>): Promise<Case> {
     const existingCase = this.cases.get(id);
     if (!existingCase) {
       throw new Error("Case not found");
+    }
+    // Only allow updates if the case belongs to the requesting user
+    if (existingCase.userId !== userId) {
+      throw new Error("Unauthorized: Cannot access case");
     }
     const updatedCase = { ...existingCase, ...updates };
     this.cases.set(id, updatedCase);

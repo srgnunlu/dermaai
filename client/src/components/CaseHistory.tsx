@@ -101,6 +101,10 @@ export function CaseHistory() {
                             variant="ghost"
                             size="sm"
                             className="text-primary hover:underline"
+                            onClick={() => {
+                              // TODO: Navigate to case detail view
+                              alert(`Viewing case ${caseRecord.caseId}`);
+                            }}
                             data-testid={`button-view-${caseRecord.caseId}`}
                           >
                             <Eye size={14} className="mr-1" />
@@ -110,6 +114,10 @@ export function CaseHistory() {
                             variant="ghost"
                             size="sm"
                             className="text-secondary hover:underline"
+                            onClick={() => {
+                              // TODO: Generate and download PDF report
+                              alert(`Generating report for case ${caseRecord.caseId}`);
+                            }}
                             data-testid={`button-report-${caseRecord.caseId}`}
                           >
                             <FileText size={14} className="mr-1" />

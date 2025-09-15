@@ -62,26 +62,26 @@ export function PatientForm({ onSubmit, isLoading = false }: PatientFormProps) {
   };
 
   const dermatologicalSymptoms = [
-    "Kaşıntı (itching)",
-    "Ağrı (pain)",
-    "Yanma hissi (burning sensation)",
-    "Kızarıklık (redness)",
-    "Şişlik (swelling)",
-    "Sızıntı/akıntı (discharge/oozing)",
-    "Kabuklanma (crusting)",
-    "Pullanma (scaling)",
-    "Kuruluk (dryness)",
-    "Hassasiyet (sensitivity)",
-    "Numbness/uyuşma",
-    "Sertlik (hardness)"
+    "Itching (Kaşıntı)",
+    "Pain (Ağrı)", 
+    "Burning sensation (Yanma hissi)",
+    "Redness (Kızarıklık)",
+    "Swelling (Şişlik)",
+    "Discharge/oozing (Sızıntı/akıntı)",
+    "Crusting (Kabuklanma)",
+    "Scaling (Pullanma)",
+    "Dryness (Kuruluk)",
+    "Sensitivity (Hassasiyet)",
+    "Numbness (Uyuşma)",
+    "Hardness (Sertlik)"
   ];
 
   const symptomDurationOptions = [
-    { value: "less-than-1-day", label: "1 günden az (Less than 1 day)" },
-    { value: "1-7-days", label: "1-7 gün (1-7 days)" },
-    { value: "1-4-weeks", label: "1-4 hafta (1-4 weeks)" },
-    { value: "1-6-months", label: "1-6 ay (1-6 months)" },
-    { value: "more-than-6-months", label: "6 aydan fazla (More than 6 months)" }
+    { value: "less-than-1-day", label: "Less than 1 day (1 günden az)" },
+    { value: "1-7-days", label: "1-7 days (1-7 gün)" },
+    { value: "1-4-weeks", label: "1-4 weeks (1-4 hafta)" },
+    { value: "1-6-months", label: "1-6 months (1-6 ay)" },
+    { value: "more-than-6-months", label: "More than 6 months (6 aydan fazla)" }
   ];
 
   const medicalConditions = [
@@ -193,7 +193,7 @@ export function PatientForm({ onSubmit, isLoading = false }: PatientFormProps) {
             {/* Common Dermatological Symptoms */}
             <div>
               <Label className="text-sm font-medium text-foreground mb-4 block">
-                Common Dermatological Symptoms / Yaygın Dermatolojik Semptomlar
+                Common Dermatological Symptoms (Yaygın Dermatolojik Semptomlar)
               </Label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {dermatologicalSymptoms.map((symptom) => (
@@ -218,7 +218,7 @@ export function PatientForm({ onSubmit, isLoading = false }: PatientFormProps) {
             {/* Additional Symptoms */}
             <div>
               <Label htmlFor="additionalSymptoms" className="text-sm font-medium text-foreground mb-2">
-                Ek semptomlar ve açıklamalar (Additional symptoms and descriptions)
+                Additional symptoms and descriptions (Ek semptomlar ve açıklamalar)
               </Label>
               <Textarea
                 id="additionalSymptoms"
@@ -234,14 +234,14 @@ export function PatientForm({ onSubmit, isLoading = false }: PatientFormProps) {
             {/* Symptom Duration */}
             <div>
               <Label className="text-sm font-medium text-foreground mb-2">
-                Semptom Süresi (Symptom Duration)
+                Symptom Duration (Semptom Süresi)
               </Label>
               <Select 
                 value={formData.symptomDuration} 
                 onValueChange={(value) => setFormData(prev => ({ ...prev, symptomDuration: value }))}
               >
                 <SelectTrigger className="w-full" data-testid="select-symptom-duration">
-                  <SelectValue placeholder="Select duration / Süre seçiniz" />
+                  <SelectValue placeholder="Select duration (Süre seçiniz)" />
                 </SelectTrigger>
                 <SelectContent>
                   {symptomDurationOptions.map((option) => (

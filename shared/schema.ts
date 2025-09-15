@@ -154,11 +154,18 @@ export const insertUserSettingsSchema = createInsertSchema(userSettings).omit({
   updatedAt: true,
 });
 
-export const updateUserSettingsSchema = createInsertSchema(userSettings).partial().omit({
-  id: true,
-  userId: true,
-  createdAt: true,
-  updatedAt: true,
+export const updateUserSettingsSchema = z.object({
+  useGemini: z.boolean().optional(),
+  useOpenAI: z.boolean().optional(), 
+  confidenceThreshold: z.number().optional(),
+  autoSaveCases: z.boolean().optional(),
+  anonymizeData: z.boolean().optional(),
+  dataRetention: z.string().optional(),
+  theme: z.string().optional(),
+  compactMode: z.boolean().optional(),
+  analysisNotifications: z.boolean().optional(),
+  urgentAlerts: z.boolean().optional(),
+  soundNotifications: z.boolean().optional(),
 });
 
 export type InsertUserSettings = z.infer<typeof insertUserSettingsSchema>;

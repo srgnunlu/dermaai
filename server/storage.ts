@@ -412,7 +412,7 @@ export class DatabaseStorage implements IStorage {
       .from(cases);
     
     // Get unique user IDs
-    const userIds = [...new Set(allCases.map(c => c.userId))];
+    const userIds = Array.from(new Set(allCases.map(c => c.userId)));
     
     // Create a map of users
     const userMap = new Map<string, User>();

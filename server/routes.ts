@@ -266,7 +266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       for (const patientId of patientIds) {
         try {
-          const patient = await storage.getPatientByPatientId(patientId!);
+          const patient = await storage.getPatient(patientId!);
           if (patient) {
             patientMap.set(patientId, patient);
           }

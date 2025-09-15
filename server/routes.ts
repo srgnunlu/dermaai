@@ -581,6 +581,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create a new PDF document
       const doc = new PDFDocument({ margin: 50 });
       
+      // Configure font to support Turkish characters
+      doc.font('Helvetica');
+      
       // Set response headers for PDF download
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="Case-Report-${caseRecord.caseId}.pdf"`);

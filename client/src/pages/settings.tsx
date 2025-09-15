@@ -6,8 +6,112 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from "react";
+import { useTheme } from "@/providers/ThemeProvider";
+import type { UserSettings } from "@shared/schema";
 
 export default function SettingsPage() {
+  const { toast } = useToast();
+  const { setTheme } = useTheme();
+  
+  // Fetch current settings
+  const { data: settings, isLoading } = useQuery<UserSettings>({
+    queryKey: ['/api/settings'],
+  });
+
+  // Local state for controlled components
+  const [formData, setFormData] = useState<Partial<UserSettings>>({
+    useGemini: true,
+    useOpenAI: true,
+    confidenceThreshold: 40,
+    autoSaveCases: true,
+    anonymizeData: false,
+    dataRetention: "90",
+    theme: "system",
+    compactMode: false,
+    analysisNotifications: true,
+    urgentAlerts: true,
+    soundNotifications: false,
+  });
+
+  // Update local state when settings are fetched
+  useEffect(() => {
+    if (settings) {
+      setFormData({
+        useGemini: settings.useGemini ?? true,
+        useOpenAI: settings.useOpenAI ?? true,
+        confidenceThreshold: settings.confidenceThreshold ?? 40,
+        autoSaveCases: settings.autoSaveCases ?? true,
+        anonymizeData: settings.anonymizeData ?? false,
+        dataRetention: settings.dataRetention ?? "90",
+        theme: settings.theme ?? "system",
+        compactMode: settings.compactMode ?? false,
+        analysisNotifications: settings.analysisNotifications ?? true,
+        urgentAlerts: settings.urgentAlerts ?? true,
+        soundNotifications: settings.soundNotifications ?? false,
+      });
+    }
+  }, [settings]);
+
+  // Save settings mutation
+  const saveSettingsMutation = useMutation({
+    mutationFn: async (data: Partial<UserSettings>) => {
+      const response = await apiRequest('PUT', '/api/settings', data);
+      return response.json();
+    },
+    onSuccess: (updatedSettings: UserSettings) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
+      
+      // Apply theme immediately using ThemeProvider
+      setTheme(updatedSettings.theme as "light" | "dark" | "system" || "system");
+      
+      toast({
+        title: "Settings saved",
+        description: "Your preferences have been updated successfully.",
+      });
+    },
+    onError: (error: any) => {
+      console.error("Settings save error:", error);
+      
+      // Extract error message from response
+      const errorMessage = error?.response?.data?.message || 
+                          error?.response?.data?.error || 
+                          error?.message || 
+                          "Failed to save settings. Please try again.";
+      
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Sync theme from settings when they are loaded
+  useEffect(() => {
+    if (settings?.theme) {
+      setTheme(settings.theme as "light" | "dark" | "system");
+    }
+  }, [settings?.theme, setTheme]);
+
+  const handleSave = () => {
+    saveSettingsMutation.mutate(formData);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading settings...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
@@ -15,7 +119,7 @@ export default function SettingsPage() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <Link href="/">
-              <a className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
+              <a className="flex items-center space-x-2 hover:opacity-80 transition-opacity" data-testid="link-home">
                 <Microscope className="text-primary" size={28} />
                 <span className="text-xl font-bold text-foreground">DermaAI</span>
               </a>
@@ -23,29 +127,29 @@ export default function SettingsPage() {
             
             <nav className="hidden md:flex space-x-8">
               <Link href="/">
-                <a className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                <a className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" data-testid="link-diagnosis">
                   Diagnosis
                 </a>
               </Link>
               <Link href="/case-history">
-                <a className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                <a className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" data-testid="link-case-history">
                   Case History
                 </a>
               </Link>
               <Link href="/settings">
-                <a className="text-sm font-medium text-foreground transition-colors">
+                <a className="text-sm font-medium text-foreground transition-colors" data-testid="link-settings">
                   Settings
                 </a>
               </Link>
             </nav>
             
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" data-testid="button-notifications">
                 <Bell size={20} />
               </Button>
               <Link href="/profile">
                 <a>
-                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" data-testid="button-profile">
                     <User size={20} />
                   </Button>
                 </a>
@@ -73,15 +177,33 @@ export default function SettingsPage() {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="use-gemini">Use Gemini 2.5 Flash</Label>
-                  <Switch id="use-gemini" defaultChecked />
+                  <Switch 
+                    id="use-gemini" 
+                    checked={formData.useGemini}
+                    onCheckedChange={(checked) => setFormData({...formData, useGemini: checked})}
+                    data-testid="switch-use-gemini"
+                  />
                 </div>
                 <div className="flex items-center justify-between">
                   <Label htmlFor="use-openai">Use ChatGPT-5</Label>
-                  <Switch id="use-openai" defaultChecked />
+                  <Switch 
+                    id="use-openai" 
+                    checked={formData.useOpenAI}
+                    onCheckedChange={(checked) => setFormData({...formData, useOpenAI: checked})}
+                    data-testid="switch-use-openai"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confidence-threshold">Minimum Confidence Threshold (%)</Label>
-                  <Input type="number" id="confidence-threshold" defaultValue="40" min="0" max="100" />
+                  <Input 
+                    type="number" 
+                    id="confidence-threshold" 
+                    value={formData.confidenceThreshold}
+                    onChange={(e) => setFormData({...formData, confidenceThreshold: parseInt(e.target.value) || 0})}
+                    min="0" 
+                    max="100"
+                    data-testid="input-confidence-threshold"
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -98,16 +220,29 @@ export default function SettingsPage() {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="auto-save">Auto-save cases</Label>
-                  <Switch id="auto-save" defaultChecked />
+                  <Switch 
+                    id="auto-save" 
+                    checked={formData.autoSaveCases}
+                    onCheckedChange={(checked) => setFormData({...formData, autoSaveCases: checked})}
+                    data-testid="switch-auto-save"
+                  />
                 </div>
                 <div className="flex items-center justify-between">
                   <Label htmlFor="anonymize">Anonymize patient data</Label>
-                  <Switch id="anonymize" />
+                  <Switch 
+                    id="anonymize"
+                    checked={formData.anonymizeData}
+                    onCheckedChange={(checked) => setFormData({...formData, anonymizeData: checked})}
+                    data-testid="switch-anonymize"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="retention">Data retention period</Label>
-                  <Select defaultValue="90">
-                    <SelectTrigger id="retention">
+                  <Select 
+                    value={formData.dataRetention}
+                    onValueChange={(value) => setFormData({...formData, dataRetention: value})}
+                  >
+                    <SelectTrigger id="retention" data-testid="select-retention">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -134,8 +269,11 @@ export default function SettingsPage() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="theme">Theme</Label>
-                  <Select defaultValue="system">
-                    <SelectTrigger id="theme">
+                  <Select 
+                    value={formData.theme}
+                    onValueChange={(value) => setFormData({...formData, theme: value})}
+                  >
+                    <SelectTrigger id="theme" data-testid="select-theme">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -147,7 +285,12 @@ export default function SettingsPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <Label htmlFor="compact-mode">Compact mode</Label>
-                  <Switch id="compact-mode" />
+                  <Switch 
+                    id="compact-mode"
+                    checked={formData.compactMode}
+                    onCheckedChange={(checked) => setFormData({...formData, compactMode: checked})}
+                    data-testid="switch-compact-mode"
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -164,23 +307,43 @@ export default function SettingsPage() {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="analysis-complete">Analysis complete notifications</Label>
-                  <Switch id="analysis-complete" defaultChecked />
+                  <Switch 
+                    id="analysis-complete" 
+                    checked={formData.analysisNotifications}
+                    onCheckedChange={(checked) => setFormData({...formData, analysisNotifications: checked})}
+                    data-testid="switch-analysis-notifications"
+                  />
                 </div>
                 <div className="flex items-center justify-between">
                   <Label htmlFor="urgent-cases">Urgent case alerts</Label>
-                  <Switch id="urgent-cases" defaultChecked />
+                  <Switch 
+                    id="urgent-cases" 
+                    checked={formData.urgentAlerts}
+                    onCheckedChange={(checked) => setFormData({...formData, urgentAlerts: checked})}
+                    data-testid="switch-urgent-alerts"
+                  />
                 </div>
                 <div className="flex items-center justify-between">
                   <Label htmlFor="sound">Sound notifications</Label>
-                  <Switch id="sound" />
+                  <Switch 
+                    id="sound"
+                    checked={formData.soundNotifications}
+                    onCheckedChange={(checked) => setFormData({...formData, soundNotifications: checked})}
+                    data-testid="switch-sound-notifications"
+                  />
                 </div>
               </CardContent>
             </Card>
 
             {/* Save Button */}
             <div className="flex justify-end pt-4">
-              <Button className="bg-primary hover:bg-primary/90">
-                Save Settings
+              <Button 
+                className="bg-primary hover:bg-primary/90"
+                onClick={handleSave}
+                disabled={saveSettingsMutation.isPending}
+                data-testid="button-save-settings"
+              >
+                {saveSettingsMutation.isPending ? "Saving..." : "Save Settings"}
               </Button>
             </div>
           </div>

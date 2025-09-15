@@ -4,16 +4,219 @@ import { storage } from "./storage";
 import { ObjectStorageService } from "./objectStorage";
 import { analyzeWithGemini } from "./gemini";
 import { analyzeWithOpenAI } from "./openai";
-import { insertPatientSchema, insertCaseSchema } from "@shared/schema";
-import { requireAuth, requireCaseOwnership, logAccessAttempt } from "./middleware";
+import { insertPatientSchema, insertCaseSchema, updateUserSettingsSchema, updateUserProfileSchema } from "@shared/schema";
+import { setupAuth, isAuthenticated } from "./replitAuth";
+import { requireAdmin } from "./middleware";
 import multer from "multer";
 import PDFDocument from "pdfkit";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Add access logging middleware for all protected endpoints
-  app.use('/api/cases', logAccessAttempt);
+  // Auth middleware - setup Replit Auth
+  await setupAuth(app);
+
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+  
+  // Settings routes
+  app.get('/api/settings', isAuthenticated, async (req: any, res) => {
+    try {
+      console.log("GET /api/settings - Authenticated user:", req.user?.claims?.sub);
+      
+      const userId = req.user.claims.sub;
+      if (!userId) {
+        console.error("No userId found in authenticated user");
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+      
+      const settings = await storage.getUserSettings(userId);
+      console.log("Retrieved settings:", settings);
+      
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching settings - Full error:", error);
+      
+      if (error instanceof Error) {
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
+      
+      res.status(500).json({ error: "Failed to fetch settings" });
+    }
+  });
+
+  app.put('/api/settings', isAuthenticated, async (req: any, res) => {
+    try {
+      console.log("PUT /api/settings - Request body:", req.body);
+      console.log("Authenticated user:", req.user?.claims?.sub);
+      
+      const userId = req.user.claims.sub;
+      if (!userId) {
+        console.error("No userId found in authenticated user");
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+      
+      const settingsData = updateUserSettingsSchema.parse(req.body);
+      console.log("Parsed settings data:", settingsData);
+      
+      const updatedSettings = await storage.updateUserSettings(userId, settingsData);
+      console.log("Updated settings:", updatedSettings);
+      
+      res.json(updatedSettings);
+    } catch (error) {
+      console.error("Error updating settings - Full error:", error);
+      
+      if (error instanceof Error) {
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+        
+        // Send more specific error message
+        return res.status(400).json({ 
+          error: "Failed to update settings",
+          message: error.message,
+          details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
+      }
+      
+      res.status(400).json({ error: "Invalid settings data" });
+    }
+  });
+  
+  // Profile routes
+  app.get('/api/profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const [profile, stats] = await Promise.all([
+        storage.getUserProfile(userId),
+        storage.getUserStatistics(userId)
+      ]);
+      
+      if (!profile) {
+        return res.status(404).json({ error: "User profile not found" });
+      }
+      
+      res.json({
+        ...profile,
+        statistics: stats
+      });
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      res.status(500).json({ error: "Failed to fetch profile" });
+    }
+  });
+  
+  app.put('/api/profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const profileData = updateUserProfileSchema.parse(req.body);
+      const updatedProfile = await storage.updateUserProfile(userId, profileData);
+      
+      // Also return the updated statistics
+      const stats = await storage.getUserStatistics(userId);
+      
+      res.json({
+        ...updatedProfile,
+        statistics: stats
+      });
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      res.status(400).json({ error: "Invalid profile data" });
+    }
+  });
+  
+  app.get('/api/profile/stats', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const stats = await storage.getUserStatistics(userId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching statistics:", error);
+      res.status(500).json({ error: "Failed to fetch statistics" });
+    }
+  });
+  
+  // Admin routes
+  app.get('/api/admin/cases', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const cases = await storage.getAllCasesForAdmin();
+      res.json(cases);
+    } catch (error) {
+      console.error("Error fetching admin cases:", error);
+      res.status(500).json({ error: "Failed to fetch cases" });
+    }
+  });
+  
+  app.get('/api/admin/stats', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const stats = await storage.getSystemStatistics();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching system statistics:", error);
+      res.status(500).json({ error: "Failed to fetch statistics" });
+    }
+  });
+  
+  app.post('/api/admin/promote/:userId', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const updatedUser = await storage.promoteUserToAdmin(userId);
+      res.json({ 
+        message: `User ${updatedUser.email} promoted to admin`,
+        user: updatedUser 
+      });
+    } catch (error) {
+      console.error("Error promoting user to admin:", error);
+      res.status(500).json({ error: "Failed to promote user" });
+    }
+  });
+  
+  app.get('/api/admin/export/cases', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const cases = await storage.getAllCasesForAdmin();
+      
+      // Create CSV content
+      const csvHeaders = ['Case ID', 'User Email', 'Patient ID', 'Status', 'Created Date', 'Top Diagnosis', 'Confidence', 'Is Urgent'];
+      const csvRows = cases.map(c => {
+        const topDiagnosis = c.finalDiagnoses && c.finalDiagnoses[0] ? c.finalDiagnoses[0] : null;
+        return [
+          c.caseId,
+          c.user?.email || 'Unknown',
+          c.patientId || 'N/A',
+          c.status,
+          c.createdAt ? new Date(c.createdAt).toLocaleDateString() : 'N/A',
+          topDiagnosis?.name || 'N/A',
+          topDiagnosis?.confidence || 'N/A',
+          topDiagnosis?.isUrgent ? 'Yes' : 'No'
+        ];
+      });
+      
+      // Combine headers and rows
+      const csvContent = [
+        csvHeaders.join(','),
+        ...csvRows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ].join('\n');
+      
+      // Set response headers for CSV download
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="cases-export-${new Date().toISOString().split('T')[0]}.csv"`);
+      res.send(csvContent);
+      
+    } catch (error) {
+      console.error("Error exporting cases:", error);
+      res.status(500).json({ error: "Failed to export cases" });
+    }
+  });
+  
   // Object storage routes
   app.get("/objects/:objectPath(*)", async (req, res) => {
     const objectStorageService = new ObjectStorageService();
@@ -63,22 +266,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Case management and AI analysis
-  app.post("/api/cases/analyze", requireAuth, async (req, res) => {
+  app.post("/api/cases/analyze", isAuthenticated, async (req: any, res) => {
     try {
       const caseData = insertCaseSchema.parse(req.body);
       
       // Create case record with authenticated user
-      const newCase = await storage.createCase(caseData, req.user!.id);
+      const userId = req.user.claims.sub;
+      const newCase = await storage.createCase(caseData, userId);
       
       // Start AI analysis in parallel
       const [geminiResult, openaiResult] = await Promise.allSettled([
         analyzeWithGemini(caseData.imageUrl, caseData.symptoms || "", {
-          lesionLocation: caseData.lesionLocation,
-          medicalHistory: caseData.medicalHistory
+          lesionLocation: caseData.lesionLocation || undefined,
+          medicalHistory: (caseData.medicalHistory as string[]) || undefined
         }),
         analyzeWithOpenAI(caseData.imageUrl, caseData.symptoms || "", {
-          lesionLocation: caseData.lesionLocation,
-          medicalHistory: caseData.medicalHistory
+          lesionLocation: caseData.lesionLocation || undefined,
+          medicalHistory: (caseData.medicalHistory as string[]) || undefined
         })
       ]);
 
@@ -101,7 +305,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const finalDiagnoses = combineAnalyses(geminiAnalysis, openaiAnalysis);
       
       // Update case with analysis results
-      const updatedCase = await storage.updateCase(newCase.id, req.user!.id, {
+      const updatedCase = await storage.updateCase(newCase.id, userId, {
         geminiAnalysis,
         openaiAnalysis,
         finalDiagnoses,
@@ -115,10 +319,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/cases", requireAuth, async (req, res) => {
+  app.get("/api/cases", isAuthenticated, async (req: any, res) => {
     try {
       // Only return cases owned by the authenticated user
-      const cases = await storage.getCases(req.user!.id);
+      const userId = req.user.claims.sub;
+      const cases = await storage.getCases(userId);
       res.json(cases);
     } catch (error) {
       console.error("Error fetching cases:", error);
@@ -126,10 +331,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/cases/:id", requireAuth, requireCaseOwnership, async (req, res) => {
+  app.get("/api/cases/:id", isAuthenticated, async (req: any, res) => {
     try {
-      // Case ownership already verified by requireCaseOwnership middleware
-      const caseRecord = await storage.getCase(req.params.id, req.user!.id);
+      const userId = req.user.claims.sub;
+      const caseRecord = await storage.getCase(req.params.id, userId);
       if (!caseRecord) {
         return res.status(403).json({ error: "Access denied" });
       }
@@ -141,10 +346,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PDF report generation endpoint
-  app.post("/api/cases/:id/report", requireAuth, requireCaseOwnership, async (req, res) => {
+  app.post("/api/cases/:id/report", isAuthenticated, async (req: any, res) => {
     try {
-      // Case ownership already verified by requireCaseOwnership middleware
-      const caseRecord = await storage.getCase(req.params.id, req.user!.id);
+      const userId = req.user.claims.sub;
+      const caseRecord = await storage.getCase(req.params.id, userId);
       if (!caseRecord) {
         return res.status(403).json({ error: "Access denied" });
       }

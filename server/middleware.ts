@@ -2,13 +2,15 @@ import { Request, Response, NextFunction } from "express";
 import { storage } from "./storage";
 
 // Extend Express Request type to include user information
+// Note: This extends the passport user type, not our custom user type
 declare global {
   namespace Express {
+    interface CustomUser {
+      id: string;
+      email: string | null;
+    }
     interface Request {
-      user?: {
-        id: string;
-        username: string;
-      };
+      customUser?: CustomUser;
     }
   }
 }
@@ -48,13 +50,13 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     }
 
     // Attach user to request for use in route handlers
-    req.user = {
+    req.customUser = {
       id: user.id,
-      username: user.username
+      email: user.email
     };
 
     // Log access for audit trail
-    logAccess(req, user.id, user.username);
+    logAccess(req, user.id, user.email || 'unknown');
 
     next();
   } catch (error) {
@@ -69,7 +71,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 // Authorization middleware - verifies user owns the requested case
 export async function requireCaseOwnership(req: Request, res: Response, next: NextFunction) {
   try {
-    if (!req.user) {
+    if (!req.customUser) {
       return res.status(401).json({ 
         error: "Authentication required", 
         message: "User not authenticated" 
@@ -85,7 +87,7 @@ export async function requireCaseOwnership(req: Request, res: Response, next: Ne
     }
 
     // Check if user owns this case
-    const caseRecord = await storage.getCase(caseId, req.user.id);
+    const caseRecord = await storage.getCase(caseId, req.customUser.id);
     
     if (!caseRecord) {
       // Don't reveal whether case exists or user doesn't have access
@@ -96,7 +98,7 @@ export async function requireCaseOwnership(req: Request, res: Response, next: Ne
     }
 
     // Log access attempt for audit trail
-    logAccess(req, req.user.id, req.user.username, `Accessed case ${caseId}`);
+    logAccess(req, req.customUser.id, req.customUser.email || 'unknown', `Accessed case ${caseId}`);
 
     next();
   } catch (error) {
@@ -108,8 +110,52 @@ export async function requireCaseOwnership(req: Request, res: Response, next: Ne
   }
 }
 
+// Admin role check middleware - works with Replit Auth
+export async function requireAdmin(req: Request & { user?: any }, res: Response, next: NextFunction) {
+  try {
+    // Check if user is authenticated via Replit Auth
+    if (!req.user || !req.user.claims) {
+      return res.status(401).json({ 
+        error: "Authentication required", 
+        message: "Please login to access admin resources" 
+      });
+    }
+
+    const userId = req.user.claims.sub;
+    if (!userId) {
+      return res.status(401).json({ 
+        error: "Invalid authentication", 
+        message: "User ID not found in authentication token" 
+      });
+    }
+
+    // Get user from storage to check role
+    const user = await storage.getUser(userId);
+    
+    if (!user || user.role !== 'admin') {
+      // Log unauthorized admin access attempt
+      console.log(`[SECURITY] Unauthorized admin access attempt by user: ${user?.email || 'unknown'} (${userId})`);
+      return res.status(403).json({ 
+        error: "Access denied", 
+        message: "Admin privileges required to access this resource" 
+      });
+    }
+
+    // Log successful admin access
+    logAccess(req, userId, user.email || 'unknown', `Admin access to ${req.path}`);
+    
+    next();
+  } catch (error) {
+    console.error("Admin authorization error:", error);
+    return res.status(500).json({ 
+      error: "Authorization failed", 
+      message: "Internal server error during admin authorization" 
+    });
+  }
+}
+
 // Access logging for audit trail
-function logAccess(req: Request, userId: string, username: string, additionalInfo?: string) {
+function logAccess(req: Request, userId: string, userEmail: string, additionalInfo?: string) {
   const timestamp = new Date().toISOString();
   const method = req.method;
   const path = req.path;
@@ -119,7 +165,7 @@ function logAccess(req: Request, userId: string, username: string, additionalInf
   const logEntry = {
     timestamp,
     userId,
-    username,
+    userEmail,
     method,
     path,
     ip,
@@ -128,7 +174,7 @@ function logAccess(req: Request, userId: string, username: string, additionalInf
   };
 
   // Log to console for now - in production this should go to a secure audit log
-  console.log(`[AUDIT] ${timestamp} | User: ${username} (${userId}) | ${method} ${path} | IP: ${ip} | ${additionalInfo || 'API access'}`);
+  console.log(`[AUDIT] ${timestamp} | User: ${userEmail} (${userId}) | ${method} ${path} | IP: ${ip} | ${additionalInfo || 'API access'}`);
   
   // TODO: In production, send to secure audit logging service
   // auditLogger.log(logEntry);

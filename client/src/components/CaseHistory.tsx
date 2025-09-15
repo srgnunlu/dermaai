@@ -1,14 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { History, Eye, FileText } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import type { Case } from "@shared/schema";
 
 export function CaseHistory() {
   const { data: cases = [], isLoading } = useQuery<Case[]>({
     queryKey: ["/api/cases"],
   });
+  const { toast } = useToast();
 
   const getConfidenceColor = (confidence: number) => {
     if (confidence >= 80) return "text-success";
@@ -102,8 +105,12 @@ export function CaseHistory() {
                             size="sm"
                             className="text-primary hover:underline"
                             onClick={() => {
-                              // TODO: Navigate to case detail view
-                              alert(`Viewing case ${caseRecord.caseId}`);
+                              toast({
+                                title: "Case Details",
+                                description: `Opening detailed view for case ${caseRecord.caseId}`,
+                              });
+                              // TODO: Navigate to case detail view  
+                              console.log('Viewing case:', caseRecord);
                             }}
                             data-testid={`button-view-${caseRecord.caseId}`}
                           >
@@ -115,8 +122,12 @@ export function CaseHistory() {
                             size="sm"
                             className="text-secondary hover:underline"
                             onClick={() => {
+                              toast({
+                                title: "Report Generation",
+                                description: `Generating medical report for case ${caseRecord.caseId}`,
+                              });
                               // TODO: Generate and download PDF report
-                              alert(`Generating report for case ${caseRecord.caseId}`);
+                              console.log('Generating report for case:', caseRecord);
                             }}
                             data-testid={`button-report-${caseRecord.caseId}`}
                           >

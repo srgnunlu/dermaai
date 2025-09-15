@@ -36,8 +36,12 @@ export interface IStorage {
   // Case operations
   createCase(caseData: InsertCase, userId: string): Promise<Case>;
   getCase(id: string, userId: string): Promise<Case | undefined>;
+  getCaseForAdmin(id: string): Promise<Case | undefined>;
+  getCaseByCaseId(caseId: string, userId: string): Promise<Case | undefined>;
+  getCaseByCaseIdForAdmin(caseId: string): Promise<Case | undefined>;
   getCases(userId: string): Promise<Case[]>;
   updateCase(id: string, userId: string, updates: Partial<Case>): Promise<Case>;
+  deleteCase(id: string): Promise<boolean>;
   
   // Settings operations
   getUserSettings(userId: string): Promise<UserSettings>;
@@ -56,6 +60,7 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   promoteUserToAdmin(userId: string): Promise<User>;
   demoteUserFromAdmin(userId: string): Promise<User>;
+  deleteUser(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -248,6 +253,37 @@ export class DatabaseStorage implements IStorage {
     return undefined;
   }
 
+  async getCaseForAdmin(id: string): Promise<Case | undefined> {
+    const [caseRecord] = await db
+      .select()
+      .from(cases)
+      .where(eq(cases.id, id));
+    
+    return caseRecord;
+  }
+
+  async getCaseByCaseId(caseId: string, userId: string): Promise<Case | undefined> {
+    const [caseRecord] = await db
+      .select()
+      .from(cases)
+      .where(eq(cases.caseId, caseId));
+    
+    // Only return the case if it belongs to the requesting user
+    if (caseRecord && caseRecord.userId === userId) {
+      return caseRecord;
+    }
+    return undefined;
+  }
+
+  async getCaseByCaseIdForAdmin(caseId: string): Promise<Case | undefined> {
+    const [caseRecord] = await db
+      .select()
+      .from(cases)
+      .where(eq(cases.caseId, caseId));
+    
+    return caseRecord;
+  }
+
   async getCases(userId: string): Promise<Case[]> {
     const userCases = await db
       .select()
@@ -275,6 +311,19 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return updatedCase;
+  }
+
+  async deleteCase(id: string): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(cases)
+        .where(eq(cases.id, id));
+      
+      return result.rowCount ? result.rowCount > 0 : false;
+    } catch (error) {
+      console.error("Error deleting case:", error);
+      return false;
+    }
   }
 
   // Settings operations
@@ -489,6 +538,26 @@ export class DatabaseStorage implements IStorage {
     
     console.log(`[ADMIN] User ${updatedUser.email} (${userId}) demoted from admin role`);
     return updatedUser;
+  }
+
+  async deleteUser(id: string): Promise<boolean> {
+    try {
+      // First delete user's cases
+      await db.delete(cases).where(eq(cases.userId, id));
+      
+      // Then delete user's settings
+      await db.delete(userSettings).where(eq(userSettings.userId, id));
+      
+      // Finally delete the user
+      const result = await db
+        .delete(users)
+        .where(eq(users.id, id));
+      
+      return result.rowCount ? result.rowCount > 0 : false;
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      return false;
+    }
   }
 }
 

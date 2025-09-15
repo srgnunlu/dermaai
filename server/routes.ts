@@ -259,6 +259,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to export cases" });
     }
   });
+
+  // Admin delete case endpoint
+  app.delete('/api/admin/cases/:id', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const caseId = req.params.id;
+      
+      // Verify case exists before deletion
+      const existingCase = await storage.getCaseForAdmin(caseId);
+      if (!existingCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+      
+      const success = await storage.deleteCase(caseId);
+      
+      if (success) {
+        res.json({ message: `Case ${existingCase.caseId} deleted successfully` });
+      } else {
+        res.status(500).json({ error: "Failed to delete case" });
+      }
+    } catch (error) {
+      console.error("Error deleting case:", error);
+      res.status(500).json({ error: "Failed to delete case" });
+    }
+  });
+
+  // Admin delete user endpoint
+  app.delete('/api/admin/users/:id', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const userId = req.params.id;
+      const adminUserId = req.user.claims.sub;
+      
+      // Prevent admin from deleting themselves
+      if (userId === adminUserId) {
+        return res.status(400).json({ error: "Cannot delete your own account" });
+      }
+      
+      // Verify user exists before deletion
+      const existingUser = await storage.getUser(userId);
+      if (!existingUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      const success = await storage.deleteUser(userId);
+      
+      if (success) {
+        res.json({ message: `User ${existingUser.email} deleted successfully` });
+      } else {
+        res.status(500).json({ error: "Failed to delete user" });
+      }
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ error: "Failed to delete user" });
+    }
+  });
   
   // Object storage routes
   app.get("/objects/:objectPath(*)", async (req, res) => {
@@ -392,10 +446,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/cases/:id/report", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const caseRecord = await storage.getCase(req.params.id, userId);
-      if (!caseRecord) {
-        return res.status(403).json({ error: "Access denied" });
+      const parameter = req.params.id;
+      
+      // Debug logging to track parameter types and lookup attempts
+      console.log(`[REPORT] Parameter received: "${parameter}", User: ${userId}`);
+      
+      // Check if user is admin
+      const user = await storage.getUser(userId);
+      const isAdmin = user && user.role === 'admin';
+      console.log(`[REPORT] User role: ${user?.role || 'unknown'}, Is admin: ${isAdmin}`);
+      
+      let caseRecord;
+      
+      // Determine if parameter is a caseId (starts with "DR-") or UUID
+      const isCaseId = parameter.startsWith('DR-');
+      console.log(`[REPORT] Parameter type detected: ${isCaseId ? 'caseId' : 'UUID id'}`);
+      
+      if (isAdmin) {
+        // Admins can access any case - try both lookup methods
+        if (isCaseId) {
+          console.log(`[REPORT] Admin lookup by caseId: ${parameter}`);
+          caseRecord = await storage.getCaseByCaseIdForAdmin(parameter);
+          
+          // Fallback to UUID lookup if caseId lookup fails
+          if (!caseRecord) {
+            console.log(`[REPORT] Admin caseId lookup failed, trying UUID lookup: ${parameter}`);
+            caseRecord = await storage.getCaseForAdmin(parameter);
+          }
+        } else {
+          console.log(`[REPORT] Admin lookup by UUID: ${parameter}`);
+          caseRecord = await storage.getCaseForAdmin(parameter);
+          
+          // Fallback to caseId lookup if UUID lookup fails
+          if (!caseRecord) {
+            console.log(`[REPORT] Admin UUID lookup failed, trying caseId lookup: ${parameter}`);
+            caseRecord = await storage.getCaseByCaseIdForAdmin(parameter);
+          }
+        }
+      } else {
+        // Regular users can only access their own cases - try both lookup methods
+        if (isCaseId) {
+          console.log(`[REPORT] User lookup by caseId: ${parameter}, userId: ${userId}`);
+          caseRecord = await storage.getCaseByCaseId(parameter, userId);
+          
+          // Fallback to UUID lookup if caseId lookup fails
+          if (!caseRecord) {
+            console.log(`[REPORT] User caseId lookup failed, trying UUID lookup: ${parameter}`);
+            caseRecord = await storage.getCase(parameter, userId);
+          }
+        } else {
+          console.log(`[REPORT] User lookup by UUID: ${parameter}, userId: ${userId}`);
+          caseRecord = await storage.getCase(parameter, userId);
+          
+          // Fallback to caseId lookup if UUID lookup fails
+          if (!caseRecord) {
+            console.log(`[REPORT] User UUID lookup failed, trying caseId lookup: ${parameter}`);
+            caseRecord = await storage.getCaseByCaseId(parameter, userId);
+          }
+        }
       }
+      
+      console.log(`[REPORT] Case lookup result: ${caseRecord ? 'Found' : 'Not found'} for parameter: ${parameter}`);
+      
+      if (!caseRecord) {
+        console.log(`[REPORT] Case not found or access denied for parameter: ${parameter}, user: ${userId}`);
+        return res.status(404).json({ error: "Case not found" });
+      }
+      
+      console.log(`[REPORT] Generating PDF for case: ${caseRecord.caseId} (UUID: ${caseRecord.id})`);
+    
 
       // Create a new PDF document
       const doc = new PDFDocument({ margin: 50 });

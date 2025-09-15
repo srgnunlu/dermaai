@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   Table,
   TableBody,
@@ -15,14 +15,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download, Search, Users, FileText, CheckCircle, Clock, AlertCircle, Eye, FileDown, UserCog, Shield, UserX } from "lucide-react";
+import { Download, Search, Users, FileText, CheckCircle, Clock, AlertCircle, Eye, FileDown, UserCog, Shield, UserX, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 
 export default function AdminPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -34,6 +34,8 @@ export default function AdminPage() {
   const [userSearchTerm, setUserSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [isChangingRole, setIsChangingRole] = useState<string | null>(null);
+  const [isDeletingCase, setIsDeletingCase] = useState<string | null>(null);
+  const [isDeletingUser, setIsDeletingUser] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Handle individual case view
@@ -97,6 +99,66 @@ export default function AdminPage() {
   const { data: users = [], isLoading: usersLoading } = useQuery({
     queryKey: ["/api/admin/users"],
   });
+
+  // Delete case mutation
+  const deleteCaseMutation = useMutation({
+    mutationFn: async (caseId: string) => {
+      return apiRequest(`/api/admin/cases/${caseId}`, {
+        method: "DELETE",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/cases'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/stats'] });
+      toast({
+        title: "Case deleted successfully",
+        description: "The case has been permanently deleted.",
+      });
+    },
+    onError: (error: any) => {
+      console.error("Error deleting case:", error);
+      toast({
+        title: "Failed to delete case",
+        description: error?.message || "An error occurred while deleting the case.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete user mutation
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      return apiRequest(`/api/admin/users/${userId}`, {
+        method: "DELETE",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/stats'] });
+      toast({
+        title: "User deleted successfully",
+        description: "The user and all their data have been permanently deleted.",
+      });
+    },
+    onError: (error: any) => {
+      console.error("Error deleting user:", error);
+      toast({
+        title: "Failed to delete user",
+        description: error?.message || "An error occurred while deleting the user.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Handle case deletion
+  const handleDeleteCase = async (caseId: string) => {
+    deleteCaseMutation.mutate(caseId);
+  };
+
+  // Handle user deletion
+  const handleDeleteUser = async (userId: string) => {
+    deleteUserMutation.mutate(userId);
+  };
 
   // Handle user role changes
   const handlePromoteUser = async (userId: string, userEmail: string) => {
@@ -542,6 +604,38 @@ export default function AdminPage() {
                                   <FileDown className="w-4 h-4 mr-1" />
                                   {isExporting === caseItem.id ? "Exporting..." : "Export"}
                                 </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      disabled={deleteCaseMutation.isPending}
+                                      data-testid={`button-delete-case-${caseItem.id}`}
+                                    >
+                                      <Trash2 className="w-4 h-4 mr-1" />
+                                      Delete
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Case</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to delete case {caseItem.caseId}? 
+                                        This action cannot be undone and will permanently remove all case data.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => handleDeleteCase(caseItem.id)}
+                                        data-testid={`confirm-delete-case-${caseItem.id}`}
+                                        className="bg-red-600 hover:bg-red-700"
+                                      >
+                                        Delete Case
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -709,6 +803,38 @@ export default function AdminPage() {
                                     </AlertDialogContent>
                                   </AlertDialog>
                                 )}
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      disabled={deleteUserMutation.isPending}
+                                      data-testid={`button-delete-user-${user.id}`}
+                                    >
+                                      <Trash2 className="w-4 h-4 mr-1" />
+                                      Delete
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete User</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to delete {user.email}? 
+                                        This action cannot be undone and will permanently remove the user and all their data.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => handleDeleteUser(user.id)}
+                                        data-testid={`confirm-delete-user-${user.id}`}
+                                        className="bg-red-600 hover:bg-red-700"
+                                      >
+                                        Delete User
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                               </div>
                             </TableCell>
                           </TableRow>

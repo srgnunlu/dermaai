@@ -1,9 +1,10 @@
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { History, Eye, FileText } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { History, Eye, FileText, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Case } from "@shared/schema";
 
@@ -12,6 +13,8 @@ export function CaseHistory() {
     queryKey: ["/api/cases"],
   });
   const { toast } = useToast();
+  const [selectedCase, setSelectedCase] = useState<Case | null>(null);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
   const getConfidenceColor = (confidence: number) => {
     if (confidence >= 80) return "text-success";
@@ -43,14 +46,15 @@ export function CaseHistory() {
   }
 
   return (
-    <Card className="bg-card border border-border shadow-sm">
-      <div className="px-6 py-4 border-b border-border">
-        <h3 className="text-lg font-semibold text-foreground flex items-center">
-          <History className="text-primary mr-2" size={20} />
-          Recent Cases
-        </h3>
-      </div>
-      <CardContent className="p-6">
+    <>
+      <Card className="bg-card border border-border shadow-sm">
+        <div className="px-6 py-4 border-b border-border">
+          <h3 className="text-lg font-semibold text-foreground flex items-center">
+            <History className="text-primary mr-2" size={20} />
+            Recent Cases
+          </h3>
+        </div>
+        <CardContent className="p-6">
         {cases.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-muted-foreground">No cases found</p>
@@ -105,8 +109,7 @@ export function CaseHistory() {
                             size="sm"
                             className="text-primary hover:underline"
                             onClick={() => {
-                              alert(`Viewing case ${caseRecord.caseId}`);
-                              console.log('Viewing case:', caseRecord);
+                              setSelectedCase(caseRecord);
                             }}
                             data-testid={`button-view-${caseRecord.caseId}`}
                           >
@@ -117,14 +120,49 @@ export function CaseHistory() {
                             variant="ghost"
                             size="sm"
                             className="text-secondary hover:underline"
-                            onClick={() => {
-                              alert(`Generating report for case ${caseRecord.caseId}`);
-                              console.log('Generating report for case:', caseRecord);
+                            onClick={async () => {
+                              setIsGeneratingReport(true);
+                              try {
+                                const response = await fetch(`/api/cases/${caseRecord.id}/report`, {
+                                  method: 'POST',
+                                });
+                                
+                                if (response.ok) {
+                                  const blob = await response.blob();
+                                  const url = window.URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = `Case-Report-${caseRecord.caseId}.pdf`;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  window.URL.revokeObjectURL(url);
+                                  document.body.removeChild(a);
+                                  
+                                  toast({
+                                    title: "Report Generated",
+                                    description: `Medical report for case ${caseRecord.caseId} has been downloaded.`,
+                                  });
+                                } else {
+                                  throw new Error('Failed to generate report');
+                                }
+                              } catch (error) {
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to generate report. Please try again.",
+                                  variant: "destructive",
+                                });
+                              } finally {
+                                setIsGeneratingReport(false);
+                              }
                             }}
                             data-testid={`button-report-${caseRecord.caseId}`}
                           >
-                            <FileText size={14} className="mr-1" />
-                            Report
+                            {isGeneratingReport ? (
+                              <Download size={14} className="mr-1 animate-spin" />
+                            ) : (
+                              <FileText size={14} className="mr-1" />
+                            )}
+                            {isGeneratingReport ? "Generating..." : "Report"}
                           </Button>
                         </div>
                       </td>
@@ -149,5 +187,65 @@ export function CaseHistory() {
         )}
       </CardContent>
     </Card>
+    
+    {/* Case Detail Modal */}
+    <Dialog open={!!selectedCase} onOpenChange={() => setSelectedCase(null)}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Case Details - {selectedCase?.caseId}</DialogTitle>
+        </DialogHeader>
+        {selectedCase && (
+          <div className="space-y-6">
+            {/* Case Info */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h4 className="font-semibold text-sm text-muted-foreground">Case ID</h4>
+                <p className="font-mono">{selectedCase.caseId}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-sm text-muted-foreground">Date</h4>
+                <p>{formatDate(selectedCase.createdAt)}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-sm text-muted-foreground">Patient ID</h4>
+                <p>{selectedCase.patientId}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-sm text-muted-foreground">Status</h4>
+                <Badge variant={selectedCase.status === 'completed' ? 'default' : 'secondary'}>
+                  {selectedCase.status}
+                </Badge>
+              </div>
+            </div>
+            
+            {/* Diagnoses */}
+            {selectedCase.finalDiagnoses && selectedCase.finalDiagnoses.length > 0 && (
+              <div>
+                <h4 className="font-semibold mb-3">AI Diagnosis Results</h4>
+                <div className="space-y-3">
+                  {selectedCase.finalDiagnoses.slice(0, 3).map((diagnosis, index) => (
+                    <div key={index} className="border rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <h5 className="font-medium">{diagnosis.name}</h5>
+                        <Badge variant={diagnosis.confidence >= 80 ? 'default' : 'secondary'}>
+                          {diagnosis.confidence}%
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-2">{diagnosis.description}</p>
+                      {diagnosis.keyFeatures.length > 0 && (
+                        <div className="text-xs">
+                          <span className="font-medium">Key Features:</span> {diagnosis.keyFeatures.join(', ')}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

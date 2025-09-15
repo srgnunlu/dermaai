@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ImageUpload } from "@/components/ImageUpload";
 import { PatientForm } from "@/components/PatientForm";
@@ -128,18 +129,28 @@ export default function DiagnosisPage() {
               </div>
             </div>
             <nav className="hidden md:flex space-x-6">
-              <a href="#" className="text-primary font-medium" data-testid="link-diagnosis">Diagnosis</a>
-              <a href="#" className="text-muted-foreground hover:text-foreground" data-testid="link-case-history">Case History</a>
-              <a href="#" className="text-muted-foreground hover:text-foreground" data-testid="link-settings">Settings</a>
+              <Link href="/">
+                <a className="text-primary font-medium" data-testid="link-diagnosis">Diagnosis</a>
+              </Link>
+              <Link href="/case-history">
+                <a className="text-muted-foreground hover:text-foreground" data-testid="link-case-history">Case History</a>
+              </Link>
+              <Link href="/settings">
+                <a className="text-muted-foreground hover:text-foreground" data-testid="link-settings">Settings</a>
+              </Link>
             </nav>
             <div className="flex items-center space-x-4">
               <Button variant="ghost" size="sm" className="text-muted-foreground" data-testid="button-alerts">
                 <Bell size={16} className="mr-2" />
                 Alerts
               </Button>
-              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-sm font-medium">
-                <User size={16} />
-              </div>
+              <Link href="/profile">
+                <a>
+                  <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-sm font-medium hover:opacity-80 transition-opacity cursor-pointer" data-testid="button-profile">
+                    <User size={16} />
+                  </div>
+                </a>
+              </Link>
             </div>
           </div>
         </div>

@@ -5,14 +5,14 @@ DermaAssistAI, yapay zeka destekli cilt hastalıkları teşhis sistemidir. OpenA
 ## 🚀 Özellikler
 
 - **AI Destekli Teşhis**: OpenAI ve Gemini modellerini kullanarak cilt lezyonu analizi
-- **Hasta Yönetimi**: Hasta bilgileri ve vaka geçmişi yönetimi 
+- **Hasta Yönetimi**: Hasta bilgileri ve vaka geçmişi yönetimi
 - **Rapor Oluşturma**: PDF formatında teşhis raporları
 - **Admin Paneli**: Sistem yönetimi ve istatistikler
 - **Modern UI**: React + TypeScript + Tailwind CSS ile responsive tasarım
 
 ## 📋 Gereksinimler
 
-- **Node.js** 18+ 
+- **Node.js** 18+
 - **PostgreSQL** veritabanı (Neon Database önerilir)
 - **OpenAI API Key** (GPT-5-mini model erişimi için)
 - **Gemini API Key** (Google AI Studio'dan alınabilir)
@@ -21,8 +21,8 @@ DermaAssistAI, yapay zeka destekli cilt hastalıkları teşhis sistemidir. OpenA
 
 ### 1. Projeyi İndirin
 ```bash
-git clone <repository-url>
-cd DermaAssistAI
+git clone https://github.com/srgnunlu/dermaai.git
+cd dermaai
 ```
 
 ### 2. Dependencies Yükleyin
@@ -80,7 +80,7 @@ npm run build
 npm start
 ```
 
-Uygulama `http://localhost:5000` adresinde çalışacaktır.
+Uygulama `http://localhost:3000` adresinde çalışacaktır.
 
 ## 🔑 API Keys Nasıl Alınır
 
@@ -122,7 +122,7 @@ RUN npm run build
 # Upload directory
 RUN mkdir -p uploads/images
 
-EXPOSE 5000
+EXPOSE 3000
 
 CMD ["npm", "start"]
 ```
@@ -130,7 +130,7 @@ CMD ["npm", "start"]
 2. **Docker Image Build:**
 ```bash
 docker build -t derma-assist-ai .
-docker run -p 5000:5000 --env-file .env derma-assist-ai
+docker run -p 3000:3000 --env-file .env derma-assist-ai
 ```
 
 ### VPS Deployment
@@ -245,4 +245,3 @@ Sorunlarınız için GitHub Issues kullanabilirsiniz.
 ---
 
 **Not**: Bu sistem eğitim/demo amaçlıdır. Gerçek tıbbi teşhis için mutlaka uzman doktor görüşü alınmalıdır.
-

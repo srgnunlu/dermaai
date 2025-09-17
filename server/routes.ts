@@ -564,7 +564,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         geminiAnalysis = geminiResult.value;
       } else {
         console.error("Gemini analysis failed:", geminiResult.reason);
-        analysisErrors.push({ provider: 'gemini', message: String(geminiResult.reason) });
+        const reason: any = geminiResult.reason;
+        if (reason && typeof reason.toJSON === 'function') {
+          analysisErrors.push(reason.toJSON());
+        } else if (reason?.info) {
+          analysisErrors.push(reason.info);
+        } else {
+          analysisErrors.push({ provider: 'gemini', message: String(reason) });
+        }
       }
 
       if (openaiResult.status === "fulfilled") {

@@ -1,5 +1,26 @@
 import { GoogleGenAI } from "@google/genai";
 
+type GeminiErrorInfo = {
+  provider: "gemini";
+  code: string;
+  message: string;
+  hint?: string;
+  httpStatus?: number;
+  details?: Record<string, any>;
+};
+
+class GeminiAnalysisError extends Error {
+  info: GeminiErrorInfo;
+  constructor(info: GeminiErrorInfo) {
+    super(info.message);
+    this.name = "GeminiAnalysisError";
+    this.info = info;
+  }
+  toJSON() {
+    return this.info;
+  }
+}
+
 // the newest Gemini model is "gemini-2.5-flash" - do not change this unless explicitly requested by the user
 const ai = new GoogleGenAI({ 
   apiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "" 
@@ -83,52 +104,113 @@ Respond with JSON in this exact format:
       systemPrompt,
     ];
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: "object",
-          properties: {
-            diagnoses: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  name: { type: "string" },
-                  confidence: { type: "number" },
-                  description: { type: "string" },
-                  keyFeatures: { type: "array", items: { type: "string" } },
-                  recommendations: { type: "array", items: { type: "string" } }
-                },
-                required: ["name", "confidence", "description", "keyFeatures", "recommendations"]
-              }
+    const maxRetries = Number(process.env.GEMINI_MAX_RETRIES ?? 2);
+    const baseDelayMs = Number(process.env.GEMINI_RETRY_DELAY_MS ?? 1500);
+    let response;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        response = await ai.models.generateContent({
+          model: "gemini-2.5-flash",
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "object",
+              properties: {
+                diagnoses: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      name: { type: "string" },
+                      confidence: { type: "number" },
+                      description: { type: "string" },
+                      keyFeatures: { type: "array", items: { type: "string" } },
+                      recommendations: { type: "array", items: { type: "string" } }
+                    },
+                    required: ["name", "confidence", "description", "keyFeatures", "recommendations"]
+                  }
+                }
+              },
+              required: ["diagnoses"]
             }
           },
-          required: ["diagnoses"]
+          contents: contents,
+        });
+        break;
+      } catch (err: any) {
+        const status = err?.status ?? err?.error?.status ?? err?.response?.status;
+        const code = err?.error?.code ?? err?.code;
+        const message = err?.message || err?.error?.message || "Gemini request failed";
+        const retryableStatuses = [429, 500, 503];
+        if (retryableStatuses.includes(status) && attempt < maxRetries) {
+          const delay = baseDelayMs * Math.pow(2, attempt);
+          console.warn(`[Gemini] ${status || ''} ${code || ''} – retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          continue;
         }
-      },
-      contents: contents,
-    });
+
+        throw new GeminiAnalysisError({
+          provider: "gemini",
+          code: status === 503 ? "MODEL_OVERLOADED" : status === 429 ? "RATE_LIMIT" : "UNKNOWN",
+          message,
+          httpStatus: status,
+          hint:
+            status === 503
+              ? "Gemini is temporarily overloaded. Please retry shortly."
+              : status === 429
+              ? "Reduce request frequency or check quota."
+              : undefined,
+          details: { status, code },
+        });
+      }
+    }
+
+    if (!response) {
+      throw new GeminiAnalysisError({
+        provider: "gemini",
+        code: "NO_RESPONSE",
+        message: "Gemini returned no response",
+      });
+    }
 
     const analysisTime = (Date.now() - startTime) / 1000;
     const rawJson = response.text;
 
     if (!rawJson) {
-      throw new Error("Empty response from Gemini");
+      throw new GeminiAnalysisError({
+        provider: "gemini",
+        code: "EMPTY_CONTENT",
+        message: "Empty response from Gemini",
+      });
     }
 
     const result = JSON.parse(rawJson);
-    
-    // Ensure we have exactly 5 diagnoses
     const diagnoses = result.diagnoses.slice(0, 5);
-    
+
     return {
       diagnoses,
       analysisTime
     };
-  } catch (error) {
-    console.error("Gemini analysis failed:", error);
-    throw new Error(`Gemini analysis failed: ${error}`);
+  } catch (error: any) {
+    if (error instanceof GeminiAnalysisError) {
+      console.error("Gemini analysis failed:", error.info);
+      throw error;
+    }
+
+    const status = error?.status ?? error?.error?.status;
+    const message = error?.message || error?.error?.message || "Gemini analysis failed";
+    const code = error?.error?.code || error?.code || "UNKNOWN";
+
+    const mapped: GeminiErrorInfo = {
+      provider: "gemini",
+      code,
+      message,
+      httpStatus: status,
+      details: { raw: error },
+    };
+
+    console.error("Gemini analysis failed:", mapped);
+    throw new GeminiAnalysisError(mapped);
   }
 }

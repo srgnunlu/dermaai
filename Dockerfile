@@ -20,8 +20,8 @@ FROM node:18-alpine AS production
 
 WORKDIR /app
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# Install dumb-init and curl (for HEALTHCHECK)
+RUN apk add --no-cache dumb-init curl
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs
@@ -38,6 +38,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/shared ./shared
 # Create uploads directory with proper permissions
 RUN mkdir -p uploads/images && chown -R nextjs:nodejs uploads
 
+# Ensure production environment
+ENV NODE_ENV=production
+
 # Switch to non-root user
 USER nextjs
 
@@ -53,4 +56,3 @@ ENTRYPOINT ["dumb-init", "--"]
 
 # Start the application
 CMD ["node", "dist/index.js"]
-

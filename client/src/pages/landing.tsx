@@ -32,15 +32,6 @@ export default function Landing() {
               </svg>
               Sign in with Google
             </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={() => window.location.href = "/api/login"}
-              data-testid="button-local-login"
-              className="px-8 py-4 text-lg"
-            >
-              Local Login
-            </Button>
           </div>
         </div>
 
@@ -125,15 +116,15 @@ export default function Landing() {
             Ready to Get Started?
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
-            Sign in with your Replit account to access the full diagnostic platform
+            Sign in with your Google account to access the full diagnostic platform
           </p>
           <Button 
             size="lg" 
-            onClick={() => window.location.href = "/api/login"}
+            onClick={() => window.location.href = "/api/auth/google"}
             data-testid="button-get-started"
             className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg"
           >
-            Get Started Now
+            Continue with Google
           </Button>
         </div>
       </div>

@@ -56,5 +56,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
-# Run lightweight schema push, then start app
-CMD ["sh", "-lc", "drizzle-kit push && node dist/index.js"]
+# Run lightweight schema push with npx, then start app
+CMD ["sh", "-lc", "./node_modules/.bin/drizzle-kit push && node dist/index.js"]

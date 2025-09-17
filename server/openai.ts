@@ -1,12 +1,33 @@
 import OpenAI from "openai";
 
-// Using GPT-5-mini as requested by user
+// Structured diagnostic error info
+export type AnalysisErrorInfo = {
+  provider: "openai";
+  code: string;
+  message: string;
+  hint?: string;
+  httpStatus?: number;
+  details?: Record<string, any>;
+};
+
+export class AIAnalysisError extends Error {
+  info: AnalysisErrorInfo;
+  constructor(info: AnalysisErrorInfo) {
+    super(info.message);
+    this.name = "AIAnalysisError";
+    this.info = info;
+  }
+  toJSON() {
+    return this.info;
+  }
+}
+
 let openai: OpenAI;
 
 const getOpenAIClient = () => {
   if (!openai) {
     openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || ""
+      apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "",
     });
   }
   return openai;
@@ -37,9 +58,9 @@ export async function analyzeWithOpenAI(
 
   try {
     let file;
-    
+
     // Check if it's a Cloudinary URL
-    if (imageUrl.includes('cloudinary.com')) {
+    if (imageUrl.includes("cloudinary.com")) {
       const { CloudinaryStorageService } = await import("./cloudinaryStorage");
       const cloudinaryService = new CloudinaryStorageService();
       file = await cloudinaryService.getObjectEntityFile(imageUrl);
@@ -50,12 +71,20 @@ export async function analyzeWithOpenAI(
       const normalizedPath = fileStorageService.normalizeObjectEntityPath(imageUrl);
       file = await fileStorageService.getObjectEntityFile(normalizedPath);
     }
-    
+
     // Get image data and metadata directly from the file
     const [imageBuffer] = await file.download();
     const [metadata] = await file.getMetadata();
     const imageBase64 = Buffer.from(imageBuffer).toString("base64");
     const mimeType = metadata.contentType || "image/jpeg";
+    const imageBytes = imageBuffer.length;
+    if (imageBytes > 18 * 1024 * 1024) {
+      console.warn(
+        `[OpenAI] Large image detected (${(imageBytes / 1024 / 1024).toFixed(
+          1,
+        )} MB). Consider uploading a smaller image (<18MB).`,
+      );
+    }
 
     const systemPrompt = `You are an expert dermatologist AI assistant. Analyze the provided skin lesion image and patient information to provide differential diagnoses.
 
@@ -80,51 +109,161 @@ Respond with JSON in this exact format:
   ]
 }`;
 
-    const response = await getOpenAIClient().chat.completions.create({
-      model: "gpt-5-mini",
+    const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
+
+    const baseRequest = {
       messages: [
         {
-          role: "system",
-          content: systemPrompt
+          role: "system" as const,
+          content: systemPrompt,
         },
         {
-          role: "user",
+          role: "user" as const,
           content: [
             {
-              type: "text",
-              text: "Please analyze this dermatological image and provide differential diagnoses based on the clinical information provided."
+              type: "text" as const,
+              text:
+                "Please analyze this dermatological image and provide differential diagnoses based on the clinical information provided.",
             },
             {
-              type: "image_url",
-              image_url: {
-                url: `data:${mimeType};base64,${imageBase64}`
-              }
-            }
+              type: "image_url" as const,
+              image_url: { url: `data:${mimeType};base64,${imageBase64}` },
+            },
           ],
         },
       ],
-      response_format: { type: "json_object" },
       max_completion_tokens: 2000,
+    };
+
+    // Attempt 1: strict JSON output
+    let response = await getOpenAIClient().chat.completions.create({
+      model,
+      ...baseRequest,
+      messages: [...(baseRequest as any).messages],
+      response_format: { type: "json_object" },
     });
 
     const analysisTime = (Date.now() - startTime) / 1000;
-    const content = response.choices[0].message.content;
-
+    let content = response.choices?.[0]?.message?.content ?? "";
+    const refusal = (response.choices?.[0] as any)?.message?.refusal;
+    const finishReason = (response.choices?.[0] as any)?.finish_reason;
     if (!content) {
-      throw new Error("Empty response from OpenAI");
+      console.warn("[OpenAI] Empty content on first attempt", {
+        refusal,
+        finishReason,
+      });
+
+      // Attempt 2: relax response_format
+      response = await getOpenAIClient().chat.completions.create({
+        model,
+        ...baseRequest,
+        temperature: 0.2,
+      });
+      content = response.choices?.[0]?.message?.content ?? "";
     }
 
-    const result = JSON.parse(content);
-    
+    // Attempt 3: fallback model
+    if (!content && model !== "gpt-4o-mini") {
+      console.warn("[OpenAI] Retrying with fallback model gpt-4o-mini");
+      response = await getOpenAIClient().chat.completions.create({
+        model: "gpt-4o-mini",
+        ...baseRequest,
+        temperature: 0.2,
+      });
+      content = response.choices?.[0]?.message?.content ?? "";
+    }
+
+    if (!content) {
+      throw new AIAnalysisError({
+        provider: "openai",
+        code: "EMPTY_CONTENT",
+        message: "Model returned no content",
+        hint: refusal
+          ? "The request may have been blocked by a safety filter."
+          : "Try reducing image size/quality or retrying later.",
+        details: { refusal, finishReason, model, mimeType, imageBytes },
+      });
+    }
+
+    // Be tolerant to non‑strict JSON
+    let result: any;
+    try {
+      result = JSON.parse(content);
+    } catch {
+      const match = content.match(/\{[\s\S]*\}/);
+      if (!match)
+        throw new AIAnalysisError({
+          provider: "openai",
+          code: "NON_JSON_OUTPUT",
+          message: "Model returned non‑JSON output",
+          hint: "Remove strict JSON requirement or relax formatting.",
+          details: { preview: content.slice(0, 120) },
+        });
+      result = JSON.parse(match[0]);
+    }
+
     // Ensure we have exactly 5 diagnoses
-    const diagnoses = result.diagnoses.slice(0, 5);
-    
+    const diagnoses = (result.diagnoses || []).slice(0, 5);
+
     return {
       diagnoses,
-      analysisTime
+      analysisTime,
     };
-  } catch (error) {
-    console.error("OpenAI analysis failed:", error);
-    throw new Error(`OpenAI analysis failed: ${error}`);
+  } catch (error: any) {
+    // Convert generic errors to structured diagnostics
+    if (error instanceof AIAnalysisError) {
+      console.error("OpenAI analysis failed:", error.info);
+      throw error;
+    }
+
+    const status = error?.status ?? error?.response?.status;
+    const code = error?.code || error?.error?.code;
+    const type = error?.type || error?.error?.type;
+    const message = error?.message || "Unknown OpenAI error";
+
+    let mapped: AnalysisErrorInfo = {
+      provider: "openai",
+      code: "UNKNOWN",
+      message,
+      httpStatus: status,
+      details: { code, type },
+    };
+
+    if (status === 401 || code === "invalid_api_key") {
+      mapped = {
+        provider: "openai",
+        code: "AUTH_ERROR",
+        message: "Invalid or missing OpenAI API key",
+        httpStatus: status,
+        hint: "Check OPENAI_API_KEY env",
+      };
+    } else if (status === 429 || code === "rate_limit_exceeded") {
+      mapped = {
+        provider: "openai",
+        code: "RATE_LIMIT",
+        message: "Rate limit or quota exceeded",
+        httpStatus: status,
+        hint: "Wait and retry; check usage limits",
+      };
+    } else if (status >= 500) {
+      mapped = {
+        provider: "openai",
+        code: "SERVER_ERROR",
+        message: "OpenAI server error",
+        httpStatus: status,
+        hint: "Retry later",
+      };
+    } else if (/timeout/i.test(message)) {
+      mapped = {
+        provider: "openai",
+        code: "TIMEOUT",
+        message: "Request timed out",
+        httpStatus: status,
+        hint: "Retry; reduce image size",
+      };
+    }
+
+    console.error("OpenAI analysis failed:", mapped);
+    throw new AIAnalysisError(mapped);
   }
 }

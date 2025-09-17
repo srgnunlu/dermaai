@@ -525,17 +525,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let geminiAnalysis = null;
       let openaiAnalysis = null;
+      const analysisErrors: Array<{ provider: string; code?: string; message: string; hint?: string; details?: any }> = [];
 
       if (geminiResult.status === "fulfilled") {
         geminiAnalysis = geminiResult.value;
       } else {
         console.error("Gemini analysis failed:", geminiResult.reason);
+        analysisErrors.push({ provider: 'gemini', message: String(geminiResult.reason) });
       }
 
       if (openaiResult.status === "fulfilled") {
         openaiAnalysis = openaiResult.value;
       } else {
         console.error("OpenAI analysis failed:", openaiResult.reason);
+        const reason: any = openaiResult.reason;
+        if (reason && typeof reason.toJSON === 'function') {
+          analysisErrors.push(reason.toJSON());
+        } else if (reason?.info) {
+          analysisErrors.push(reason.info);
+        } else {
+          analysisErrors.push({ provider: 'openai', message: String(reason) });
+        }
       }
 
       // Combine and rank diagnoses
@@ -549,7 +559,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "completed"
       });
 
-      res.json(updatedCase);
+      // Return case plus non-persistent diagnostic info for the UI
+      res.json({ ...updatedCase, analysisErrors });
     } catch (error) {
       console.error("Error analyzing case:", error);
       res.status(500).json({ error: "Analysis failed" });

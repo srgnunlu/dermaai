@@ -68,10 +68,19 @@ export default function DiagnosisPage() {
     onSuccess: (data: Case) => {
       setAnalysisResult(data);
       queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
-      toast({
-        title: "Analysis Complete",
-        description: "AI models have successfully analyzed the case.",
-      });
+      const errors = (data as any).analysisErrors as Array<{provider:string; code?:string; message:string; hint?:string}> | undefined;
+      if (errors && errors.length > 0) {
+        const msgs = errors.map(e => `${e.provider}: ${e.code || 'ERROR'} - ${e.message}${e.hint ? ` (${e.hint})` : ''}`).join("; ");
+        toast({
+          title: "Partial Analysis",
+          description: msgs,
+        });
+      } else {
+        toast({
+          title: "Analysis Complete",
+          description: "AI models have successfully analyzed the case.",
+        });
+      }
     },
     onError: (error) => {
       console.error("Analysis failed:", error);

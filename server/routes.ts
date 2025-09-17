@@ -539,7 +539,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               lesionLocation: caseData.lesionLocation || undefined,
               medicalHistory: (caseData.medicalHistory as string[]) || undefined,
             },
-            { model: sys.openaiModel || undefined }
+            { model: sys.openaiModel || undefined, allowFallback: sys.openaiAllowFallback !== false }
           )
         );
       }

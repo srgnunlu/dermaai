@@ -580,7 +580,7 @@ export class DatabaseStorage implements IStorage {
     if (row) return row as SystemSettings;
     const [created] = await db
       .insert(systemSettings)
-      .values({ enableGemini: true, enableOpenAI: true, openaiModel: "gpt-4o-mini" })
+      .values({ enableGemini: true, enableOpenAI: true, openaiModel: "gpt-4o-mini", openaiAllowFallback: true })
       .returning();
     return created as SystemSettings;
   }

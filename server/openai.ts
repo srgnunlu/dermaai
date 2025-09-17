@@ -50,7 +50,7 @@ export async function analyzeWithOpenAI(
   imageUrl: string,
   symptoms: string,
   context: AnalysisContext = {},
-  options: { model?: string } = {}
+  options: { model?: string; allowFallback?: boolean } = {}
 ): Promise<{
   diagnoses: DiagnosisResult[];
   analysisTime: number;
@@ -111,6 +111,7 @@ Respond with JSON in this exact format:
 }`;
 
     const model = options.model || process.env.OPENAI_MODEL || "gpt-4o-mini";
+    const isGpt5 = /^gpt-5($|-)/.test(model);
 
     const baseRequest = {
       messages: [
@@ -133,7 +134,7 @@ Respond with JSON in this exact format:
           ],
         },
       ],
-      max_completion_tokens: 2000,
+      max_completion_tokens: isGpt5 ? 800 : 2000,
     };
 
     // Attempt 1: strict JSON output
@@ -165,7 +166,7 @@ Respond with JSON in this exact format:
     }
 
     // Attempt 3: fallback model
-    if (!content && model !== "gpt-4o-mini") {
+    if (!content && model !== "gpt-4o-mini" && (options.allowFallback ?? true)) {
       console.warn("[OpenAI] Retrying with fallback model gpt-4o-mini");
       response = await getOpenAIClient().chat.completions.create({
         model: "gpt-4o-mini",

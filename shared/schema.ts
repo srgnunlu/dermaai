@@ -178,6 +178,7 @@ export const systemSettings = pgTable("system_settings", {
   enableGemini: jsonb("enable_gemini").default(true).$type<boolean>(),
   enableOpenAI: jsonb("enable_openai").default(true).$type<boolean>(),
   openaiModel: text("openai_model").default("gpt-4o-mini"),
+  openaiAllowFallback: jsonb("openai_allow_fallback").default(true).$type<boolean>(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
@@ -185,6 +186,7 @@ export const updateSystemSettingsSchema = z.object({
   enableGemini: z.boolean().optional(),
   enableOpenAI: z.boolean().optional(),
   openaiModel: z.enum(["gpt-5-mini", "gpt-5", "gpt-4o-mini"]).optional(),
+  openaiAllowFallback: z.boolean().optional(),
 });
 
 export type SystemSettings = typeof systemSettings.$inferSelect;

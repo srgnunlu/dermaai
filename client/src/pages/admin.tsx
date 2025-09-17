@@ -990,6 +990,18 @@ export default function AdminPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium">Allow OpenAI Fallback</div>
+                  <div className="text-sm text-muted-foreground">If selected model fails, try gpt-4o-mini automatically</div>
+                </div>
+                <Switch
+                  checked={systemSettings?.openaiAllowFallback !== false}
+                  onCheckedChange={(v) => updateSystemSettingsMutation.mutate({ openaiAllowFallback: v })}
+                  data-testid="switch-openai-fallback"
+                />
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

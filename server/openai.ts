@@ -154,11 +154,12 @@ Respond with JSON in this exact format:
         finishReason,
       });
 
-      // Attempt 2: relax response_format
+    // Attempt 2: relax response_format (some models e.g. gpt-5 only allow default temperature)
+      const supportsTemp = !/^gpt-5($|-)/.test(model);
       response = await getOpenAIClient().chat.completions.create({
         model,
         ...baseRequest,
-        temperature: 0.2,
+        ...(supportsTemp ? { temperature: 0.2 } : {}),
       });
       content = response.choices?.[0]?.message?.content ?? "";
     }
@@ -230,7 +231,15 @@ Respond with JSON in this exact format:
       details: { code, type },
     };
 
-    if (status === 401 || code === "invalid_api_key") {
+    if (code === 'unsupported_value') {
+      mapped = {
+        provider: 'openai',
+        code: 'UNSUPPORTED_PARAMETER',
+        message,
+        httpStatus: status,
+        hint: 'Remove temperature or use a model that supports it',
+      };
+    } else if (status === 401 || code === "invalid_api_key") {
       mapped = {
         provider: "openai",
         code: "AUTH_ERROR",

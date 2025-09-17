@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
-import { Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Microscope, History, User, Settings, Bell, Mail, Phone, Calendar, MapPin, Award, Loader2 } from "lucide-react";
+import { MapPin, Award, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import Header from "@/components/Header";
+import SiteFooter from "@/components/SiteFooter";
 
 // Form validation schema
 const profileFormSchema = z.object({
@@ -120,7 +119,6 @@ export default function ProfilePage() {
   if (error) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
-        <Header />
         <main className="flex-1 container mx-auto px-4 py-8">
           <div className="text-center">
             <p className="text-muted-foreground">Failed to load profile data</p>
@@ -132,8 +130,6 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header />
-
       {/* Main Content */}
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
@@ -401,16 +397,7 @@ export default function ProfilePage() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-card border-t border-border mt-12">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">
-              © 2024 DermaAI. This tool is for medical professional use only and should not replace clinical judgment.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

@@ -1,9 +1,16 @@
 import OpenAI from "openai";
 
 // Using GPT-5-mini as requested by user
-const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "" 
-});
+let openai: OpenAI;
+
+const getOpenAIClient = () => {
+  if (!openai) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || ""
+    });
+  }
+  return openai;
+};
 
 interface DiagnosisResult {
   name: string;
@@ -29,13 +36,20 @@ export async function analyzeWithOpenAI(
   const startTime = Date.now();
 
   try {
-    // Import ObjectStorageService here to avoid circular dependencies
-    const { ObjectStorageService } = await import("./objectStorage");
-    const objectStorageService = new ObjectStorageService();
+    let file;
     
-    // Normalize the path and get the image file from object storage
-    const normalizedPath = objectStorageService.normalizeObjectEntityPath(imageUrl);
-    const file = await objectStorageService.getObjectEntityFile(normalizedPath);
+    // Check if it's a Cloudinary URL
+    if (imageUrl.includes('cloudinary.com')) {
+      const { CloudinaryStorageService } = await import("./cloudinaryStorage");
+      const cloudinaryService = new CloudinaryStorageService();
+      file = await cloudinaryService.getObjectEntityFile(imageUrl);
+    } else {
+      // Use local file storage
+      const { LocalFileStorageService } = await import("./localFileStorage");
+      const fileStorageService = new LocalFileStorageService();
+      const normalizedPath = fileStorageService.normalizeObjectEntityPath(imageUrl);
+      file = await fileStorageService.getObjectEntityFile(normalizedPath);
+    }
     
     // Get image data and metadata directly from the file
     const [imageBuffer] = await file.download();
@@ -66,7 +80,7 @@ Respond with JSON in this exact format:
   ]
 }`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAIClient().chat.completions.create({
       model: "gpt-5-mini",
       messages: [
         {

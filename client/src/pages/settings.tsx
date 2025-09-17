@@ -1,6 +1,6 @@
-import { Link } from "wouter";
-import { Microscope, History, User, Settings, Bell, Shield, Key, Palette, Volume2 } from "lucide-react";
+import { Settings, Shield, Palette, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import SiteFooter from "@/components/SiteFooter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -114,51 +114,6 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="border-b border-border bg-card sticky top-0 z-50">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/">
-              <a className="flex items-center space-x-2 hover:opacity-80 transition-opacity" data-testid="link-home">
-                <Microscope className="text-primary" size={28} />
-                <span className="text-xl font-bold text-foreground">DermaAI</span>
-              </a>
-            </Link>
-            
-            <nav className="hidden md:flex space-x-8">
-              <Link href="/">
-                <a className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" data-testid="link-diagnosis">
-                  Diagnosis
-                </a>
-              </Link>
-              <Link href="/case-history">
-                <a className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" data-testid="link-case-history">
-                  Case History
-                </a>
-              </Link>
-              <Link href="/settings">
-                <a className="text-sm font-medium text-foreground transition-colors" data-testid="link-settings">
-                  Settings
-                </a>
-              </Link>
-            </nav>
-            
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" data-testid="button-notifications">
-                <Bell size={20} />
-              </Button>
-              <Link href="/profile">
-                <a>
-                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" data-testid="button-profile">
-                    <User size={20} />
-                  </Button>
-                </a>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
-
       {/* Main Content */}
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
@@ -350,16 +305,7 @@ export default function SettingsPage() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-card border-t border-border mt-12">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">
-              © 2024 DermaAI. This tool is for medical professional use only and should not replace clinical judgment.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

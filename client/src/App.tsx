@@ -12,6 +12,12 @@ import CaseHistoryPage from "@/pages/case-history";
 import SettingsPage from "@/pages/settings";
 import ProfilePage from "@/pages/profile";
 import AdminPage from "@/pages/admin";
+import PrivacyPolicyPage from "@/pages/privacy-policy";
+import TermsOfServicePage from "@/pages/terms-of-service";
+import MedicalDisclaimerPage from "@/pages/medical-disclaimer";
+import DocumentationPage from "@/pages/documentation";
+import ContactSupportPage from "@/pages/contact-support";
+import TechnicalRequirementsPage from "@/pages/technical-requirements";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -21,6 +27,12 @@ function Router() {
     <>
       <Header />
       <Switch>
+        <Route path="/privacy-policy" component={PrivacyPolicyPage} />
+        <Route path="/terms-of-service" component={TermsOfServicePage} />
+        <Route path="/medical-disclaimer" component={MedicalDisclaimerPage} />
+        <Route path="/documentation" component={DocumentationPage} />
+        <Route path="/contact-support" component={ContactSupportPage} />
+        <Route path="/technical-requirements" component={TechnicalRequirementsPage} />
         {isLoading || !isAuthenticated ? (
           <Route path="/" component={Landing} />
         ) : (

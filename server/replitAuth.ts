@@ -1,29 +1,37 @@
-import * as client from "openid-client";
-import { Strategy, type VerifyFunction } from "openid-client/passport";
-
 import passport from "passport";
+import { Strategy as LocalStrategy } from "passport-local";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import session from "express-session";
 import type { Express, RequestHandler } from "express";
-import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
+import crypto from "crypto";
 
-if (!process.env.REPLIT_DOMAINS) {
-  throw new Error("Environment variable REPLIT_DOMAINS not provided");
+// Simple password hashing utility
+function hashPassword(password: string): string {
+  return crypto.createHash('sha256').update(password).digest('hex');
 }
 
-const getOidcConfig = memoize(
-  async () => {
-    return await client.discovery(
-      new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc"),
-      process.env.REPL_ID!
-    );
-  },
-  { maxAge: 3600 * 1000 }
-);
+function verifyPassword(password: string, hash: string): boolean {
+  return hashPassword(password) === hash;
+}
+
+const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
+const isProduction = process.env.NODE_ENV === "production";
+const sameSiteMode: "lax" | "none" = isProduction ? "none" : "lax";
+
+const sessionCookieSettings = {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: sameSiteMode,
+};
+
+const clearCookieSettings = {
+  ...sessionCookieSettings,
+  path: "/",
+};
 
 export function getSession() {
-  const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
@@ -37,137 +45,233 @@ export function getSession() {
     resave: false,
     saveUninitialized: false,
     cookie: {
-      httpOnly: true,
-      secure: true,
+      ...sessionCookieSettings,
       maxAge: sessionTtl,
     },
   });
 }
 
-function updateUserSession(
-  user: any,
-  tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers
-) {
-  user.claims = tokens.claims();
-  user.access_token = tokens.access_token;
-  user.refresh_token = tokens.refresh_token;
-  user.expires_at = user.claims?.exp;
+// Simple user object for local auth
+interface LocalUser {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  role?: string;
 }
 
-async function upsertUser(
-  claims: any,
-) {
-  await storage.upsertUser({
-    id: claims["sub"],
-    email: claims["email"],
-    firstName: claims["first_name"],
-    lastName: claims["last_name"],
-    profileImageUrl: claims["profile_image_url"],
+async function createDefaultUser(email: string, password: string) {
+  const hashedPassword = hashPassword(password);
+  const role = email === process.env.ADMIN_EMAIL ? 'admin' : 'user';
+  
+  // Check if user already exists
+  try {
+    let user = await storage.getUserByEmail(email);
+    if (user) {
+      console.log(`[AUTH] User already exists: ${email}`);
+      return user;
+    }
+  } catch (error) {
+    // User doesn't exist, continue to create
+  }
+  
+  // Create user in database  
+  const user = await storage.upsertUser({
+    id: crypto.randomUUID(),
+    email,
+    firstName: email.split('@')[0],
+    lastName: '',
+    profileImageUrl: null,
+    role
   });
+  
+  console.log(`[AUTH] Created new user: ${email} with role: ${role}`);
+  return user;
 }
 
 export async function setupAuth(app: Express) {
-  console.log("[AUTH] Setting up Replit authentication...");
-  console.log("[AUTH] Using domains:", process.env.REPLIT_DOMAINS);
+  console.log("[AUTH] Setting up local authentication...");
   
   app.set("trust proxy", 1);
   app.use(getSession());
   app.use(passport.initialize());
   app.use(passport.session());
 
-  const config = await getOidcConfig();
-  console.log("[AUTH] OIDC configuration loaded successfully");
+  // Configure local strategy
+  passport.use(new LocalStrategy({
+    usernameField: 'email',
+    passwordField: 'password'
+  }, async (email: string, password: string, done) => {
+    try {
+      // For demo purposes, accept any email/password combination
+      // In production, you'd verify against a user database
+      const user = await createDefaultUser(email, password);
+      return done(null, { id: user.id, email: user.email, role: user.role });
+    } catch (error) {
+      return done(error);
+    }
+  }));
 
-  const verify: VerifyFunction = async (
-    tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
-    verified: passport.AuthenticateCallback
-  ) => {
-    const user = {};
-    updateUserSession(user, tokens);
-    await upsertUser(tokens.claims());
-    verified(null, user);
-  };
+  // Configure Google OAuth strategy
+  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    passport.use(new GoogleStrategy({
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: "/api/auth/google/callback"
+    }, async (accessToken, refreshToken, profile, done) => {
+      try {
+        const email = profile.emails?.[0]?.value;
+        console.log(`[AUTH] Google profile email received: "${email}"`);
+        if (!email) {
+          return done(new Error("No email found in Google profile"));
+        }
 
-  for (const domain of process.env
-    .REPLIT_DOMAINS!.split(",")) {
-    const strategy = new Strategy(
-      {
-        name: `replitauth:${domain}`,
-        config,
-        scope: "openid email profile offline_access",
-        callbackURL: `https://${domain}/api/callback`,
-      },
-      verify,
-    );
-    passport.use(strategy);
+        // Check if user exists or create new one
+        let user;
+        try {
+          user = await storage.getUserByEmail(email);
+          console.log(`[AUTH] getUserByEmail result for ${email}:`, user);
+          if (user) {
+            console.log(`[AUTH] Found existing Google user: ${email}`);
+          } else {
+            console.log(`[AUTH] getUserByEmail returned undefined for: ${email}`);
+          }
+        } catch (error) {
+          console.log(`[AUTH] getUserByEmail threw error for ${email}:`, error);
+          user = undefined;
+        }
+
+        if (!user) {
+          // User doesn't exist, create new one
+          console.log(`[AUTH] Creating new Google user for: ${email}`);
+          const role = email === process.env.ADMIN_EMAIL ? 'admin' : 'user';
+          user = await storage.upsertUser({
+            id: crypto.randomUUID(),
+            email,
+            firstName: profile.name?.givenName || profile.displayName?.split(' ')[0] || '',
+            lastName: profile.name?.familyName || profile.displayName?.split(' ')[1] || '',
+            profileImageUrl: profile.photos?.[0]?.value || null,
+            role
+          });
+          console.log(`[AUTH] Created new Google user: ${email} with role: ${role}, user object:`, user);
+        }
+
+        if (!user) {
+          console.error(`[AUTH] No user object after Google OAuth for: ${email}`);
+          return done(new Error("Failed to create or retrieve user"));
+        }
+
+        console.log(`[AUTH] Google OAuth success for user:`, { id: user.id, email: user.email, role: user.role });
+        return done(null, { id: user.id, email: user.email, role: user.role });
+      } catch (error) {
+        return done(error);
+      }
+    }));
+    console.log("[AUTH] Google OAuth strategy configured");
   }
 
-  passport.serializeUser((user: Express.User, cb) => cb(null, user));
-  passport.deserializeUser((user: Express.User, cb) => cb(null, user));
+  passport.serializeUser((user: any, cb) => cb(null, user));
+  passport.deserializeUser((user: any, cb) => cb(null, user));
   
-  console.log("[AUTH] Authentication setup complete");
+  console.log("[AUTH] Local authentication setup complete");
 
-  app.get("/api/login", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      prompt: "login consent",
-      scope: ["openid", "email", "profile", "offline_access"],
-    })(req, res, next);
+  // Login endpoint
+  app.post("/api/login", passport.authenticate('local'), (req, res) => {
+    res.json({ user: req.user, message: "Login successful" });
   });
 
-  app.get("/api/callback", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      successReturnToOrRedirect: "/",
-      failureRedirect: "/api/login",
-    })(req, res, next);
+  // Simple login form endpoint for development
+  app.get("/api/login", (req, res) => {
+    res.send(`
+      <html>
+        <body>
+          <h2>Login</h2>
+          <form action="/api/login" method="post">
+            <div>
+              <label>Email:</label>
+              <input type="email" name="email" required>
+            </div>
+            <div>
+              <label>Password:</label>
+              <input type="password" name="password" required>
+            </div>
+            <button type="submit">Login</button>
+          </form>
+        </body>
+      </html>
+    `);
   });
 
+  // Google OAuth endpoints
+  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    app.get("/api/auth/google",
+      passport.authenticate('google', { scope: ['profile', 'email'] })
+    );
+
+    app.get("/api/auth/google/callback",
+      passport.authenticate('google', { failureRedirect: '/login' }),
+      (req, res) => {
+        // Successful authentication, redirect to dashboard
+        res.redirect('/');
+      }
+    );
+  }
+
+  // Logout endpoint
+  app.post("/api/logout", (req, res) => {
+    req.logout((err) => {
+      if (err) {
+        return res.status(500).json({ error: "Logout failed" });
+      }
+      // Clear session
+      req.session.destroy((sessionErr) => {
+        if (sessionErr) {
+          console.error("[AUTH] Session destroy error:", sessionErr);
+        }
+        // Clear cookie
+        res.clearCookie('connect.sid', clearCookieSettings);
+        res.json({ message: "Logout successful" });
+      });
+    });
+  });
+
+  // GET logout endpoint for direct browser navigation
   app.get("/api/logout", (req, res) => {
-    req.logout(() => {
-      res.redirect(
-        client.buildEndSessionUrl(config, {
-          client_id: process.env.REPL_ID!,
-          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
-        }).href
-      );
+    console.log("[AUTH] Logout request received for user:", (req.user as any)?.email);
+    req.logout((err) => {
+      if (err) {
+        console.error("[AUTH] Logout error:", err);
+      }
+      console.log("[AUTH] Passport logout completed");
+      // Clear session
+      if (req.session) {
+        req.session.destroy((sessionErr) => {
+          if (sessionErr) {
+            console.error("[AUTH] Session destroy error:", sessionErr);
+          }
+          console.log("[AUTH] Session destroyed");
+          // Clear all possible cookies
+          res.clearCookie('connect.sid', clearCookieSettings);
+          res.clearCookie('sessionId', clearCookieSettings);
+          console.log("[AUTH] Cookies cleared, redirecting to landing page");
+          res.redirect('/');
+        });
+      } else {
+        console.log("[AUTH] No session to destroy, redirecting");
+        res.clearCookie('connect.sid', clearCookieSettings);
+        res.redirect('/');
+      }
     });
   });
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
-  const user = req.user as any;
-
-  if (!req.isAuthenticated()) {
+  if (!req.isAuthenticated() || !req.user) {
     console.log("[AUTH] User not authenticated - needs to login");
     return res.status(401).json({ message: "Unauthorized - Please login first" });
   }
 
-  if (!user || !user.expires_at) {
-    console.log("[AUTH] User session invalid - missing expiration");
-    return res.status(401).json({ message: "Unauthorized - Session invalid" });
-  }
-
-  const now = Math.floor(Date.now() / 1000);
-  if (now <= user.expires_at) {
-    return next();
-  }
-
-  const refreshToken = user.refresh_token;
-  if (!refreshToken) {
-    console.log("[AUTH] No refresh token available - user needs to re-login");
-    res.status(401).json({ message: "Unauthorized - Please login again" });
-    return;
-  }
-
-  try {
-    console.log("[AUTH] Token expired - attempting refresh");
-    const config = await getOidcConfig();
-    const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
-    updateUserSession(user, tokenResponse);
-    console.log("[AUTH] Token refreshed successfully");
-    return next();
-  } catch (error) {
-    console.error("[AUTH] Token refresh failed:", error);
-    res.status(401).json({ message: "Unauthorized - Token refresh failed" });
-    return;
-  }
+  // Simple authentication check - user exists in session
+  console.log("[AUTH] User authenticated:", (req.user as any).email);
+  return next();
 };

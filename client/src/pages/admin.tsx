@@ -352,7 +352,7 @@ export default function AdminPage() {
 
   const getUrgencyBadge = (diagnoses: any[]) => {
     if (!diagnoses || diagnoses.length === 0) return null;
-    
+
     const hasUrgent = diagnoses.some(d => d.isUrgent);
     if (hasUrgent) {
       return (
@@ -363,6 +363,57 @@ export default function AdminPage() {
       );
     }
     return null;
+  };
+
+  const getAIAnalysisInfo = (caseItem: any) => {
+    const geminiDiagnoses = caseItem?.geminiAnalysis?.diagnoses ?? [];
+    const openaiDiagnoses = caseItem?.openaiAnalysis?.diagnoses ?? [];
+    const hasGemini = geminiDiagnoses.length > 0;
+    const hasOpenAI = openaiDiagnoses.length > 0;
+
+    if (!hasGemini && !hasOpenAI) {
+      return <span className="text-gray-400 text-sm">No AI analysis</span>;
+    }
+
+    const formatConfidence = (confidence: number) => `${Math.round(confidence)}%`;
+
+    const geminiTopConfidence = hasGemini
+      ? Math.max(...geminiDiagnoses.map((d: any) => d?.confidence ?? 0))
+      : 0;
+    const openaiTopConfidence = hasOpenAI
+      ? Math.max(...openaiDiagnoses.map((d: any) => d?.confidence ?? 0))
+      : 0;
+
+    return (
+      <div className="flex flex-col gap-1">
+        {hasGemini && (
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+              Gemini
+            </Badge>
+            <span className="text-sm font-medium">{formatConfidence(geminiTopConfidence)}</span>
+            {typeof caseItem?.geminiAnalysis?.analysisTime === "number" && (
+              <span className="text-xs text-muted-foreground">
+                {caseItem.geminiAnalysis.analysisTime.toFixed(1)}s
+              </span>
+            )}
+          </div>
+        )}
+        {hasOpenAI && (
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+              ChatGPT
+            </Badge>
+            <span className="text-sm font-medium">{formatConfidence(openaiTopConfidence)}</span>
+            {typeof caseItem?.openaiAnalysis?.analysisTime === "number" && (
+              <span className="text-xs text-muted-foreground">
+                {caseItem.openaiAnalysis.analysisTime.toFixed(1)}s
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -514,6 +565,7 @@ export default function AdminPage() {
                       <TableHead>Patient ID</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Date</TableHead>
+                      <TableHead>AI Analysis</TableHead>
                       <TableHead>Top Diagnosis</TableHead>
                       <TableHead>Confidence</TableHead>
                       <TableHead>Urgency</TableHead>
@@ -547,6 +599,9 @@ export default function AdminPage() {
                               {caseItem.createdAt
                                 ? format(new Date(caseItem.createdAt), "MMM dd, yyyy")
                                 : "N/A"}
+                            </TableCell>
+                            <TableCell>
+                              {getAIAnalysisInfo(caseItem)}
                             </TableCell>
                             <TableCell>
                               {topDiagnosis?.name || "N/A"}
@@ -643,7 +698,7 @@ export default function AdminPage() {
                       })
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center py-8">
+                        <TableCell colSpan={10} className="text-center py-8">
                           <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
                           <p className="text-muted-foreground">No cases found</p>
                         </TableCell>

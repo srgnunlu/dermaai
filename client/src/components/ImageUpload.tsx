@@ -1,9 +1,7 @@
-import { useState, useCallback } from "react";
-import { ObjectUploader } from "./ObjectUploader";
+import { useState, useCallback, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CloudUpload, Camera, Trash2 } from "lucide-react";
-import type { UploadResult } from "@uppy/core";
 
 interface ImageUploadProps {
   onImageUploaded: (imageUrl: string) => void;
@@ -13,45 +11,63 @@ interface ImageUploadProps {
 export function ImageUpload({ onImageUploaded, uploadedImage }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | undefined>(uploadedImage);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleGetUploadParameters = async () => {
-    const response = await fetch("/api/objects/upload", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    });
-    
-    if (!response.ok) {
-      throw new Error("Failed to get upload URL");
+  const handleFileUpload = async (file: File) => {
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to upload file");
+      }
+      
+      const { url } = await response.json();
+      setPreviewUrl(url);
+      onImageUploaded(url);
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert("Dosya yükleme hatası. Lütfen tekrar deneyin.");
+    } finally {
+      setIsUploading(false);
     }
-    
-    const { uploadURL } = await response.json();
-    return {
-      method: "PUT" as const,
-      url: uploadURL,
-    };
   };
 
-  const handleComplete = useCallback((result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
-    setIsUploading(false);
-    
-    if (result.successful && result.successful.length > 0) {
-      const uploadedFile = result.successful[0];
-      const imageUrl = uploadedFile.uploadURL;
-      
-      if (imageUrl) {
-        // Normalize the uploaded image URL for preview
-        const normalizedUrl = imageUrl.startsWith('https://storage.googleapis.com') 
-          ? `/objects/${imageUrl.split('/.private/')[1]}`
-          : imageUrl;
-        setPreviewUrl(normalizedUrl);
-        onImageUploaded(imageUrl);
+  const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        alert('Lütfen sadece resim dosyası seçin.');
+        return;
       }
+      
+      // Check file size (10MB max)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('Dosya boyutu 10MB\'dan küçük olmalıdır.');
+        return;
+      }
+      
+      handleFileUpload(file);
     }
-  }, [onImageUploaded]);
+  }, []);
 
   const handleRemove = () => {
     setPreviewUrl(undefined);
     onImageUploaded("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleButtonClick = () => {
+    fileInputRef.current?.click();
   };
 
   return (
@@ -66,18 +82,24 @@ export function ImageUpload({ onImageUploaded, uploadedImage }: ImageUploadProps
           <div className="drag-zone rounded-lg p-8 text-center border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-all duration-300">
             <div className="flex flex-col items-center">
               <CloudUpload className="text-4xl text-muted-foreground mb-4" size={48} />
-              <p className="text-lg font-medium text-foreground mb-2">Drop image here</p>
-              <p className="text-sm text-muted-foreground mb-4">or click to browse files</p>
+              <p className="text-lg font-medium text-foreground mb-2">Click to select image</p>
+              <p className="text-sm text-muted-foreground mb-4">Maximum file size: 10MB</p>
               
-              <ObjectUploader
-                maxNumberOfFiles={1}
-                maxFileSize={10485760} // 10MB
-                onGetUploadParameters={handleGetUploadParameters}
-                onComplete={handleComplete}
-                buttonClassName="bg-primary hover:bg-primary/90 text-primary-foreground"
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              
+              <Button
+                onClick={handleButtonClick}
+                disabled={isUploading}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
               >
-                Select Image
-              </ObjectUploader>
+                {isUploading ? "Yükleniyor..." : "Resim Seç"}
+              </Button>
             </div>
           </div>
         ) : (

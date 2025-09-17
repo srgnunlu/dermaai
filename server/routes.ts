@@ -1,7 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { ObjectStorageService } from "./objectStorage";
+import { LocalFileStorageService } from "./localFileStorage";
+import { CloudinaryStorageService } from "./cloudinaryStorage";
 import { analyzeWithGemini } from "./gemini";
 import { analyzeWithOpenAI } from "./openai";
 import { insertPatientSchema, insertCaseSchema, updateUserSettingsSchema, updateUserProfileSchema } from "@shared/schema";
@@ -9,17 +10,23 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import { requireAdmin } from "./middleware";
 import multer from "multer";
 import PDFDocument from "pdfkit";
+import crypto from "crypto";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware - setup Replit Auth
+  // Health check endpoint for Docker
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  });
+
+  // Auth middleware - setup Local Auth
   await setupAuth(app);
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
@@ -31,9 +38,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Settings routes
   app.get('/api/settings', isAuthenticated, async (req: any, res) => {
     try {
-      console.log("GET /api/settings - Authenticated user:", req.user?.claims?.sub);
+      console.log("GET /api/settings - Authenticated user:", req.user?.id);
       
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       if (!userId) {
         console.error("No userId found in authenticated user");
         return res.status(401).json({ error: "User not authenticated" });
@@ -58,9 +65,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/settings', isAuthenticated, async (req: any, res) => {
     try {
       console.log("PUT /api/settings - Request body:", req.body);
-      console.log("Authenticated user:", req.user?.claims?.sub);
+      console.log("Authenticated user:", req.user?.id);
       
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       if (!userId) {
         console.error("No userId found in authenticated user");
         return res.status(401).json({ error: "User not authenticated" });
@@ -95,7 +102,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Profile routes
   app.get('/api/profile', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const [profile, stats] = await Promise.all([
         storage.getUserProfile(userId),
         storage.getUserStatistics(userId)
@@ -117,7 +124,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.put('/api/profile', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const profileData = updateUserProfileSchema.parse(req.body);
       const updatedProfile = await storage.updateUserProfile(userId, profileData);
       
@@ -136,7 +143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get('/api/profile/stats', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const stats = await storage.getUserStatistics(userId);
       res.json(stats);
     } catch (error) {
@@ -149,6 +156,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/admin/cases', isAuthenticated, requireAdmin, async (req: any, res) => {
     try {
       const cases = await storage.getAllCasesForAdmin();
+      // Debug log to check if AI analysis data is present
+      if (cases.length > 0) {
+        console.log('[DEBUG ADMIN API] Sample case data:', {
+          caseId: cases[0].caseId,
+          hasGeminiAnalysis: !!cases[0].geminiAnalysis,
+          hasOpenaiAnalysis: !!cases[0].openaiAnalysis,
+          geminiType: typeof cases[0].geminiAnalysis,
+          openaiType: typeof cases[0].openaiAnalysis,
+        });
+      }
       res.json(cases);
     } catch (error) {
       console.error("Error fetching admin cases:", error);
@@ -371,7 +388,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/admin/users/:id', isAuthenticated, requireAdmin, async (req: any, res) => {
     try {
       const userId = req.params.id;
-      const adminUserId = req.user.claims.sub;
+      const adminUserId = req.user.id;
       
       // Prevent admin from deleting themselves
       if (userId === adminUserId) {
@@ -397,26 +414,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Object storage routes
-  app.get("/objects/:objectPath(*)", async (req, res) => {
-    const objectStorageService = new ObjectStorageService();
+  // File storage routes  
+  app.get("/files/:filePath(*)", async (req, res) => {
+    const fileStorageService = new LocalFileStorageService();
     try {
-      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
-      objectStorageService.downloadObject(objectFile, res);
+      await fileStorageService.downloadFile(req.params.filePath, res);
     } catch (error) {
-      console.error("Error accessing object:", error);
+      console.error("Error accessing file:", error);
       return res.sendStatus(404);
     }
   });
 
-  app.post("/api/objects/upload", async (req, res) => {
+  app.post("/api/upload", upload.single('file'), async (req, res) => {
     try {
-      const objectStorageService = new ObjectStorageService();
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-      res.json({ uploadURL });
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      // Use Cloudinary if configured, fallback to local storage
+      if (process.env.CLOUDINARY_CLOUD_NAME) {
+        const cloudinaryService = new CloudinaryStorageService();
+        const imageUrl = await cloudinaryService.uploadImage(req.file.buffer, req.file.originalname);
+        res.json({ url: imageUrl, filePath: imageUrl });
+      } else {
+        const fileStorageService = new LocalFileStorageService();
+        const filePath = await fileStorageService.saveUploadedFile(
+          crypto.randomUUID(), 
+          req.file.buffer, 
+          req.file.originalname
+        );
+        const fileUrl = `/files/${filePath}`;
+        res.json({ url: fileUrl, filePath });
+      }
     } catch (error) {
-      console.error("Error getting upload URL:", error);
-      res.status(500).json({ error: "Failed to get upload URL" });
+      console.error("Error uploading file:", error);
+      res.status(500).json({ error: "Failed to upload file" });
+    }
+  });
+
+  app.post("/api/upload/:fileId", upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const fileStorageService = new LocalFileStorageService();
+      const filePath = await fileStorageService.saveUploadedFile(
+        req.params.fileId, 
+        req.file.buffer, 
+        req.file.originalname
+      );
+      
+      const fileUrl = `/files/${filePath}`;
+      res.json({ url: fileUrl, filePath });
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      res.status(500).json({ error: "Failed to upload file" });
     }
   });
 
@@ -451,7 +504,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const caseData = insertCaseSchema.parse(req.body);
       
       // Create case record with authenticated user
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const newCase = await storage.createCase(caseData, userId);
       
       // Start AI analysis in parallel
@@ -506,7 +559,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/cases", isAuthenticated, async (req: any, res) => {
     try {
       // Only return cases owned by the authenticated user
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const cases = await storage.getCases(userId);
       res.json(cases);
     } catch (error) {
@@ -517,7 +570,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/cases/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const caseRecord = await storage.getCase(req.params.id, userId);
       if (!caseRecord) {
         return res.status(403).json({ error: "Access denied" });
@@ -532,7 +585,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // PDF report generation endpoint
   app.post("/api/cases/:id/report", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const parameter = req.params.id;
       
       // Debug logging to track parameter types and lookup attempts

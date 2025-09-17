@@ -120,27 +120,24 @@ export async function requireCaseOwnership(req: Request, res: Response, next: Ne
   }
 }
 
-// Admin role check middleware - works with Replit Auth
+// Admin role check middleware - works with Local Auth
 export async function requireAdmin(req: Request & { user?: any }, res: Response, next: NextFunction) {
   try {
-    // Check if user is authenticated via Replit Auth
-    if (!req.user || !req.user.claims) {
+    // Check if user is authenticated via Local Auth
+    if (!req.user || !req.user.id) {
+      console.log("[DEBUG] Admin middleware: No user or user.id found");
       return res.status(401).json({ 
         error: "Authentication required", 
         message: "Please login to access admin resources" 
       });
     }
 
-    const userId = req.user.claims.sub;
-    if (!userId) {
-      return res.status(401).json({ 
-        error: "Invalid authentication", 
-        message: "User ID not found in authentication token" 
-      });
-    }
+    const userId = req.user.id;
+    console.log("[DEBUG] Admin middleware: Checking user", userId);
 
     // Get user from storage to check role
     const user = await storage.getUser(userId);
+    console.log("[DEBUG] Admin middleware: User from DB", user?.email, user?.role);
     
     if (!user || user.role !== 'admin') {
       // Log unauthorized admin access attempt

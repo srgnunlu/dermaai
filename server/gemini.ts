@@ -29,13 +29,20 @@ export async function analyzeWithGemini(
   const startTime = Date.now();
 
   try {
-    // Import ObjectStorageService here to avoid circular dependencies
-    const { ObjectStorageService } = await import("./objectStorage");
-    const objectStorageService = new ObjectStorageService();
+    let file;
     
-    // Normalize the path and get the image file from object storage
-    const normalizedPath = objectStorageService.normalizeObjectEntityPath(imageUrl);
-    const file = await objectStorageService.getObjectEntityFile(normalizedPath);
+    // Check if it's a Cloudinary URL
+    if (imageUrl.includes('cloudinary.com')) {
+      const { CloudinaryStorageService } = await import("./cloudinaryStorage");
+      const cloudinaryService = new CloudinaryStorageService();
+      file = await cloudinaryService.getObjectEntityFile(imageUrl);
+    } else {
+      // Use local file storage
+      const { LocalFileStorageService } = await import("./localFileStorage");
+      const fileStorageService = new LocalFileStorageService();
+      const normalizedPath = fileStorageService.normalizeObjectEntityPath(imageUrl);
+      file = await fileStorageService.getObjectEntityFile(normalizedPath);
+    }
     
     // Get image data and metadata directly from the file
     const [imageBuffer] = await file.download();

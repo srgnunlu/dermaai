@@ -49,7 +49,8 @@ interface AnalysisContext {
 export async function analyzeWithOpenAI(
   imageUrl: string,
   symptoms: string,
-  context: AnalysisContext = {}
+  context: AnalysisContext = {},
+  options: { model?: string } = {}
 ): Promise<{
   diagnoses: DiagnosisResult[];
   analysisTime: number;
@@ -109,7 +110,7 @@ Respond with JSON in this exact format:
   ]
 }`;
 
-    const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
+    const model = options.model || process.env.OPENAI_MODEL || "gpt-4o-mini";
 
     const baseRequest = {
       messages: [

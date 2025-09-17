@@ -8,10 +8,13 @@ import {
   type UserSettings,
   type UpdateUserSettings,
   type UpdateUserProfile,
+  type SystemSettings,
+  type UpdateSystemSettings,
   patients,
   cases,
   users,
-  userSettings
+  userSettings,
+  systemSettings,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -62,6 +65,9 @@ export interface IStorage {
   promoteUserToAdmin(userId: string): Promise<User>;
   demoteUserFromAdmin(userId: string): Promise<User>;
   deleteUser(id: string): Promise<boolean>;
+  // System settings
+  getSystemSettings(): Promise<SystemSettings>;
+  updateSystemSettings(updates: UpdateSystemSettings): Promise<SystemSettings>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -566,6 +572,27 @@ export class DatabaseStorage implements IStorage {
       console.error("Error deleting user:", error);
       return false;
     }
+  }
+
+  // System settings
+  async getSystemSettings(): Promise<SystemSettings> {
+    const [row] = await db.select().from(systemSettings).limit(1);
+    if (row) return row as SystemSettings;
+    const [created] = await db
+      .insert(systemSettings)
+      .values({ enableGemini: true, enableOpenAI: true, openaiModel: "gpt-4o-mini" })
+      .returning();
+    return created as SystemSettings;
+  }
+
+  async updateSystemSettings(updates: UpdateSystemSettings): Promise<SystemSettings> {
+    const current = await this.getSystemSettings();
+    const [updated] = await db
+      .update(systemSettings)
+      .set({ ...(updates as any), updatedAt: new Date() })
+      .where(eq(systemSettings.id, current.id))
+      .returning();
+    return updated as SystemSettings;
   }
 }
 

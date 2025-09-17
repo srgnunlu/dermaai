@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 
 export default function AdminPage() {
@@ -98,6 +99,30 @@ export default function AdminPage() {
   // Fetch all users for admin
   const { data: users = [], isLoading: usersLoading } = useQuery({
     queryKey: ["/api/admin/users"],
+  });
+
+  // System settings
+  const { data: systemSettings, refetch: refetchSystemSettings } = useQuery({
+    queryKey: ["/api/admin/system-settings"],
+  });
+
+  const updateSystemSettingsMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      const res = await fetch('/api/admin/system-settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('Failed to update settings');
+      return res.json();
+    },
+    onSuccess: () => {
+      refetchSystemSettings();
+      toast({ title: 'Settings updated' });
+    },
+    onError: (e: any) => {
+      toast({ title: 'Failed to update settings', description: e?.message, variant: 'destructive' });
+    }
   });
 
   // Delete case mutation
@@ -482,7 +507,7 @@ export default function AdminPage() {
 
       {/* Main Content - Tabbed Interface */}
       <Tabs defaultValue="cases" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="cases" data-testid="tab-cases">
             <FileText className="w-4 h-4 mr-2" />
             Case Management
@@ -490,6 +515,10 @@ export default function AdminPage() {
           <TabsTrigger value="users" data-testid="tab-users">
             <UserCog className="w-4 h-4 mr-2" />
             User Management
+          </TabsTrigger>
+          <TabsTrigger value="settings" data-testid="tab-settings">
+            <Shield className="w-4 h-4 mr-2" />
+            System Settings
           </TabsTrigger>
         </TabsList>
 
@@ -906,6 +935,61 @@ export default function AdminPage() {
                   </TableBody>
                 </Table>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Settings Tab */}
+        <TabsContent value="settings" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>AI Analysis Controls</CardTitle>
+              <CardDescription>Configure which models run for all users</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium">Enable Gemini</div>
+                  <div className="text-sm text-muted-foreground">Run Google Gemini analysis</div>
+                </div>
+                <Switch
+                  checked={!!systemSettings?.enableGemini}
+                  onCheckedChange={(v) => updateSystemSettingsMutation.mutate({ enableGemini: v })}
+                  data-testid="switch-enable-gemini"
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium">Enable OpenAI</div>
+                  <div className="text-sm text-muted-foreground">Run OpenAI analysis</div>
+                </div>
+                <Switch
+                  checked={!!systemSettings?.enableOpenAI}
+                  onCheckedChange={(v) => updateSystemSettingsMutation.mutate({ enableOpenAI: v })}
+                  data-testid="switch-enable-openai"
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium">OpenAI Model</div>
+                  <div className="text-sm text-muted-foreground">Choose which OpenAI model to use</div>
+                </div>
+                <Select
+                  value={systemSettings?.openaiModel || 'gpt-5-mini'}
+                  onValueChange={(v) => updateSystemSettingsMutation.mutate({ openaiModel: v })}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Select model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="gpt-5-mini">gpt-5-mini</SelectItem>
+                    <SelectItem value="gpt-5">gpt-5</SelectItem>
+                    <SelectItem value="gpt-4o-mini">gpt-4o-mini</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

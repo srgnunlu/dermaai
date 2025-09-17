@@ -512,16 +512,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? caseData.symptoms.join(", ") 
         : (caseData.symptoms || "");
       
-      const [geminiResult, openaiResult] = await Promise.allSettled([
-        analyzeWithGemini(caseData.imageUrl, symptomsString, {
-          lesionLocation: caseData.lesionLocation || undefined,
-          medicalHistory: (caseData.medicalHistory as string[]) || undefined
-        }),
-        analyzeWithOpenAI(caseData.imageUrl, symptomsString, {
-          lesionLocation: caseData.lesionLocation || undefined,
-          medicalHistory: (caseData.medicalHistory as string[]) || undefined
-        })
-      ]);
+      // Read system settings to decide which models to run
+      const sys = await storage.getSystemSettings();
+      const runGemini = sys.enableGemini !== false;
+      const runOpenAI = sys.enableOpenAI !== false;
+
+      if (!runGemini && !runOpenAI) {
+        return res.status(503).json({ error: "Analysis disabled by admin settings" });
+      }
+
+      const tasks: Promise<any>[] = [];
+      if (runGemini) {
+        tasks.push(
+          analyzeWithGemini(caseData.imageUrl, symptomsString, {
+            lesionLocation: caseData.lesionLocation || undefined,
+            medicalHistory: (caseData.medicalHistory as string[]) || undefined,
+          })
+        );
+      }
+      if (runOpenAI) {
+        tasks.push(
+          analyzeWithOpenAI(
+            caseData.imageUrl,
+            symptomsString,
+            {
+              lesionLocation: caseData.lesionLocation || undefined,
+              medicalHistory: (caseData.medicalHistory as string[]) || undefined,
+            },
+            { model: sys.openaiModel || undefined }
+          )
+        );
+      }
+
+      const settled = await Promise.allSettled(tasks);
+      // Map results back to providers by order
+      let geminiResult: PromiseSettledResult<any> = { status: "rejected", reason: "Gemini not run" } as any;
+      let openaiResult: PromiseSettledResult<any> = { status: "rejected", reason: "OpenAI not run" } as any;
+      let idx = 0;
+      if (runGemini) {
+        geminiResult = settled[idx++];
+      }
+      if (runOpenAI) {
+        openaiResult = settled[idx++];
+      }
 
       let geminiAnalysis = null;
       let openaiAnalysis = null;
@@ -796,6 +829,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating PDF report:", error);
       res.status(500).json({ error: "Failed to generate report" });
+    }
+  });
+
+  // Admin: System settings
+  app.get('/api/admin/system-settings', requireAdmin, async (_req, res) => {
+    try {
+      const settings = await storage.getSystemSettings();
+      res.json(settings);
+    } catch (e) {
+      res.status(500).json({ error: 'Failed to load system settings' });
+    }
+  });
+
+  app.put('/api/admin/system-settings', requireAdmin, async (req, res) => {
+    try {
+      const { updateSystemSettingsSchema } = await import('@shared/schema');
+      const updates = updateSystemSettingsSchema.parse(req.body);
+      const updated = await storage.updateSystemSettings(updates);
+      res.json(updated);
+    } catch (e: any) {
+      res.status(400).json({ error: e?.message || 'Invalid settings' });
     }
   });
 

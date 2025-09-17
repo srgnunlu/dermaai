@@ -171,3 +171,21 @@ export const updateUserSettingsSchema = z.object({
 export type InsertUserSettings = z.infer<typeof insertUserSettingsSchema>;
 export type UpdateUserSettings = z.infer<typeof updateUserSettingsSchema>;
 export type UserSettings = typeof userSettings.$inferSelect;
+
+// System-wide settings controlled by admin
+export const systemSettings = pgTable("system_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  enableGemini: jsonb("enable_gemini").default(true).$type<boolean>(),
+  enableOpenAI: jsonb("enable_openai").default(true).$type<boolean>(),
+  openaiModel: text("openai_model").default("gpt-4o-mini"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const updateSystemSettingsSchema = z.object({
+  enableGemini: z.boolean().optional(),
+  enableOpenAI: z.boolean().optional(),
+  openaiModel: z.enum(["gpt-5-mini", "gpt-5", "gpt-4o-mini"]).optional(),
+});
+
+export type SystemSettings = typeof systemSettings.$inferSelect;
+export type UpdateSystemSettings = z.infer<typeof updateSystemSettingsSchema>;

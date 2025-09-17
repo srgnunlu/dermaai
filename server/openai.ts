@@ -117,7 +117,10 @@ Respond with JSON in this exact format:
       messages: [
         {
           role: "system" as const,
-          content: systemPrompt,
+          content: isGpt5
+            ? systemPrompt +
+              "\nReturn compact JSON only (no prose). Keep description <= 12 words; keyFeatures up to 3; recommendations up to 2."
+            : systemPrompt,
         },
         {
           role: "user" as const,
@@ -137,12 +140,11 @@ Respond with JSON in this exact format:
       max_completion_tokens: isGpt5 ? 800 : 2000,
     };
 
-    // Attempt 1: strict JSON output
+    // Attempt 1: strict JSON output (skip response_format for gpt-5)
     let response = await getOpenAIClient().chat.completions.create({
       model,
       ...baseRequest,
-      messages: [...(baseRequest as any).messages],
-      response_format: { type: "json_object" },
+      ...(isGpt5 ? {} : { response_format: { type: "json_object" as const } }),
     });
 
     const analysisTime = (Date.now() - startTime) / 1000;

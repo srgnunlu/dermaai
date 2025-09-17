@@ -29,14 +29,16 @@ RUN adduser -S nextjs -u 1001
 
 # Copy package files and install only production dependencies
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --omit=dev && npm cache clean --force \
+  && npm install --no-save drizzle-kit@0.30.4
 
 # Copy built application from builder stage
 COPY --from=builder --chown=nextjs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nextjs:nodejs /app/shared ./shared
+COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.mjs ./drizzle.config.mjs
 
 # Create uploads directory with proper permissions
-RUN mkdir -p uploads/images && chown -R nextjs:nodejs uploads
+RUN mkdir -p uploads/images migrations && chown -R nextjs:nodejs uploads migrations
 
 # Ensure production environment
 ENV NODE_ENV=production
@@ -54,5 +56,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
-# Start the application
-CMD ["node", "dist/index.js"]
+# Run lightweight schema push, then start app
+CMD ["sh", "-lc", "drizzle-kit push && node dist/index.js"]

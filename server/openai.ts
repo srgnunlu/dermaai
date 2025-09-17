@@ -111,7 +111,7 @@ Respond with JSON in this exact format:
 }`;
 
     const model = options.model || process.env.OPENAI_MODEL || "gpt-4o-mini";
-    const isGpt5 = /^gpt-5($|-)/.test(model);
+    const isGpt5 = model === "gpt-5";
 
     const baseRequest = {
       messages: [
@@ -158,7 +158,7 @@ Respond with JSON in this exact format:
       });
 
     // Attempt 2: relax response_format (some models e.g. gpt-5 only allow default temperature)
-      const supportsTemp = !/^gpt-5($|-)/.test(model);
+      const supportsTemp = !isGpt5;
       response = await getOpenAIClient().chat.completions.create({
         model,
         ...baseRequest,
@@ -186,6 +186,7 @@ Respond with JSON in this exact format:
       const resp2b = await getOpenAIClient().chat.completions.create({
         model,
         ...(compactBase as any),
+        ...(isGpt5 ? {} : { response_format: { type: 'json_object' as const } }),
       });
       content = resp2b.choices?.[0]?.message?.content ?? "";
       refusal = (resp2b.choices?.[0] as any)?.message?.refusal;

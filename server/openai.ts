@@ -147,8 +147,8 @@ Respond with JSON in this exact format:
 
     const analysisTime = (Date.now() - startTime) / 1000;
     let content = response.choices?.[0]?.message?.content ?? "";
-    const refusal = (response.choices?.[0] as any)?.message?.refusal;
-    const finishReason = (response.choices?.[0] as any)?.finish_reason;
+    let refusal = (response.choices?.[0] as any)?.message?.refusal;
+    let finishReason = (response.choices?.[0] as any)?.finish_reason;
     if (!content) {
       console.warn("[OpenAI] Empty content on first attempt", {
         refusal,
@@ -163,6 +163,31 @@ Respond with JSON in this exact format:
         ...(supportsTemp ? { temperature: 0.2 } : {}),
       });
       content = response.choices?.[0]?.message?.content ?? "";
+      refusal = (response.choices?.[0] as any)?.message?.refusal;
+      finishReason = (response.choices?.[0] as any)?.finish_reason;
+    }
+
+    // Attempt 2b: if still empty because of 'length', try compact JSON without strict response_format
+    if (!content && finishReason === 'length') {
+      const compactBase = {
+        messages: [
+          {
+            role: 'system' as const,
+            content:
+              systemPrompt +
+              "\nKeep the JSON extremely concise: description <= 12 words, keyFeatures length <= 3, recommendations length <= 2.",
+          },
+          ...(baseRequest as any).messages.slice(1),
+        ],
+        max_completion_tokens: (baseRequest as any).max_completion_tokens + 200,
+      };
+      const resp2b = await getOpenAIClient().chat.completions.create({
+        model,
+        ...(compactBase as any),
+      });
+      content = resp2b.choices?.[0]?.message?.content ?? "";
+      refusal = (resp2b.choices?.[0] as any)?.message?.refusal;
+      finishReason = (resp2b.choices?.[0] as any)?.finish_reason;
     }
 
     // Attempt 3: fallback model

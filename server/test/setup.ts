@@ -26,11 +26,11 @@ vi.mock('../gemini', () => ({
         confidence: 85,
         description: 'Test description',
         keyFeatures: ['Feature 1', 'Feature 2'],
-        recommendations: ['Recommendation 1', 'Recommendation 2']
-      }
+        recommendations: ['Recommendation 1', 'Recommendation 2'],
+      },
     ],
-    analysisTime: 2.5
-  })
+    analysisTime: 2.5,
+  }),
 }));
 
 vi.mock('../openai', () => ({
@@ -41,11 +41,11 @@ vi.mock('../openai', () => ({
         confidence: 82,
         description: 'Test description OpenAI',
         keyFeatures: ['Feature A', 'Feature B'],
-        recommendations: ['Recommendation A', 'Recommendation B']
-      }
+        recommendations: ['Recommendation A', 'Recommendation B'],
+      },
     ],
-    analysisTime: 3.2
-  })
+    analysisTime: 3.2,
+  }),
 }));
 
 // Console logları test sırasında sustur (isteğe bağlı)

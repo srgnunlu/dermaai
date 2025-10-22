@@ -1,12 +1,18 @@
-import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { UserCheck, Brain } from "lucide-react";
+import { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { UserCheck, Brain } from 'lucide-react';
 
 interface PatientData {
   patientId: string;
@@ -27,15 +33,15 @@ interface PatientFormProps {
 
 export function PatientForm({ onSubmit, isLoading = false }: PatientFormProps) {
   const [formData, setFormData] = useState<PatientData>({
-    patientId: "",
+    patientId: '',
     age: null,
-    gender: "",
-    skinType: "",
-    lesionLocation: "",
+    gender: '',
+    skinType: '',
+    lesionLocation: '',
     symptoms: [],
-    additionalSymptoms: "",
-    symptomDuration: "",
-    medicalHistory: []
+    additionalSymptoms: '',
+    symptomDuration: '',
+    medicalHistory: [],
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -44,51 +50,51 @@ export function PatientForm({ onSubmit, isLoading = false }: PatientFormProps) {
   };
 
   const handleMedicalHistoryChange = (condition: string, checked: boolean) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      medicalHistory: checked 
+      medicalHistory: checked
         ? [...prev.medicalHistory, condition]
-        : prev.medicalHistory.filter(item => item !== condition)
+        : prev.medicalHistory.filter((item) => item !== condition),
     }));
   };
 
   const handleSymptomChange = (symptom: string, checked: boolean) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      symptoms: checked 
+      symptoms: checked
         ? [...prev.symptoms, symptom]
-        : prev.symptoms.filter(item => item !== symptom)
+        : prev.symptoms.filter((item) => item !== symptom),
     }));
   };
 
   const dermatologicalSymptoms = [
-    "Itching (Kaşıntı)",
-    "Pain (Ağrı)", 
-    "Burning sensation (Yanma hissi)",
-    "Redness (Kızarıklık)",
-    "Swelling (Şişlik)",
-    "Discharge/oozing (Sızıntı/akıntı)",
-    "Crusting (Kabuklanma)",
-    "Scaling (Pullanma)",
-    "Dryness (Kuruluk)",
-    "Sensitivity (Hassasiyet)",
-    "Numbness (Uyuşma)",
-    "Hardness (Sertlik)"
+    'Itching (Kaşıntı)',
+    'Pain (Ağrı)',
+    'Burning sensation (Yanma hissi)',
+    'Redness (Kızarıklık)',
+    'Swelling (Şişlik)',
+    'Discharge/oozing (Sızıntı/akıntı)',
+    'Crusting (Kabuklanma)',
+    'Scaling (Pullanma)',
+    'Dryness (Kuruluk)',
+    'Sensitivity (Hassasiyet)',
+    'Numbness (Uyuşma)',
+    'Hardness (Sertlik)',
   ];
 
   const symptomDurationOptions = [
-    { value: "less-than-1-day", label: "Less than 1 day (1 günden az)" },
-    { value: "1-7-days", label: "1-7 days (1-7 gün)" },
-    { value: "1-4-weeks", label: "1-4 weeks (1-4 hafta)" },
-    { value: "1-6-months", label: "1-6 months (1-6 ay)" },
-    { value: "more-than-6-months", label: "More than 6 months (6 aydan fazla)" }
+    { value: 'less-than-1-day', label: 'Less than 1 day (1 günden az)' },
+    { value: '1-7-days', label: '1-7 days (1-7 gün)' },
+    { value: '1-4-weeks', label: '1-4 weeks (1-4 hafta)' },
+    { value: '1-6-months', label: '1-6 months (1-6 ay)' },
+    { value: 'more-than-6-months', label: 'More than 6 months (6 aydan fazla)' },
   ];
 
   const medicalConditions = [
-    "Previous skin cancer",
-    "Family history of melanoma", 
-    "Immunosuppressive medications",
-    "Excessive sun exposure"
+    'Previous skin cancer',
+    'Family history of melanoma',
+    'Immunosuppressive medications',
+    'Excessive sun exposure',
   ];
 
   return (
@@ -98,7 +104,7 @@ export function PatientForm({ onSubmit, isLoading = false }: PatientFormProps) {
           <UserCheck className="text-primary mr-2" size={20} />
           Patient Information & Symptoms
         </h3>
-        
+
         <form onSubmit={handleSubmit} className="space-y-6" data-testid="form-patient-info">
           {/* Patient Demographics */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -111,7 +117,7 @@ export function PatientForm({ onSubmit, isLoading = false }: PatientFormProps) {
                 type="text"
                 placeholder="Enter patient ID"
                 value={formData.patientId}
-                onChange={(e) => setFormData(prev => ({ ...prev, patientId: e.target.value }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, patientId: e.target.value }))}
                 className="w-full"
                 required
                 data-testid="input-patient-id"
@@ -125,8 +131,13 @@ export function PatientForm({ onSubmit, isLoading = false }: PatientFormProps) {
                 id="age"
                 type="number"
                 placeholder="Patient age"
-                value={formData.age || ""}
-                onChange={(e) => setFormData(prev => ({ ...prev, age: e.target.value ? parseInt(e.target.value) : null }))}
+                value={formData.age || ''}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    age: e.target.value ? parseInt(e.target.value) : null,
+                  }))
+                }
                 className="w-full"
                 data-testid="input-age"
               />
@@ -137,9 +148,9 @@ export function PatientForm({ onSubmit, isLoading = false }: PatientFormProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label className="text-sm font-medium text-foreground mb-2">Gender</Label>
-              <Select 
-                value={formData.gender} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value }))}
+              <Select
+                value={formData.gender}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, gender: value }))}
               >
                 <SelectTrigger className="w-full" data-testid="select-gender">
                   <SelectValue placeholder="Select gender" />
@@ -152,10 +163,12 @@ export function PatientForm({ onSubmit, isLoading = false }: PatientFormProps) {
               </Select>
             </div>
             <div>
-              <Label className="text-sm font-medium text-foreground mb-2">Fitzpatrick Skin Type</Label>
-              <Select 
-                value={formData.skinType} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, skinType: value }))}
+              <Label className="text-sm font-medium text-foreground mb-2">
+                Fitzpatrick Skin Type
+              </Label>
+              <Select
+                value={formData.skinType}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, skinType: value }))}
               >
                 <SelectTrigger className="w-full" data-testid="select-skin-type">
                   <SelectValue placeholder="Select skin type" />
@@ -182,7 +195,7 @@ export function PatientForm({ onSubmit, isLoading = false }: PatientFormProps) {
               type="text"
               placeholder="e.g., Left shoulder, Face, etc."
               value={formData.lesionLocation}
-              onChange={(e) => setFormData(prev => ({ ...prev, lesionLocation: e.target.value }))}
+              onChange={(e) => setFormData((prev) => ({ ...prev, lesionLocation: e.target.value }))}
               className="w-full"
               data-testid="input-lesion-location"
             />
@@ -201,13 +214,12 @@ export function PatientForm({ onSubmit, isLoading = false }: PatientFormProps) {
                     <Checkbox
                       id={symptom}
                       checked={formData.symptoms.includes(symptom)}
-                      onCheckedChange={(checked) => handleSymptomChange(symptom, checked as boolean)}
+                      onCheckedChange={(checked) =>
+                        handleSymptomChange(symptom, checked as boolean)
+                      }
                       data-testid={`checkbox-symptom-${symptom.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
                     />
-                    <Label
-                      htmlFor={symptom}
-                      className="text-sm text-foreground leading-5"
-                    >
+                    <Label htmlFor={symptom} className="text-sm text-foreground leading-5">
                       {symptom}
                     </Label>
                   </div>
@@ -217,7 +229,10 @@ export function PatientForm({ onSubmit, isLoading = false }: PatientFormProps) {
 
             {/* Additional Symptoms */}
             <div>
-              <Label htmlFor="additionalSymptoms" className="text-sm font-medium text-foreground mb-2">
+              <Label
+                htmlFor="additionalSymptoms"
+                className="text-sm font-medium text-foreground mb-2"
+              >
                 Additional symptoms and descriptions (Ek semptomlar ve açıklamalar)
               </Label>
               <Textarea
@@ -225,7 +240,9 @@ export function PatientForm({ onSubmit, isLoading = false }: PatientFormProps) {
                 rows={3}
                 placeholder="Describe any additional symptoms, changes in size/color, other observations..."
                 value={formData.additionalSymptoms}
-                onChange={(e) => setFormData(prev => ({ ...prev, additionalSymptoms: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, additionalSymptoms: e.target.value }))
+                }
                 className="w-full"
                 data-testid="textarea-additional-symptoms"
               />
@@ -236,9 +253,11 @@ export function PatientForm({ onSubmit, isLoading = false }: PatientFormProps) {
               <Label className="text-sm font-medium text-foreground mb-2">
                 Symptom Duration (Semptom Süresi)
               </Label>
-              <Select 
-                value={formData.symptomDuration} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, symptomDuration: value }))}
+              <Select
+                value={formData.symptomDuration}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, symptomDuration: value }))
+                }
               >
                 <SelectTrigger className="w-full" data-testid="select-symptom-duration">
                   <SelectValue placeholder="Select duration (Süre seçiniz)" />
@@ -265,13 +284,12 @@ export function PatientForm({ onSubmit, isLoading = false }: PatientFormProps) {
                   <Checkbox
                     id={condition}
                     checked={formData.medicalHistory.includes(condition)}
-                    onCheckedChange={(checked) => handleMedicalHistoryChange(condition, checked as boolean)}
+                    onCheckedChange={(checked) =>
+                      handleMedicalHistoryChange(condition, checked as boolean)
+                    }
                     data-testid={`checkbox-${condition.toLowerCase().replace(/\s+/g, '-')}`}
                   />
-                  <Label
-                    htmlFor={condition}
-                    className="text-sm text-foreground"
-                  >
+                  <Label htmlFor={condition} className="text-sm text-foreground">
                     {condition}
                   </Label>
                 </div>

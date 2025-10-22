@@ -1,8 +1,8 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Bot, Brain, CheckCircle, AlertTriangle, Save, FileText, Plus } from "lucide-react";
-import type { Case } from "@shared/schema";
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Bot, Brain, CheckCircle, AlertTriangle, Save, FileText, Plus } from 'lucide-react';
+import type { Case } from '@shared/schema';
 
 interface DiagnosisResultsProps {
   caseData: Case;
@@ -11,39 +11,51 @@ interface DiagnosisResultsProps {
   onNewAnalysis: () => void;
 }
 
-export function DiagnosisResults({ caseData, onSaveCase, onGenerateReport, onNewAnalysis }: DiagnosisResultsProps) {
+export function DiagnosisResults({
+  caseData,
+  onSaveCase,
+  onGenerateReport,
+  onNewAnalysis,
+}: DiagnosisResultsProps) {
   const { finalDiagnoses, geminiAnalysis, openaiAnalysis } = caseData;
 
   if (!finalDiagnoses || finalDiagnoses.length === 0) {
     return (
       <Card className="bg-card border border-border shadow-sm">
         <CardContent className="p-8 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mx-auto mb-4" data-testid="loading-spinner"></div>
+          <div
+            className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mx-auto mb-4"
+            data-testid="loading-spinner"
+          ></div>
           <p className="text-lg font-medium text-foreground mb-2">Processing Analysis...</p>
-          <p className="text-sm text-muted-foreground">AI models are analyzing the image and symptoms</p>
+          <p className="text-sm text-muted-foreground">
+            AI models are analyzing the image and symptoms
+          </p>
         </CardContent>
       </Card>
     );
   }
 
   const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 80) return "text-success";
-    if (confidence >= 60) return "text-foreground";
-    if (confidence >= 40) return "text-muted-foreground";
-    return "text-destructive";
+    if (confidence >= 80) return 'text-success';
+    if (confidence >= 60) return 'text-foreground';
+    if (confidence >= 40) return 'text-muted-foreground';
+    return 'text-destructive';
   };
 
   const getConfidenceBarColor = (confidence: number) => {
-    if (confidence >= 80) return "bg-success";
-    if (confidence >= 60) return "bg-foreground";
-    if (confidence >= 40) return "bg-muted-foreground";
-    return "bg-destructive";
+    if (confidence >= 80) return 'bg-success';
+    if (confidence >= 60) return 'bg-foreground';
+    if (confidence >= 40) return 'bg-muted-foreground';
+    return 'bg-destructive';
   };
 
   const getBorderColor = (rank: number, isUrgent: boolean) => {
-    if (rank === 1 && !isUrgent) return "border-success/20 bg-gradient-to-r from-success/10 to-success/5";
-    if (isUrgent) return "border-destructive/20 bg-gradient-to-r from-destructive/10 to-destructive/5";
-    return "border-border bg-card";
+    if (rank === 1 && !isUrgent)
+      return 'border-success/20 bg-gradient-to-r from-success/10 to-success/5';
+    if (isUrgent)
+      return 'border-destructive/20 bg-gradient-to-r from-destructive/10 to-destructive/5';
+    return 'border-border bg-card';
   };
 
   const consensus = geminiAnalysis && openaiAnalysis ? 94 : 0;
@@ -83,9 +95,9 @@ export function DiagnosisResults({ caseData, onSaveCase, onGenerateReport, onNew
           <h4 className="text-lg font-semibold text-foreground mb-4">
             Preliminary Diagnoses (Ranked by Confidence)
           </h4>
-          
+
           {finalDiagnoses.map((diagnosis, index) => (
-            <div 
+            <div
               key={index}
               className={`diagnosis-card rounded-lg p-4 transition-all duration-200 hover:translate-y-[-2px] hover:shadow-lg ${getBorderColor(diagnosis.rank, diagnosis.isUrgent)} border`}
               data-testid={`diagnosis-card-${index + 1}`}
@@ -93,16 +105,19 @@ export function DiagnosisResults({ caseData, onSaveCase, onGenerateReport, onNew
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <div className="flex items-center mb-2">
-                    <Badge 
-                      variant={diagnosis.rank === 1 ? "default" : "secondary"}
-                      className={`mr-3 ${diagnosis.rank === 1 ? "bg-success text-white" : "bg-muted text-muted-foreground"}`}
+                    <Badge
+                      variant={diagnosis.rank === 1 ? 'default' : 'secondary'}
+                      className={`mr-3 ${diagnosis.rank === 1 ? 'bg-success text-white' : 'bg-muted text-muted-foreground'}`}
                     >
                       {diagnosis.rank}
                     </Badge>
-                    <h5 className="text-lg font-semibold text-foreground" data-testid={`text-diagnosis-name-${index + 1}`}>
+                    <h5
+                      className="text-lg font-semibold text-foreground"
+                      data-testid={`text-diagnosis-name-${index + 1}`}
+                    >
                       {diagnosis.name}
                     </h5>
-                    <span 
+                    <span
                       className={`ml-auto text-lg font-bold ${getConfidenceColor(diagnosis.confidence)}`}
                       data-testid={`text-confidence-${index + 1}`}
                     >
@@ -110,18 +125,21 @@ export function DiagnosisResults({ caseData, onSaveCase, onGenerateReport, onNew
                     </span>
                   </div>
                   <div className="probability-bar bg-muted h-2 rounded-full mb-3">
-                    <div 
+                    <div
                       className={`h-full rounded-full ${getConfidenceBarColor(diagnosis.confidence)}`}
                       style={{ width: `${diagnosis.confidence}%` }}
                     ></div>
                   </div>
                 </div>
               </div>
-              
-              <p className="text-sm text-muted-foreground mb-3" data-testid={`text-description-${index + 1}`}>
+
+              <p
+                className="text-sm text-muted-foreground mb-3"
+                data-testid={`text-description-${index + 1}`}
+              >
                 {diagnosis.description}
               </p>
-              
+
               {(diagnosis.keyFeatures.length > 0 || diagnosis.recommendations.length > 0) && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   {diagnosis.keyFeatures.length > 0 && (
@@ -152,7 +170,9 @@ export function DiagnosisResults({ caseData, onSaveCase, onGenerateReport, onNew
                   <div className="flex items-center text-destructive">
                     <AlertTriangle size={16} className="mr-2" />
                     <span className="font-medium">
-                      {diagnosis.confidence > 50 ? "Immediate dermatological referral recommended" : "Requires professional evaluation"}
+                      {diagnosis.confidence > 50
+                        ? 'Immediate dermatological referral recommended'
+                        : 'Requires professional evaluation'}
                     </span>
                   </div>
                 </div>
@@ -175,7 +195,10 @@ export function DiagnosisResults({ caseData, onSaveCase, onGenerateReport, onNew
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Top diagnosis confidence:</span>
-                      <span className="font-medium text-foreground" data-testid="text-gemini-confidence">
+                      <span
+                        className="font-medium text-foreground"
+                        data-testid="text-gemini-confidence"
+                      >
                         {geminiAnalysis.diagnoses?.[0]?.confidence || 0}%
                       </span>
                     </div>
@@ -197,7 +220,10 @@ export function DiagnosisResults({ caseData, onSaveCase, onGenerateReport, onNew
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Top diagnosis confidence:</span>
-                      <span className="font-medium text-foreground" data-testid="text-openai-confidence">
+                      <span
+                        className="font-medium text-foreground"
+                        data-testid="text-openai-confidence"
+                      >
                         {openaiAnalysis.diagnoses?.[0]?.confidence || 0}%
                       </span>
                     </div>

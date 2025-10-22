@@ -9,11 +9,11 @@ vi.mock('../gemini', () => ({
         confidence: 85,
         description: 'Test description',
         keyFeatures: ['Feature 1', 'Feature 2'],
-        recommendations: ['Recommendation 1', 'Recommendation 2']
-      }
+        recommendations: ['Recommendation 1', 'Recommendation 2'],
+      },
     ],
-    analysisTime: 2.5
-  })
+    analysisTime: 2.5,
+  }),
 }));
 
 vi.mock('../openai', () => ({
@@ -24,11 +24,11 @@ vi.mock('../openai', () => ({
         confidence: 82,
         description: 'Test description OpenAI',
         keyFeatures: ['Feature A', 'Feature B'],
-        recommendations: ['Recommendation A', 'Recommendation B']
-      }
+        recommendations: ['Recommendation A', 'Recommendation B'],
+      },
     ],
-    analysisTime: 3.0
-  })
+    analysisTime: 3.0,
+  }),
 }));
 
 // Import after mocking
@@ -61,14 +61,10 @@ describe('Case Analysis API', () => {
 
   describe('AI Analysis Functions', () => {
     it('should analyze image with Gemini successfully', async () => {
-      const result = await analyzeWithGemini(
-        'https://example.com/image.jpg',
-        'Itching, Redness',
-        {
-          lesionLocation: 'Arm',
-          medicalHistory: ['Eczema'],
-        }
-      );
+      const result = await analyzeWithGemini('https://example.com/image.jpg', 'Itching, Redness', {
+        lesionLocation: 'Arm',
+        medicalHistory: ['Eczema'],
+      });
 
       expect(result).toHaveProperty('diagnoses');
       expect(result).toHaveProperty('analysisTime');
@@ -81,14 +77,10 @@ describe('Case Analysis API', () => {
     });
 
     it('should analyze image with OpenAI successfully', async () => {
-      const result = await analyzeWithOpenAI(
-        'https://example.com/image.jpg',
-        'Pain, Swelling',
-        {
-          lesionLocation: 'Leg',
-          medicalHistory: ['Diabetes'],
-        }
-      );
+      const result = await analyzeWithOpenAI('https://example.com/image.jpg', 'Pain, Swelling', {
+        lesionLocation: 'Leg',
+        medicalHistory: ['Diabetes'],
+      });
 
       expect(result).toHaveProperty('diagnoses');
       expect(result).toHaveProperty('analysisTime');

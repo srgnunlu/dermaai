@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   Table,
   TableBody,
@@ -8,32 +8,68 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Download, Search, Users, FileText, CheckCircle, Clock, AlertCircle, Eye, FileDown, UserCog, Shield, UserX, Trash2 } from "lucide-react";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+} from '@/components/ui/table';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Download,
+  Search,
+  Users,
+  FileText,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  Eye,
+  FileDown,
+  UserCog,
+  Shield,
+  UserX,
+  Trash2,
+} from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { queryClient, apiRequest } from '@/lib/queryClient';
 
 export default function AdminPage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState("all");
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('all');
   const [selectedCase, setSelectedCase] = useState<any>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isExporting, setIsExporting] = useState<string | null>(null);
-  const [userSearchTerm, setUserSearchTerm] = useState("");
-  const [roleFilter, setRoleFilter] = useState("all");
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
   const [isChangingRole, setIsChangingRole] = useState<string | null>(null);
   const [isDeletingCase, setIsDeletingCase] = useState<string | null>(null);
   const [isDeletingUser, setIsDeletingUser] = useState<string | null>(null);
@@ -48,38 +84,38 @@ export default function AdminPage() {
   // Handle individual case export
   const handleExportCase = async (caseItem: any) => {
     if (!caseItem.id) return;
-    
+
     setIsExporting(caseItem.id);
     try {
       const response = await fetch(`/api/cases/${caseItem.id}/report`, {
-        method: "POST",
-        credentials: "include",
+        method: 'POST',
+        credentials: 'include',
       });
 
       if (!response.ok) {
-        throw new Error("Failed to generate case report");
+        throw new Error('Failed to generate case report');
       }
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = url;
       a.download = `Case-Report-${caseItem.caseId}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-      
+
       toast({
-        title: "Success",
-        description: "Case report downloaded successfully",
+        title: 'Success',
+        description: 'Case report downloaded successfully',
       });
     } catch (error) {
-      console.error("Error exporting case:", error);
+      console.error('Error exporting case:', error);
       toast({
-        title: "Error", 
-        description: "Failed to export case report",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to export case report',
+        variant: 'destructive',
       });
     } finally {
       setIsExporting(null);
@@ -88,22 +124,22 @@ export default function AdminPage() {
 
   // Fetch all cases for admin
   const { data: cases = [], isLoading: casesLoading } = useQuery({
-    queryKey: ["/api/admin/cases"],
+    queryKey: ['/api/admin/cases'],
   });
 
   // Fetch system statistics
   const { data: stats = {}, isLoading: statsLoading } = useQuery({
-    queryKey: ["/api/admin/stats"],
+    queryKey: ['/api/admin/stats'],
   });
 
   // Fetch all users for admin
   const { data: users = [], isLoading: usersLoading } = useQuery({
-    queryKey: ["/api/admin/users"],
+    queryKey: ['/api/admin/users'],
   });
 
   // System settings
   const { data: systemSettings, refetch: refetchSystemSettings } = useQuery({
-    queryKey: ["/api/admin/system-settings"],
+    queryKey: ['/api/admin/system-settings'],
   });
 
   const updateSystemSettingsMutation = useMutation({
@@ -121,31 +157,35 @@ export default function AdminPage() {
       toast({ title: 'Settings updated' });
     },
     onError: (e: any) => {
-      toast({ title: 'Failed to update settings', description: e?.message, variant: 'destructive' });
-    }
+      toast({
+        title: 'Failed to update settings',
+        description: e?.message,
+        variant: 'destructive',
+      });
+    },
   });
 
   // Delete case mutation
   const deleteCaseMutation = useMutation({
     mutationFn: async (caseId: string) => {
       return apiRequest(`/api/admin/cases/${caseId}`, {
-        method: "DELETE",
+        method: 'DELETE',
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/cases'] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/stats'] });
       toast({
-        title: "Case deleted successfully",
-        description: "The case has been permanently deleted.",
+        title: 'Case deleted successfully',
+        description: 'The case has been permanently deleted.',
       });
     },
     onError: (error: any) => {
-      console.error("Error deleting case:", error);
+      console.error('Error deleting case:', error);
       toast({
-        title: "Failed to delete case",
-        description: error?.message || "An error occurred while deleting the case.",
-        variant: "destructive",
+        title: 'Failed to delete case',
+        description: error?.message || 'An error occurred while deleting the case.',
+        variant: 'destructive',
       });
     },
   });
@@ -154,23 +194,23 @@ export default function AdminPage() {
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
       return apiRequest(`/api/admin/users/${userId}`, {
-        method: "DELETE",
+        method: 'DELETE',
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/stats'] });
       toast({
-        title: "User deleted successfully",
-        description: "The user and all their data have been permanently deleted.",
+        title: 'User deleted successfully',
+        description: 'The user and all their data have been permanently deleted.',
       });
     },
     onError: (error: any) => {
-      console.error("Error deleting user:", error);
+      console.error('Error deleting user:', error);
       toast({
-        title: "Failed to delete user",
-        description: error?.message || "An error occurred while deleting the user.",
-        variant: "destructive",
+        title: 'Failed to delete user',
+        description: error?.message || 'An error occurred while deleting the user.',
+        variant: 'destructive',
       });
     },
   });
@@ -190,28 +230,28 @@ export default function AdminPage() {
     setIsChangingRole(userId);
     try {
       const response = await fetch(`/api/admin/users/${userId}/promote`, {
-        method: "PUT",
-        credentials: "include",
+        method: 'PUT',
+        credentials: 'include',
       });
 
       if (!response.ok) {
-        throw new Error("Failed to promote user");
+        throw new Error('Failed to promote user');
       }
 
       const result = await response.json();
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
-      
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/stats'] });
+
       toast({
-        title: "Success",
+        title: 'Success',
         description: `${userEmail} has been promoted to admin`,
       });
     } catch (error) {
-      console.error("Error promoting user:", error);
+      console.error('Error promoting user:', error);
       toast({
-        title: "Error",
-        description: "Failed to promote user",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to promote user',
+        variant: 'destructive',
       });
     } finally {
       setIsChangingRole(null);
@@ -222,28 +262,28 @@ export default function AdminPage() {
     setIsChangingRole(userId);
     try {
       const response = await fetch(`/api/admin/users/${userId}/demote`, {
-        method: "PUT",
-        credentials: "include",
+        method: 'PUT',
+        credentials: 'include',
       });
 
       if (!response.ok) {
-        throw new Error("Failed to demote user");
+        throw new Error('Failed to demote user');
       }
 
       const result = await response.json();
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
-      
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/stats'] });
+
       toast({
-        title: "Success",
+        title: 'Success',
         description: `${userEmail} has been demoted to user`,
       });
     } catch (error) {
-      console.error("Error demoting user:", error);
+      console.error('Error demoting user:', error);
       toast({
-        title: "Error",
-        description: "Failed to demote user",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to demote user',
+        variant: 'destructive',
       });
     } finally {
       setIsChangingRole(null);
@@ -253,32 +293,35 @@ export default function AdminPage() {
   // Filter cases based on search and filters
   const filteredCases = cases?.filter((caseItem: any) => {
     // Search filter
-    const matchesSearch = searchTerm === "" || 
+    const matchesSearch =
+      searchTerm === '' ||
       caseItem.caseId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       caseItem.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       caseItem.patientId?.toLowerCase().includes(searchTerm.toLowerCase());
 
     // Status filter
-    const matchesStatus = statusFilter === "all" || caseItem.status === statusFilter;
+    const matchesStatus = statusFilter === 'all' || caseItem.status === statusFilter;
 
     // Date filter
     let matchesDate = true;
-    if (dateFilter !== "all" && caseItem.createdAt) {
+    if (dateFilter !== 'all' && caseItem.createdAt) {
       const caseDate = new Date(caseItem.createdAt);
       const now = new Date();
-      
+
       switch (dateFilter) {
-        case "today":
+        case 'today':
           matchesDate = caseDate.toDateString() === now.toDateString();
           break;
-        case "week":
+        case 'week': {
           const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
           matchesDate = caseDate >= weekAgo;
           break;
-        case "month":
+        }
+        case 'month': {
           const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
           matchesDate = caseDate >= monthAgo;
           break;
+        }
       }
     }
 
@@ -288,27 +331,28 @@ export default function AdminPage() {
   // Filter users based on search and role filters
   const filteredUsers = users?.filter((user: any) => {
     // Search filter
-    const matchesSearch = userSearchTerm === "" || 
+    const matchesSearch =
+      userSearchTerm === '' ||
       user.email?.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
       user.firstName?.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
       user.lastName?.toLowerCase().includes(userSearchTerm.toLowerCase());
 
     // Role filter
-    const matchesRole = roleFilter === "all" || user.role === roleFilter;
+    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
 
     return matchesSearch && matchesRole;
   });
 
   const getRoleBadge = (role: string) => {
     switch (role) {
-      case "admin":
+      case 'admin':
         return (
           <Badge className="bg-blue-100 text-blue-800" data-testid={`badge-role-${role}`}>
             <Shield className="w-3 h-3 mr-1" />
             Admin
           </Badge>
         );
-      case "user":
+      case 'user':
         return (
           <Badge variant="outline" data-testid={`badge-role-${role}`}>
             <Users className="w-3 h-3 mr-1" />
@@ -327,39 +371,39 @@ export default function AdminPage() {
   // Export cases as CSV
   const handleExportCSV = async () => {
     try {
-      const response = await fetch("/api/admin/export/cases", {
-        method: "GET",
-        credentials: "include",
+      const response = await fetch('/api/admin/export/cases', {
+        method: 'GET',
+        credentials: 'include',
       });
 
       if (!response.ok) {
-        throw new Error("Failed to export cases");
+        throw new Error('Failed to export cases');
       }
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = url;
-      a.download = `cases-export-${new Date().toISOString().split("T")[0]}.csv`;
+      a.download = `cases-export-${new Date().toISOString().split('T')[0]}.csv`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error("Error exporting cases:", error);
+      console.error('Error exporting cases:', error);
     }
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "completed":
+      case 'completed':
         return (
           <Badge className="bg-green-100 text-green-800" data-testid={`badge-status-${status}`}>
             <CheckCircle className="w-3 h-3 mr-1" />
             Completed
           </Badge>
         );
-      case "pending":
+      case 'pending':
         return (
           <Badge className="bg-yellow-100 text-yellow-800" data-testid={`badge-status-${status}`}>
             <Clock className="w-3 h-3 mr-1" />
@@ -378,7 +422,7 @@ export default function AdminPage() {
   const getUrgencyBadge = (diagnoses: any[]) => {
     if (!diagnoses || diagnoses.length === 0) return null;
 
-    const hasUrgent = diagnoses.some(d => d.isUrgent);
+    const hasUrgent = diagnoses.some((d) => d.isUrgent);
     if (hasUrgent) {
       return (
         <Badge variant="destructive" data-testid="badge-urgent">
@@ -417,7 +461,7 @@ export default function AdminPage() {
               Gemini
             </Badge>
             <span className="text-sm font-medium">{formatConfidence(geminiTopConfidence)}</span>
-            {typeof caseItem?.geminiAnalysis?.analysisTime === "number" && (
+            {typeof caseItem?.geminiAnalysis?.analysisTime === 'number' && (
               <span className="text-xs text-muted-foreground">
                 {caseItem.geminiAnalysis.analysisTime.toFixed(1)}s
               </span>
@@ -430,7 +474,7 @@ export default function AdminPage() {
               ChatGPT
             </Badge>
             <span className="text-sm font-medium">{formatConfidence(openaiTopConfidence)}</span>
-            {typeof caseItem?.openaiAnalysis?.analysisTime === "number" && (
+            {typeof caseItem?.openaiAnalysis?.analysisTime === 'number' && (
               <span className="text-xs text-muted-foreground">
                 {caseItem.openaiAnalysis.analysisTime.toFixed(1)}s
               </span>
@@ -446,7 +490,9 @@ export default function AdminPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold" data-testid="title-admin-panel">Admin Panel</h1>
+          <h1 className="text-3xl font-bold" data-testid="title-admin-panel">
+            Admin Panel
+          </h1>
           <p className="text-muted-foreground">Manage all cases and view system statistics</p>
         </div>
         <Button onClick={handleExportCSV} data-testid="button-export-csv">
@@ -474,7 +520,7 @@ export default function AdminPage() {
                 </CardTitle>
               </CardHeader>
             </Card>
-            
+
             <Card>
               <CardHeader className="pb-3">
                 <CardDescription>Pending Cases</CardDescription>
@@ -483,7 +529,7 @@ export default function AdminPage() {
                 </CardTitle>
               </CardHeader>
             </Card>
-            
+
             <Card>
               <CardHeader className="pb-3">
                 <CardDescription>Active Users</CardDescription>
@@ -492,7 +538,7 @@ export default function AdminPage() {
                 </CardTitle>
               </CardHeader>
             </Card>
-            
+
             <Card>
               <CardHeader className="pb-3">
                 <CardDescription>Avg. Diagnosis Time</CardDescription>
@@ -543,7 +589,7 @@ export default function AdminPage() {
                     />
                   </div>
                 </div>
-                
+
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-[180px]" data-testid="select-status-filter">
                     <SelectValue placeholder="Filter by status" />
@@ -554,7 +600,7 @@ export default function AdminPage() {
                     <SelectItem value="completed">Completed</SelectItem>
                   </SelectContent>
                 </Select>
-                
+
                 <Select value={dateFilter} onValueChange={setDateFilter}>
                   <SelectTrigger className="w-[180px]" data-testid="select-date-filter">
                     <SelectValue placeholder="Filter by date" />
@@ -574,9 +620,7 @@ export default function AdminPage() {
           <Card>
             <CardHeader>
               <CardTitle>All Cases</CardTitle>
-              <CardDescription>
-                {filteredCases?.length || 0} cases found
-              </CardDescription>
+              <CardDescription>{filteredCases?.length || 0} cases found</CardDescription>
             </CardHeader>
             <CardContent>
               {casesLoading ? (
@@ -607,51 +651,39 @@ export default function AdminPage() {
                         const topDiagnosis = caseItem.finalDiagnoses?.[0];
                         return (
                           <TableRow key={caseItem.id} data-testid={`row-case-${caseItem.id}`}>
-                            <TableCell className="font-medium">
-                              {caseItem.caseId}
-                            </TableCell>
+                            <TableCell className="font-medium">{caseItem.caseId}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
                                 <Users className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm">
-                                  {caseItem.user?.email || "Unknown"}
-                                </span>
+                                <span className="text-sm">{caseItem.user?.email || 'Unknown'}</span>
                               </div>
                             </TableCell>
-                            <TableCell>
-                              {caseItem.patientId || "N/A"}
-                            </TableCell>
-                            <TableCell>
-                              {getStatusBadge(caseItem.status)}
-                            </TableCell>
+                            <TableCell>{caseItem.patientId || 'N/A'}</TableCell>
+                            <TableCell>{getStatusBadge(caseItem.status)}</TableCell>
                             <TableCell>
                               {caseItem.createdAt
-                                ? format(new Date(caseItem.createdAt), "MMM dd, yyyy")
-                                : "N/A"}
+                                ? format(new Date(caseItem.createdAt), 'MMM dd, yyyy')
+                                : 'N/A'}
                             </TableCell>
-                            <TableCell>
-                              {getAIAnalysisInfo(caseItem)}
-                            </TableCell>
-                            <TableCell>
-                              {topDiagnosis?.name || "N/A"}
-                            </TableCell>
+                            <TableCell>{getAIAnalysisInfo(caseItem)}</TableCell>
+                            <TableCell>{topDiagnosis?.name || 'N/A'}</TableCell>
                             <TableCell>
                               {topDiagnosis ? (
                                 <div className="flex items-center gap-2">
-                                  <div 
+                                  <div
                                     className={cn(
-                                      "w-full bg-gray-200 rounded-full h-2",
-                                      "relative overflow-hidden"
+                                      'w-full bg-gray-200 rounded-full h-2',
+                                      'relative overflow-hidden'
                                     )}
                                   >
                                     <div
                                       className={cn(
-                                        "h-full transition-all",
+                                        'h-full transition-all',
                                         topDiagnosis.confidence >= 70
-                                          ? "bg-green-500"
+                                          ? 'bg-green-500'
                                           : topDiagnosis.confidence >= 40
-                                          ? "bg-yellow-500"
-                                          : "bg-red-500"
+                                            ? 'bg-yellow-500'
+                                            : 'bg-red-500'
                                       )}
                                       style={{ width: `${topDiagnosis.confidence}%` }}
                                     />
@@ -661,12 +693,10 @@ export default function AdminPage() {
                                   </span>
                                 </div>
                               ) : (
-                                "N/A"
+                                'N/A'
                               )}
                             </TableCell>
-                            <TableCell>
-                              {getUrgencyBadge(caseItem.finalDiagnoses)}
-                            </TableCell>
+                            <TableCell>{getUrgencyBadge(caseItem.finalDiagnoses)}</TableCell>
                             <TableCell>
                               <div className="flex gap-2">
                                 <Button
@@ -686,7 +716,7 @@ export default function AdminPage() {
                                   data-testid={`button-export-case-${caseItem.id}`}
                                 >
                                   <FileDown className="w-4 h-4 mr-1" />
-                                  {isExporting === caseItem.id ? "Exporting..." : "Export"}
+                                  {isExporting === caseItem.id ? 'Exporting...' : 'Export'}
                                 </Button>
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
@@ -704,8 +734,9 @@ export default function AdminPage() {
                                     <AlertDialogHeader>
                                       <AlertDialogTitle>Delete Case</AlertDialogTitle>
                                       <AlertDialogDescription>
-                                        Are you sure you want to delete case {caseItem.caseId}? 
-                                        This action cannot be undone and will permanently remove all case data.
+                                        Are you sure you want to delete case {caseItem.caseId}? This
+                                        action cannot be undone and will permanently remove all case
+                                        data.
                                       </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
@@ -761,7 +792,7 @@ export default function AdminPage() {
                     />
                   </div>
                 </div>
-                
+
                 <Select value={roleFilter} onValueChange={setRoleFilter}>
                   <SelectTrigger className="w-[180px]" data-testid="select-role-filter">
                     <SelectValue placeholder="Filter by role" />
@@ -780,9 +811,7 @@ export default function AdminPage() {
           <Card>
             <CardHeader>
               <CardTitle>All Users</CardTitle>
-              <CardDescription>
-                {filteredUsers?.length || 0} users found
-              </CardDescription>
+              <CardDescription>{filteredUsers?.length || 0} users found</CardDescription>
             </CardHeader>
             <CardContent>
               {usersLoading ? (
@@ -805,24 +834,21 @@ export default function AdminPage() {
                   <TableBody>
                     {filteredUsers && filteredUsers.length > 0 ? (
                       filteredUsers.map((user: any) => {
-                        const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ") || "N/A";
+                        const fullName =
+                          [user.firstName, user.lastName].filter(Boolean).join(' ') || 'N/A';
                         return (
                           <TableRow key={user.id} data-testid={`row-user-${user.id}`}>
-                            <TableCell className="font-medium">
-                              {user.email}
-                            </TableCell>
+                            <TableCell className="font-medium">{user.email}</TableCell>
                             <TableCell>{fullName}</TableCell>
-                            <TableCell>
-                              {getRoleBadge(user.role)}
-                            </TableCell>
+                            <TableCell>{getRoleBadge(user.role)}</TableCell>
                             <TableCell>
                               {user.createdAt
-                                ? format(new Date(user.createdAt), "MMM dd, yyyy")
-                                : "N/A"}
+                                ? format(new Date(user.createdAt), 'MMM dd, yyyy')
+                                : 'N/A'}
                             </TableCell>
                             <TableCell>
                               <div className="flex gap-2">
-                                {user.role !== "admin" ? (
+                                {user.role !== 'admin' ? (
                                   <AlertDialog>
                                     <AlertDialogTrigger asChild>
                                       <Button
@@ -839,7 +865,7 @@ export default function AdminPage() {
                                       <AlertDialogHeader>
                                         <AlertDialogTitle>Promote User to Admin</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                          Are you sure you want to promote {user.email} to admin? 
+                                          Are you sure you want to promote {user.email} to admin?
                                           This will give them full administrative privileges.
                                         </AlertDialogDescription>
                                       </AlertDialogHeader>
@@ -871,7 +897,7 @@ export default function AdminPage() {
                                       <AlertDialogHeader>
                                         <AlertDialogTitle>Demote Admin to User</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                          Are you sure you want to demote {user.email} from admin? 
+                                          Are you sure you want to demote {user.email} from admin?
                                           This will remove their administrative privileges.
                                         </AlertDialogDescription>
                                       </AlertDialogHeader>
@@ -903,8 +929,9 @@ export default function AdminPage() {
                                     <AlertDialogHeader>
                                       <AlertDialogTitle>Delete User</AlertDialogTitle>
                                       <AlertDialogDescription>
-                                        Are you sure you want to delete {user.email}? 
-                                        This action cannot be undone and will permanently remove the user and all their data.
+                                        Are you sure you want to delete {user.email}? This action
+                                        cannot be undone and will permanently remove the user and
+                                        all their data.
                                       </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
@@ -974,7 +1001,9 @@ export default function AdminPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="font-medium">OpenAI Model</div>
-                  <div className="text-sm text-muted-foreground">Choose which OpenAI model to use</div>
+                  <div className="text-sm text-muted-foreground">
+                    Choose which OpenAI model to use
+                  </div>
                 </div>
                 <Select
                   value={systemSettings?.openaiModel || 'gpt-5-mini'}
@@ -994,11 +1023,15 @@ export default function AdminPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="font-medium">Allow OpenAI Fallback</div>
-                  <div className="text-sm text-muted-foreground">If selected model fails, try gpt-4o-mini automatically</div>
+                  <div className="text-sm text-muted-foreground">
+                    If selected model fails, try gpt-4o-mini automatically
+                  </div>
                 </div>
                 <Switch
                   checked={systemSettings?.openaiAllowFallback !== false}
-                  onCheckedChange={(v) => updateSystemSettingsMutation.mutate({ openaiAllowFallback: v })}
+                  onCheckedChange={(v) =>
+                    updateSystemSettingsMutation.mutate({ openaiAllowFallback: v })
+                  }
                   data-testid="switch-openai-fallback"
                 />
               </div>
@@ -1012,11 +1045,9 @@ export default function AdminPage() {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Case Details</DialogTitle>
-            <DialogDescription>
-              Comprehensive view of case {selectedCase?.caseId}
-            </DialogDescription>
+            <DialogDescription>Comprehensive view of case {selectedCase?.caseId}</DialogDescription>
           </DialogHeader>
-          
+
           {selectedCase && (
             <div className="space-y-6" data-testid="case-details-content">
               {/* Case Information */}
@@ -1024,21 +1055,46 @@ export default function AdminPage() {
                 <div>
                   <h3 className="font-semibold mb-2">Case Information</h3>
                   <div className="space-y-1 text-sm">
-                    <p><span className="font-medium">Case ID:</span> {selectedCase.caseId}</p>
-                    <p><span className="font-medium">User:</span> {selectedCase.user?.email || 'Unknown'}</p>
-                    <p><span className="font-medium">Patient ID:</span> {selectedCase.patientId || 'N/A'}</p>
-                    <p><span className="font-medium">Status:</span> {getStatusBadge(selectedCase.status)}</p>
-                    <p><span className="font-medium">Date:</span> {selectedCase.createdAt ? format(new Date(selectedCase.createdAt), "PPpp") : 'N/A'}</p>
+                    <p>
+                      <span className="font-medium">Case ID:</span> {selectedCase.caseId}
+                    </p>
+                    <p>
+                      <span className="font-medium">User:</span>{' '}
+                      {selectedCase.user?.email || 'Unknown'}
+                    </p>
+                    <p>
+                      <span className="font-medium">Patient ID:</span>{' '}
+                      {selectedCase.patientId || 'N/A'}
+                    </p>
+                    <p>
+                      <span className="font-medium">Status:</span>{' '}
+                      {getStatusBadge(selectedCase.status)}
+                    </p>
+                    <p>
+                      <span className="font-medium">Date:</span>{' '}
+                      {selectedCase.createdAt
+                        ? format(new Date(selectedCase.createdAt), 'PPpp')
+                        : 'N/A'}
+                    </p>
                   </div>
                 </div>
-                
+
                 <div>
                   <h3 className="font-semibold mb-2">Clinical Information</h3>
                   <div className="space-y-1 text-sm">
-                    <p><span className="font-medium">Lesion Location:</span> {selectedCase.lesionLocation || 'Not specified'}</p>
-                    <p><span className="font-medium">Symptoms:</span> {selectedCase.symptoms || 'None reported'}</p>
+                    <p>
+                      <span className="font-medium">Lesion Location:</span>{' '}
+                      {selectedCase.lesionLocation || 'Not specified'}
+                    </p>
+                    <p>
+                      <span className="font-medium">Symptoms:</span>{' '}
+                      {selectedCase.symptoms || 'None reported'}
+                    </p>
                     {selectedCase.medicalHistory && selectedCase.medicalHistory.length > 0 && (
-                      <p><span className="font-medium">Medical History:</span> {selectedCase.medicalHistory.join(', ')}</p>
+                      <p>
+                        <span className="font-medium">Medical History:</span>{' '}
+                        {selectedCase.medicalHistory.join(', ')}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -1049,16 +1105,17 @@ export default function AdminPage() {
                 <div>
                   <h3 className="font-semibold mb-2">Case Image</h3>
                   <div className="border rounded-lg p-4 bg-gray-50">
-                    <img 
-                      src={selectedCase.imageUrl.startsWith('https://storage.googleapis.com') 
-                        ? `/objects/${selectedCase.imageUrl.split('/.private/')[1]}`
-                        : selectedCase.imageUrl
-                      } 
-                      alt="Case image" 
+                    <img
+                      src={
+                        selectedCase.imageUrl.startsWith('https://storage.googleapis.com')
+                          ? `/objects/${selectedCase.imageUrl.split('/.private/')[1]}`
+                          : selectedCase.imageUrl
+                      }
+                      alt="Case image"
                       className="max-w-full h-64 object-contain mx-auto rounded"
                       data-testid="case-image"
                       onError={(e) => {
-                        console.error("Failed to load image:", selectedCase.imageUrl);
+                        console.error('Failed to load image:', selectedCase.imageUrl);
                         e.currentTarget.style.display = 'none';
                       }}
                     />
@@ -1085,9 +1142,9 @@ export default function AdminPage() {
                             )}
                           </div>
                         </div>
-                        
+
                         <p className="text-sm text-gray-600 mb-3">{diagnosis.description}</p>
-                        
+
                         {diagnosis.keyFeatures && diagnosis.keyFeatures.length > 0 && (
                           <div className="mb-2">
                             <span className="font-medium text-sm">Key Features:</span>
@@ -1100,7 +1157,7 @@ export default function AdminPage() {
                             </div>
                           </div>
                         )}
-                        
+
                         {diagnosis.recommendations && diagnosis.recommendations.length > 0 && (
                           <div>
                             <span className="font-medium text-sm">Recommendations:</span>

@@ -1,13 +1,13 @@
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ImageUpload } from "@/components/ImageUpload";
-import { PatientForm } from "@/components/PatientForm";
-import { DiagnosisResults } from "@/components/DiagnosisResults";
-import { CaseHistory } from "@/components/CaseHistory";
-import { AnalysisProgress } from "@/components/AnalysisProgress";
-import { useToast } from "@/hooks/use-toast";
-import SiteFooter from "@/components/SiteFooter";
-import type { Case } from "@shared/schema";
+import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { ImageUpload } from '@/components/ImageUpload';
+import { PatientForm } from '@/components/PatientForm';
+import { DiagnosisResults } from '@/components/DiagnosisResults';
+import { CaseHistory } from '@/components/CaseHistory';
+import { AnalysisProgress } from '@/components/AnalysisProgress';
+import { useToast } from '@/hooks/use-toast';
+import SiteFooter from '@/components/SiteFooter';
+import type { Case } from '@shared/schema';
 
 interface PatientData {
   patientId: string;
@@ -22,7 +22,7 @@ interface PatientData {
 }
 
 export default function DiagnosisPage() {
-  const [uploadedImageUrl, setUploadedImageUrl] = useState<string>("");
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string>('');
   const [analysisResult, setAnalysisResult] = useState<Case | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -30,16 +30,16 @@ export default function DiagnosisPage() {
   const analyzeMutation = useMutation({
     mutationFn: async (data: { patientData: PatientData; imageUrl: string }) => {
       // First create/get patient
-      const patientResponse = await fetch("/api/patients", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const patientResponse = await fetch('/api/patients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data.patientData),
       });
-      
+
       if (!patientResponse.ok) {
-        throw new Error("Failed to create patient record");
+        throw new Error('Failed to create patient record');
       }
-      
+
       const patient = await patientResponse.json();
 
       // Then analyze the case
@@ -53,41 +53,48 @@ export default function DiagnosisPage() {
         medicalHistory: data.patientData.medicalHistory,
       };
 
-      const analysisResponse = await fetch("/api/cases/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const analysisResponse = await fetch('/api/cases/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(caseData),
       });
 
       if (!analysisResponse.ok) {
-        throw new Error("Failed to analyze case");
+        throw new Error('Failed to analyze case');
       }
 
       return analysisResponse.json();
     },
     onSuccess: (data: Case) => {
       setAnalysisResult(data);
-      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
-      const errors = (data as any).analysisErrors as Array<{provider:string; code?:string; message:string; hint?:string}> | undefined;
+      queryClient.invalidateQueries({ queryKey: ['/api/cases'] });
+      const errors = (data as any).analysisErrors as
+        | Array<{ provider: string; code?: string; message: string; hint?: string }>
+        | undefined;
       if (errors && errors.length > 0) {
-        const msgs = errors.map(e => `${e.provider}: ${e.code || 'ERROR'} - ${e.message}${e.hint ? ` (${e.hint})` : ''}`).join("; ");
+        const msgs = errors
+          .map(
+            (e) =>
+              `${e.provider}: ${e.code || 'ERROR'} - ${e.message}${e.hint ? ` (${e.hint})` : ''}`
+          )
+          .join('; ');
         toast({
-          title: "Partial Analysis",
+          title: 'Partial Analysis',
           description: msgs,
         });
       } else {
         toast({
-          title: "Analysis Complete",
-          description: "AI models have successfully analyzed the case.",
+          title: 'Analysis Complete',
+          description: 'AI models have successfully analyzed the case.',
         });
       }
     },
     onError: (error) => {
-      console.error("Analysis failed:", error);
+      console.error('Analysis failed:', error);
       toast({
-        title: "Analysis Failed",
-        description: "Unable to complete the analysis. Please try again.",
-        variant: "destructive",
+        title: 'Analysis Failed',
+        description: 'Unable to complete the analysis. Please try again.',
+        variant: 'destructive',
       });
     },
   });
@@ -95,9 +102,9 @@ export default function DiagnosisPage() {
   const handleFormSubmit = (patientData: PatientData) => {
     if (!uploadedImageUrl) {
       toast({
-        title: "Image Required",
-        description: "Please upload a lesion image before analyzing.",
-        variant: "destructive",
+        title: 'Image Required',
+        description: 'Please upload a lesion image before analyzing.',
+        variant: 'destructive',
       });
       return;
     }
@@ -107,36 +114,40 @@ export default function DiagnosisPage() {
 
   const handleSaveCase = () => {
     toast({
-      title: "Case Saved",
-      description: "Case has been saved to the database.",
+      title: 'Case Saved',
+      description: 'Case has been saved to the database.',
     });
   };
 
   const handleGenerateReport = () => {
     toast({
-      title: "Report Generated",
-      description: "Medical report has been generated successfully.",
+      title: 'Report Generated',
+      description: 'Medical report has been generated successfully.',
     });
   };
 
   const handleNewAnalysis = () => {
-    setUploadedImageUrl("");
+    setUploadedImageUrl('');
     setAnalysisResult(null);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
     <div className="min-h-screen bg-background">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-foreground mb-2">Dermatological Diagnosis Support</h2>
-          <p className="text-muted-foreground">AI-powered analysis of skin lesions using advanced machine learning models</p>
+          <h2 className="text-3xl font-bold text-foreground mb-2">
+            Dermatological Diagnosis Support
+          </h2>
+          <p className="text-muted-foreground">
+            AI-powered analysis of skin lesions using advanced machine learning models
+          </p>
         </div>
 
         {/* Analysis Progress */}
         {analyzeMutation.isPending && (
           <div className="mb-8">
-            <AnalysisProgress 
+            <AnalysisProgress
               isActive={analyzeMutation.isPending}
               onComplete={() => {
                 // Progress animation completion will be handled by the mutation
@@ -150,18 +161,12 @@ export default function DiagnosisPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Image Upload Section */}
             <div className="lg:col-span-1">
-              <ImageUpload 
-                onImageUploaded={setUploadedImageUrl}
-                uploadedImage={uploadedImageUrl}
-              />
+              <ImageUpload onImageUploaded={setUploadedImageUrl} uploadedImage={uploadedImageUrl} />
             </div>
 
             {/* Patient Information Form */}
             <div className="lg:col-span-2">
-              <PatientForm 
-                onSubmit={handleFormSubmit}
-                isLoading={false}
-              />
+              <PatientForm onSubmit={handleFormSubmit} isLoading={false} />
             </div>
           </div>
         )}

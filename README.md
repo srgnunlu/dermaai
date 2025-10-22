@@ -20,12 +20,14 @@ DermaAssistAI, yapay zeka destekli cilt hastalıkları teşhis sistemidir. OpenA
 ## 🛠 Kurulum
 
 ### 1. Projeyi İndirin
+
 ```bash
 git clone https://github.com/srgnunlu/dermaai.git
 cd dermaai
 ```
 
 ### 2. Dependencies Yükleyin
+
 ```bash
 npm install
 ```
@@ -70,11 +72,13 @@ npm run db:push
 ### 5. Uygulamayı Başlatın
 
 **Development:**
+
 ```bash
 npm run dev
 ```
 
 **Production Build:**
+
 ```bash
 npm run build
 npm start
@@ -85,16 +89,19 @@ Uygulama `http://localhost:3000` adresinde çalışacaktır.
 ## 🔑 API Keys Nasıl Alınır
 
 ### OpenAI API Key
+
 1. [OpenAI Platform](https://platform.openai.com) hesabınızla giriş yapın
 2. API Keys bölümünden yeni bir key oluşturun
 3. GPT-5-mini model erişiminiz olduğundan emin olun
 
 ### Gemini API Key
+
 1. [Google AI Studio](https://aistudio.google.com) hesabınızla giriş yapın
 2. API key oluşturun
 3. Gemini-2.5-flash model erişiminiz olduğundan emin olun
 
 ### Neon Database
+
 1. [Neon](https://neon.tech) hesabınızla giriş yapın
 2. Yeni bir PostgreSQL database oluşturun
 3. Connection string'i `.env` dosyasına ekleyin
@@ -104,6 +111,7 @@ Uygulama `http://localhost:3000` adresinde çalışacaktır.
 ### Docker ile Deployment
 
 1. **Dockerfile oluşturun:**
+
 ```dockerfile
 FROM node:18-alpine
 
@@ -128,6 +136,7 @@ CMD ["npm", "start"]
 ```
 
 2. **Docker Image Build:**
+
 ```bash
 docker build -t derma-assist-ai .
 docker run -p 3000:3000 --env-file .env derma-assist-ai
@@ -136,11 +145,13 @@ docker run -p 3000:3000 --env-file .env derma-assist-ai
 ### VPS Deployment
 
 1. **Sunucunuza bağlanın:**
+
 ```bash
 ssh user@your-server-ip
 ```
 
 2. **Node.js ve PM2 yükleyin:**
+
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo apt-get install -y nodejs
@@ -148,11 +159,13 @@ sudo npm install -g pm2
 ```
 
 3. **Projeyi transfer edin:**
+
 ```bash
 scp -r DermaAssistAI user@your-server-ip:/var/www/
 ```
 
 4. **Dependencies ve build:**
+
 ```bash
 cd /var/www/DermaAssistAI
 npm install
@@ -160,6 +173,7 @@ npm run build
 ```
 
 5. **PM2 ile başlatın:**
+
 ```bash
 pm2 start npm --name "derma-assist" -- start
 pm2 startup
@@ -169,6 +183,7 @@ pm2 save
 ## 🔧 Geliştirme
 
 ### Proje Yapısı
+
 ```
 DermaAssistAI/
 ├── client/              # Frontend (React + TypeScript)
@@ -187,6 +202,7 @@ DermaAssistAI/
 ```
 
 ### Komutlar
+
 ```bash
 npm run dev          # Development server
 npm run build        # Production build
@@ -218,6 +234,7 @@ npm run db:push      # Database schema update
    - UPLOAD_DIR path'inin doğru olduğundan emin olun
 
 ### Loglar
+
 ```bash
 # PM2 logları
 pm2 logs derma-assist

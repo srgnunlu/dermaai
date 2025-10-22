@@ -1,11 +1,12 @@
-import passport from "passport";
-import { Strategy as LocalStrategy } from "passport-local";
-import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import session from "express-session";
-import type { Express, RequestHandler } from "express";
-import connectPg from "connect-pg-simple";
-import { storage } from "./storage";
-import crypto from "crypto";
+import passport from 'passport';
+import { Strategy as LocalStrategy } from 'passport-local';
+import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
+import session from 'express-session';
+import type { Express, RequestHandler } from 'express';
+import connectPg from 'connect-pg-simple';
+import { storage } from './storage';
+import crypto from 'crypto';
+import logger from './logger';
 
 // Simple password hashing utility
 function hashPassword(password: string): string {
@@ -17,8 +18,8 @@ function verifyPassword(password: string, hash: string): boolean {
 }
 
 const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
-const isProduction = process.env.NODE_ENV === "production";
-const sameSiteMode: "lax" | "none" = isProduction ? "none" : "lax";
+const isProduction = process.env.NODE_ENV === 'production';
+const sameSiteMode: 'lax' | 'none' = isProduction ? 'none' : 'lax';
 
 const sessionCookieSettings = {
   httpOnly: true,
@@ -28,7 +29,7 @@ const sessionCookieSettings = {
 
 const clearCookieSettings = {
   ...sessionCookieSettings,
-  path: "/",
+  path: '/',
 };
 
 export function getSession() {
@@ -38,7 +39,7 @@ export function getSession() {
     // Auto-create the sessions table on first run to avoid boot-time crashes
     createTableIfMissing: true,
     ttl: sessionTtl,
-    tableName: "sessions",
+    tableName: 'sessions',
   });
   return session({
     secret: process.env.SESSION_SECRET!,
@@ -64,125 +65,142 @@ interface LocalUser {
 async function createDefaultUser(email: string, password: string) {
   const hashedPassword = hashPassword(password);
   const role = email === process.env.ADMIN_EMAIL ? 'admin' : 'user';
-  
+
   // Check if user already exists
   try {
-    let user = await storage.getUserByEmail(email);
+    const user = await storage.getUserByEmail(email);
     if (user) {
-      console.log(`[AUTH] User already exists: ${email}`);
+      logger.debug(`[AUTH] User already exists: ${email}`);
       return user;
     }
   } catch (error) {
     // User doesn't exist, continue to create
   }
-  
-  // Create user in database  
+
+  // Create user in database
   const user = await storage.upsertUser({
     id: crypto.randomUUID(),
     email,
     firstName: email.split('@')[0],
     lastName: '',
     profileImageUrl: null,
-    role
+    role,
   });
-  
-  console.log(`[AUTH] Created new user: ${email} with role: ${role}`);
+
+  logger.debug(`[AUTH] Created new user: ${email} with role: ${role}`);
   return user;
 }
 
 export async function setupAuth(app: Express) {
-  console.log("[AUTH] Setting up local authentication...");
-  
-  app.set("trust proxy", 1);
+  logger.debug('[AUTH] Setting up local authentication...');
+
+  app.set('trust proxy', 1);
   app.use(getSession());
   app.use(passport.initialize());
   app.use(passport.session());
 
   // Configure local strategy
-  passport.use(new LocalStrategy({
-    usernameField: 'email',
-    passwordField: 'password'
-  }, async (email: string, password: string, done) => {
-    try {
-      // For demo purposes, accept any email/password combination
-      // In production, you'd verify against a user database
-      const user = await createDefaultUser(email, password);
-      return done(null, { id: user.id, email: user.email, role: user.role });
-    } catch (error) {
-      return done(error);
-    }
-  }));
+  passport.use(
+    new LocalStrategy(
+      {
+        usernameField: 'email',
+        passwordField: 'password',
+      },
+      async (email: string, password: string, done) => {
+        try {
+          // For demo purposes, accept any email/password combination
+          // In production, you'd verify against a user database
+          const user = await createDefaultUser(email, password);
+          return done(null, { id: user.id, email: user.email, role: user.role });
+        } catch (error) {
+          return done(error);
+        }
+      }
+    )
+  );
 
   // Configure Google OAuth strategy
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-    passport.use(new GoogleStrategy({
-      clientID: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: "/api/auth/google/callback"
-    }, async (accessToken, refreshToken, profile, done) => {
-      try {
-        const email = profile.emails?.[0]?.value;
-        console.log(`[AUTH] Google profile email received: "${email}"`);
-        if (!email) {
-          return done(new Error("No email found in Google profile"));
-        }
+    passport.use(
+      new GoogleStrategy(
+        {
+          clientID: process.env.GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          callbackURL: '/api/auth/google/callback',
+        },
+        async (accessToken, refreshToken, profile, done) => {
+          try {
+            const email = profile.emails?.[0]?.value;
+            logger.debug(`[AUTH] Google profile email received: "${email}"`);
+            if (!email) {
+              return done(new Error('No email found in Google profile'));
+            }
 
-        // Check if user exists or create new one
-        let user;
-        try {
-          user = await storage.getUserByEmail(email);
-          console.log(`[AUTH] getUserByEmail result for ${email}:`, user);
-          if (user) {
-            console.log(`[AUTH] Found existing Google user: ${email}`);
-          } else {
-            console.log(`[AUTH] getUserByEmail returned undefined for: ${email}`);
+            // Check if user exists or create new one
+            let user;
+            try {
+              user = await storage.getUserByEmail(email);
+              logger.debug(`[AUTH] getUserByEmail result for ${email}:`, user);
+              if (user) {
+                logger.debug(`[AUTH] Found existing Google user: ${email}`);
+              } else {
+                logger.debug(`[AUTH] getUserByEmail returned undefined for: ${email}`);
+              }
+            } catch (error) {
+              logger.debug(`[AUTH] getUserByEmail threw error for ${email}:`, error);
+              user = undefined;
+            }
+
+            if (!user) {
+              // User doesn't exist, create new one
+              logger.debug(`[AUTH] Creating new Google user for: ${email}`);
+              const role = email === process.env.ADMIN_EMAIL ? 'admin' : 'user';
+              user = await storage.upsertUser({
+                id: crypto.randomUUID(),
+                email,
+                firstName: profile.name?.givenName || profile.displayName?.split(' ')[0] || '',
+                lastName: profile.name?.familyName || profile.displayName?.split(' ')[1] || '',
+                profileImageUrl: profile.photos?.[0]?.value || null,
+                role,
+              });
+              logger.debug(
+                `[AUTH] Created new Google user: ${email} with role: ${role}, user object:`,
+                user
+              );
+            }
+
+            if (!user) {
+              logger.error(`[AUTH] No user object after Google OAuth for: ${email}`);
+              return done(new Error('Failed to create or retrieve user'));
+            }
+
+            logger.debug(`[AUTH] Google OAuth success for user:`, {
+              id: user.id,
+              email: user.email,
+              role: user.role,
+            });
+            return done(null, { id: user.id, email: user.email, role: user.role });
+          } catch (error) {
+            return done(error);
           }
-        } catch (error) {
-          console.log(`[AUTH] getUserByEmail threw error for ${email}:`, error);
-          user = undefined;
         }
-
-        if (!user) {
-          // User doesn't exist, create new one
-          console.log(`[AUTH] Creating new Google user for: ${email}`);
-          const role = email === process.env.ADMIN_EMAIL ? 'admin' : 'user';
-          user = await storage.upsertUser({
-            id: crypto.randomUUID(),
-            email,
-            firstName: profile.name?.givenName || profile.displayName?.split(' ')[0] || '',
-            lastName: profile.name?.familyName || profile.displayName?.split(' ')[1] || '',
-            profileImageUrl: profile.photos?.[0]?.value || null,
-            role
-          });
-          console.log(`[AUTH] Created new Google user: ${email} with role: ${role}, user object:`, user);
-        }
-
-        if (!user) {
-          console.error(`[AUTH] No user object after Google OAuth for: ${email}`);
-          return done(new Error("Failed to create or retrieve user"));
-        }
-
-        console.log(`[AUTH] Google OAuth success for user:`, { id: user.id, email: user.email, role: user.role });
-        return done(null, { id: user.id, email: user.email, role: user.role });
-      } catch (error) {
-        return done(error);
-      }
-    }));
-    console.log("[AUTH] Google OAuth strategy configured");
+      )
+    );
+    logger.debug('[AUTH] Google OAuth strategy configured');
   }
 
   passport.serializeUser((user: any, cb) => cb(null, user));
   passport.deserializeUser((user: any, cb) => cb(null, user));
-  
-  console.log("[AUTH] Local authentication setup complete");
+
+  logger.debug('[AUTH] Local authentication setup complete');
 
   // Login endpoint
-  app.post("/api/login", passport.authenticate('local'), (req, res) => {
-    res.json({ user: req.user, message: "Login successful" });
+  app.post('/api/login', passport.authenticate('local'), (req, res) => {
+    res.json({ user: req.user, message: 'Login successful' });
   });
 
   // Simple login form endpoint for development
-  app.get("/api/login", (req, res) => {
+  app.get('/api/login', (req, res) => {
     res.send(`
       <html>
         <body>
@@ -205,11 +223,10 @@ export async function setupAuth(app: Express) {
 
   // Google OAuth endpoints
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-    app.get("/api/auth/google",
-      passport.authenticate('google', { scope: ['profile', 'email'] })
-    );
+    app.get('/api/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
-    app.get("/api/auth/google/callback",
+    app.get(
+      '/api/auth/google/callback',
       passport.authenticate('google', { failureRedirect: '/login' }),
       (req, res) => {
         // Successful authentication, redirect to dashboard
@@ -219,46 +236,46 @@ export async function setupAuth(app: Express) {
   }
 
   // Logout endpoint
-  app.post("/api/logout", (req, res) => {
+  app.post('/api/logout', (req, res) => {
     req.logout((err) => {
       if (err) {
-        return res.status(500).json({ error: "Logout failed" });
+        return res.status(500).json({ error: 'Logout failed' });
       }
       // Clear session
       req.session.destroy((sessionErr) => {
         if (sessionErr) {
-          console.error("[AUTH] Session destroy error:", sessionErr);
+          logger.error('[AUTH] Session destroy error:', sessionErr);
         }
         // Clear cookie
         res.clearCookie('connect.sid', clearCookieSettings);
-        res.json({ message: "Logout successful" });
+        res.json({ message: 'Logout successful' });
       });
     });
   });
 
   // GET logout endpoint for direct browser navigation
-  app.get("/api/logout", (req, res) => {
-    console.log("[AUTH] Logout request received for user:", (req.user as any)?.email);
+  app.get('/api/logout', (req, res) => {
+    logger.debug('[AUTH] Logout request received for user:', (req.user as any)?.email);
     req.logout((err) => {
       if (err) {
-        console.error("[AUTH] Logout error:", err);
+        logger.error('[AUTH] Logout error:', err);
       }
-      console.log("[AUTH] Passport logout completed");
+      logger.debug('[AUTH] Passport logout completed');
       // Clear session
       if (req.session) {
         req.session.destroy((sessionErr) => {
           if (sessionErr) {
-            console.error("[AUTH] Session destroy error:", sessionErr);
+            logger.error('[AUTH] Session destroy error:', sessionErr);
           }
-          console.log("[AUTH] Session destroyed");
+          logger.debug('[AUTH] Session destroyed');
           // Clear all possible cookies
           res.clearCookie('connect.sid', clearCookieSettings);
           res.clearCookie('sessionId', clearCookieSettings);
-          console.log("[AUTH] Cookies cleared, redirecting to landing page");
+          logger.debug('[AUTH] Cookies cleared, redirecting to landing page');
           res.redirect('/');
         });
       } else {
-        console.log("[AUTH] No session to destroy, redirecting");
+        logger.debug('[AUTH] No session to destroy, redirecting');
         res.clearCookie('connect.sid', clearCookieSettings);
         res.redirect('/');
       }
@@ -268,11 +285,11 @@ export async function setupAuth(app: Express) {
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
   if (!req.isAuthenticated() || !req.user) {
-    console.log("[AUTH] User not authenticated - needs to login");
-    return res.status(401).json({ message: "Unauthorized - Please login first" });
+    logger.debug('[AUTH] User not authenticated - needs to login');
+    return res.status(401).json({ message: 'Unauthorized - Please login first' });
   }
 
   // Simple authentication check - user exists in session
-  console.log("[AUTH] User authenticated:", (req.user as any).email);
+  logger.debug('[AUTH] User authenticated:', (req.user as any).email);
   return next();
 };

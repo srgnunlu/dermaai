@@ -37,18 +37,11 @@ const getLogLevel = () => {
 // Create logger instance
 const logger = winston.createLogger({
   level: getLogLevel(),
-  format: combine(
-    errors({ stack: true }),
-    timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-    logFormat
-  ),
+  format: combine(errors({ stack: true }), timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }), logFormat),
   transports: [
     // Console transport
     new winston.transports.Console({
-      format: combine(
-        colorize(),
-        logFormat
-      ),
+      format: combine(colorize(), logFormat),
     }),
 
     // File transport for errors (production)

@@ -28,7 +28,7 @@ describe('Authentication API', () => {
         secret: 'test-secret',
         resave: false,
         saveUninitialized: false,
-        cookie: { secure: false }
+        cookie: { secure: false },
       })
     );
     app.use(passport.initialize());
@@ -59,7 +59,9 @@ describe('Authentication API', () => {
 
     // Passport serialization
     passport.serializeUser((user: any, done) => done(null, user.id));
-    passport.deserializeUser((id: string, done) => done(null, { id, email: 'test@test.com', role: 'user' }));
+    passport.deserializeUser((id: string, done) =>
+      done(null, { id, email: 'test@test.com', role: 'user' })
+    );
 
     agent = request.agent(app);
   });
@@ -80,9 +82,7 @@ describe('Authentication API', () => {
 
     it('should maintain session after login', async () => {
       // İlk login yap
-      await agent
-        .post('/api/login')
-        .send({ email: 'test@test.com', password: 'password123' });
+      await agent.post('/api/login').send({ email: 'test@test.com', password: 'password123' });
 
       // Session'ı kontrol et
       const response = await agent.get('/api/auth/user');
@@ -103,9 +103,7 @@ describe('Authentication API', () => {
 
     it('should return user data if authenticated', async () => {
       // Login
-      await agent
-        .post('/api/login')
-        .send({ email: 'test@test.com', password: 'password123' });
+      await agent.post('/api/login').send({ email: 'test@test.com', password: 'password123' });
 
       // Get user
       const response = await agent.get('/api/auth/user');
@@ -119,9 +117,7 @@ describe('Authentication API', () => {
   describe('POST /api/logout', () => {
     it('should logout successfully', async () => {
       // Login first
-      await agent
-        .post('/api/login')
-        .send({ email: 'test@test.com', password: 'password123' });
+      await agent.post('/api/login').send({ email: 'test@test.com', password: 'password123' });
 
       // Logout
       const response = await agent.post('/api/logout');
@@ -132,9 +128,7 @@ describe('Authentication API', () => {
 
     it('should clear session after logout', async () => {
       // Login
-      await agent
-        .post('/api/login')
-        .send({ email: 'test@test.com', password: 'password123' });
+      await agent.post('/api/login').send({ email: 'test@test.com', password: 'password123' });
 
       // Logout
       await agent.post('/api/logout');

@@ -1,5 +1,5 @@
-import { CaseHistory } from "@/components/CaseHistory";
-import SiteFooter from "@/components/SiteFooter";
+import { CaseHistory } from '@/components/CaseHistory';
+import SiteFooter from '@/components/SiteFooter';
 
 export default function CaseHistoryPage() {
   return (

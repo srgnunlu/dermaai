@@ -16,19 +16,19 @@ describe('PatientForm Component', () => {
     // Başlık kontrolü
     expect(screen.getByText(/Patient Information & Symptoms/i)).toBeInTheDocument();
 
-    // Form alanlarını kontrol et
-    expect(screen.getByLabelText(/Patient ID/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Age/i)).toBeInTheDocument();
-    expect(screen.getByText(/Gender/i)).toBeInTheDocument();
-    expect(screen.getByText(/Skin Type/i)).toBeInTheDocument();
-    expect(screen.getByText(/Lesion Location/i)).toBeInTheDocument();
+    // Form alanlarını kontrol et (testid ile)
+    expect(screen.getByTestId('input-patient-id')).toBeInTheDocument();
+    expect(screen.getByTestId('input-age')).toBeInTheDocument();
+    expect(screen.getByTestId('select-gender')).toBeInTheDocument();
+    expect(screen.getByTestId('select-skin-type')).toBeInTheDocument();
+    expect(screen.getByTestId('input-lesion-location')).toBeInTheDocument();
   });
 
   it('should update patient ID on input change', async () => {
     const user = userEvent.setup();
     render(<PatientForm onSubmit={mockOnSubmit} />);
 
-    const patientIdInput = screen.getByLabelText(/Patient ID/i) as HTMLInputElement;
+    const patientIdInput = screen.getByTestId('input-patient-id') as HTMLInputElement;
     await user.type(patientIdInput, 'P-12345');
 
     expect(patientIdInput.value).toBe('P-12345');
@@ -38,7 +38,7 @@ describe('PatientForm Component', () => {
     const user = userEvent.setup();
     render(<PatientForm onSubmit={mockOnSubmit} />);
 
-    const ageInput = screen.getByLabelText(/Age/i) as HTMLInputElement;
+    const ageInput = screen.getByTestId('input-age') as HTMLInputElement;
     await user.type(ageInput, '35');
 
     expect(ageInput.value).toBe('35');
@@ -101,8 +101,8 @@ describe('PatientForm Component', () => {
     const user = userEvent.setup();
     render(<PatientForm onSubmit={mockOnSubmit} />);
 
-    const additionalSymptomsTextarea = screen.getByPlaceholderText(
-      /Any additional information/i
+    const additionalSymptomsTextarea = screen.getByTestId(
+      'textarea-additional-symptoms'
     ) as HTMLTextAreaElement;
 
     await user.type(additionalSymptomsTextarea, 'Severe itching at night');
@@ -115,17 +115,17 @@ describe('PatientForm Component', () => {
     render(<PatientForm onSubmit={mockOnSubmit} />);
 
     // Form doldur
-    const patientIdInput = screen.getByLabelText(/Patient ID/i);
+    const patientIdInput = screen.getByTestId('input-patient-id');
     await user.type(patientIdInput, 'P-12345');
 
-    const ageInput = screen.getByLabelText(/Age/i);
+    const ageInput = screen.getByTestId('input-age');
     await user.type(ageInput, '35');
 
     const itchingCheckbox = screen.getByLabelText(/Itching \(Kaşıntı\)/i);
     await user.click(itchingCheckbox);
 
     // Form gönder
-    const submitButton = screen.getByRole('button', { name: /Analyze/i });
+    const submitButton = screen.getByTestId('button-analyze');
     await user.click(submitButton);
 
     await waitFor(() => {
@@ -149,8 +149,9 @@ describe('PatientForm Component', () => {
   it('should show "Analyze" text when not loading', () => {
     render(<PatientForm onSubmit={mockOnSubmit} isLoading={false} />);
 
-    const submitButton = screen.getByRole('button', { name: /Analyze/i });
-    expect(submitButton).not.toBeDisabled();
+    const submitButton = screen.getByTestId('button-analyze');
+    expect(submitButton).toHaveTextContent(/Analyze with AI Models/i);
+    expect(submitButton).toBeDisabled(); // Disabled because patientId is empty
   });
 
   it('should prevent form submission when button is clicked during loading', async () => {
@@ -198,8 +199,8 @@ describe('PatientForm Component', () => {
   it('should have empty initial state', () => {
     render(<PatientForm onSubmit={mockOnSubmit} />);
 
-    const patientIdInput = screen.getByLabelText(/Patient ID/i) as HTMLInputElement;
-    const ageInput = screen.getByLabelText(/Age/i) as HTMLInputElement;
+    const patientIdInput = screen.getByTestId('input-patient-id') as HTMLInputElement;
+    const ageInput = screen.getByTestId('input-age') as HTMLInputElement;
 
     expect(patientIdInput.value).toBe('');
     expect(ageInput.value).toBe('');

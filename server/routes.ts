@@ -11,6 +11,7 @@ import { requireAdmin } from "./middleware";
 import multer from "multer";
 import PDFDocument from "pdfkit";
 import crypto from "crypto";
+import logger from "./logger";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -30,7 +31,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
-      console.error("Error fetching user:", error);
+      logger.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
     }
   });
@@ -38,63 +39,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Settings routes
   app.get('/api/settings', isAuthenticated, async (req: any, res) => {
     try {
-      console.log("GET /api/settings - Authenticated user:", req.user?.id);
-      
       const userId = req.user.id;
       if (!userId) {
-        console.error("No userId found in authenticated user");
+        logger.error("No userId found in authenticated user");
         return res.status(401).json({ error: "User not authenticated" });
       }
-      
+
       const settings = await storage.getUserSettings(userId);
-      console.log("Retrieved settings:", settings);
-      
       res.json(settings);
     } catch (error) {
-      console.error("Error fetching settings - Full error:", error);
-      
-      if (error instanceof Error) {
-        console.error("Error message:", error.message);
-        console.error("Error stack:", error.stack);
-      }
-      
+      logger.error("Error fetching settings", { error });
       res.status(500).json({ error: "Failed to fetch settings" });
     }
   });
 
   app.put('/api/settings', isAuthenticated, async (req: any, res) => {
     try {
-      console.log("PUT /api/settings - Request body:", req.body);
-      console.log("Authenticated user:", req.user?.id);
-      
       const userId = req.user.id;
       if (!userId) {
-        console.error("No userId found in authenticated user");
+        logger.error("No userId found in authenticated user");
         return res.status(401).json({ error: "User not authenticated" });
       }
-      
+
       const settingsData = updateUserSettingsSchema.parse(req.body);
-      console.log("Parsed settings data:", settingsData);
-      
       const updatedSettings = await storage.updateUserSettings(userId, settingsData);
-      console.log("Updated settings:", updatedSettings);
-      
+
       res.json(updatedSettings);
     } catch (error) {
-      console.error("Error updating settings - Full error:", error);
-      
+      logger.error("Error updating settings", { error });
+
       if (error instanceof Error) {
-        console.error("Error message:", error.message);
-        console.error("Error stack:", error.stack);
-        
-        // Send more specific error message
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: "Failed to update settings",
           message: error.message,
           details: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
       }
-      
+
       res.status(400).json({ error: "Invalid settings data" });
     }
   });
@@ -117,7 +98,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         statistics: stats
       });
     } catch (error) {
-      console.error("Error fetching profile:", error);
+      logger.error("Error fetching profile:", error);
       res.status(500).json({ error: "Failed to fetch profile" });
     }
   });
@@ -136,7 +117,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         statistics: stats
       });
     } catch (error) {
-      console.error("Error updating profile:", error);
+      logger.error("Error updating profile:", error);
       res.status(400).json({ error: "Invalid profile data" });
     }
   });
@@ -147,7 +128,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const stats = await storage.getUserStatistics(userId);
       res.json(stats);
     } catch (error) {
-      console.error("Error fetching statistics:", error);
+      logger.error("Error fetching statistics:", error);
       res.status(500).json({ error: "Failed to fetch statistics" });
     }
   });
@@ -158,17 +139,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const cases = await storage.getAllCasesForAdmin();
       // Debug log to check if AI analysis data is present
       if (cases.length > 0) {
-        console.log('[DEBUG ADMIN API] Sample case data:', {
-          caseId: cases[0].caseId,
-          hasGeminiAnalysis: !!cases[0].geminiAnalysis,
-          hasOpenaiAnalysis: !!cases[0].openaiAnalysis,
-          geminiType: typeof cases[0].geminiAnalysis,
-          openaiType: typeof cases[0].openaiAnalysis,
-        });
       }
       res.json(cases);
     } catch (error) {
-      console.error("Error fetching admin cases:", error);
+      logger.error("Error fetching admin cases:", error);
       res.status(500).json({ error: "Failed to fetch cases" });
     }
   });
@@ -178,7 +152,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const stats = await storage.getSystemStatistics();
       res.json(stats);
     } catch (error) {
-      console.error("Error fetching system statistics:", error);
+      logger.error("Error fetching system statistics:", error);
       res.status(500).json({ error: "Failed to fetch statistics" });
     }
   });
@@ -189,7 +163,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const users = await storage.getAllUsers();
       res.json(users);
     } catch (error) {
-      console.error("Error fetching all users:", error);
+      logger.error("Error fetching all users:", error);
       res.status(500).json({ error: "Failed to fetch users" });
     }
   });
@@ -203,7 +177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user: updatedUser 
       });
     } catch (error) {
-      console.error("Error promoting user to admin:", error);
+      logger.error("Error promoting user to admin:", error);
       res.status(500).json({ error: "Failed to promote user" });
     }
   });
@@ -217,7 +191,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user: updatedUser 
       });
     } catch (error) {
-      console.error("Error demoting user from admin:", error);
+      logger.error("Error demoting user from admin:", error);
       res.status(500).json({ error: "Failed to demote user" });
     }
   });
@@ -232,7 +206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user: updatedUser 
       });
     } catch (error) {
-      console.error("Error promoting user to admin:", error);
+      logger.error("Error promoting user to admin:", error);
       res.status(500).json({ error: "Failed to promote user" });
     }
   });
@@ -288,7 +262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             patientMap.set(patientId, patient);
           }
         } catch (error) {
-          console.error(`Error fetching patient ${patientId}:`, error);
+          logger.error(`Error fetching patient ${patientId}:`, error);
         }
       }
       
@@ -355,7 +329,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.send(csvContent);
       
     } catch (error) {
-      console.error("Error exporting cases:", error);
+      logger.error("Error exporting cases:", error);
       res.status(500).json({ error: "Failed to export cases" });
     }
   });
@@ -379,7 +353,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(500).json({ error: "Failed to delete case" });
       }
     } catch (error) {
-      console.error("Error deleting case:", error);
+      logger.error("Error deleting case:", error);
       res.status(500).json({ error: "Failed to delete case" });
     }
   });
@@ -409,7 +383,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(500).json({ error: "Failed to delete user" });
       }
     } catch (error) {
-      console.error("Error deleting user:", error);
+      logger.error("Error deleting user:", error);
       res.status(500).json({ error: "Failed to delete user" });
     }
   });
@@ -420,7 +394,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       await fileStorageService.downloadFile(req.params.filePath, res);
     } catch (error) {
-      console.error("Error accessing file:", error);
+      logger.error("Error accessing file:", error);
       return res.sendStatus(404);
     }
   });
@@ -447,7 +421,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.json({ url: fileUrl, filePath });
       }
     } catch (error) {
-      console.error("Error uploading file:", error);
+      logger.error("Error uploading file:", error);
       res.status(500).json({ error: "Failed to upload file" });
     }
   });
@@ -468,7 +442,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fileUrl = `/files/${filePath}`;
       res.json({ url: fileUrl, filePath });
     } catch (error) {
-      console.error("Error uploading file:", error);
+      logger.error("Error uploading file:", error);
       res.status(500).json({ error: "Failed to upload file" });
     }
   });
@@ -480,7 +454,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const patient = await storage.createPatient(patientData);
       res.json(patient);
     } catch (error) {
-      console.error("Error creating patient:", error);
+      logger.error("Error creating patient:", error);
       res.status(400).json({ error: "Invalid patient data" });
     }
   });
@@ -493,7 +467,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(patient);
     } catch (error) {
-      console.error("Error fetching patient:", error);
+      logger.error("Error fetching patient:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -563,7 +537,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (geminiResult.status === "fulfilled") {
         geminiAnalysis = geminiResult.value;
       } else {
-        console.error("Gemini analysis failed:", geminiResult.reason);
+        logger.error("Gemini analysis failed:", geminiResult.reason);
         const reason: any = geminiResult.reason;
         if (reason && typeof reason.toJSON === 'function') {
           analysisErrors.push(reason.toJSON());
@@ -577,7 +551,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (openaiResult.status === "fulfilled") {
         openaiAnalysis = openaiResult.value;
       } else {
-        console.error("OpenAI analysis failed:", openaiResult.reason);
+        logger.error("OpenAI analysis failed:", openaiResult.reason);
         const reason: any = openaiResult.reason;
         if (reason && typeof reason.toJSON === 'function') {
           analysisErrors.push(reason.toJSON());
@@ -602,7 +576,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Return case plus non-persistent diagnostic info for the UI
       res.json({ ...updatedCase, analysisErrors });
     } catch (error) {
-      console.error("Error analyzing case:", error);
+      logger.error("Error analyzing case:", error);
       res.status(500).json({ error: "Analysis failed" });
     }
   });
@@ -614,7 +588,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const cases = await storage.getCases(userId);
       res.json(cases);
     } catch (error) {
-      console.error("Error fetching cases:", error);
+      logger.error("Error fetching cases:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -628,7 +602,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(caseRecord);
     } catch (error) {
-      console.error("Error fetching case:", error);
+      logger.error("Error fetching case:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -638,73 +612,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const parameter = req.params.id;
-      
-      // Debug logging to track parameter types and lookup attempts
-      console.log(`[REPORT] Parameter received: "${parameter}", User: ${userId}`);
-      
+
       // Check if user is admin
       const user = await storage.getUser(userId);
       const isAdmin = user && user.role === 'admin';
-      console.log(`[REPORT] User role: ${user?.role || 'unknown'}, Is admin: ${isAdmin}`);
-      
+
       let caseRecord;
-      
+
       // Determine if parameter is a caseId (starts with "DR-") or UUID
       const isCaseId = parameter.startsWith('DR-');
-      console.log(`[REPORT] Parameter type detected: ${isCaseId ? 'caseId' : 'UUID id'}`);
-      
+
       if (isAdmin) {
         // Admins can access any case - try both lookup methods
         if (isCaseId) {
-          console.log(`[REPORT] Admin lookup by caseId: ${parameter}`);
           caseRecord = await storage.getCaseByCaseIdForAdmin(parameter);
-          
+
           // Fallback to UUID lookup if caseId lookup fails
           if (!caseRecord) {
-            console.log(`[REPORT] Admin caseId lookup failed, trying UUID lookup: ${parameter}`);
             caseRecord = await storage.getCaseForAdmin(parameter);
           }
         } else {
-          console.log(`[REPORT] Admin lookup by UUID: ${parameter}`);
           caseRecord = await storage.getCaseForAdmin(parameter);
-          
+
           // Fallback to caseId lookup if UUID lookup fails
           if (!caseRecord) {
-            console.log(`[REPORT] Admin UUID lookup failed, trying caseId lookup: ${parameter}`);
             caseRecord = await storage.getCaseByCaseIdForAdmin(parameter);
           }
         }
       } else {
         // Regular users can only access their own cases - try both lookup methods
         if (isCaseId) {
-          console.log(`[REPORT] User lookup by caseId: ${parameter}, userId: ${userId}`);
           caseRecord = await storage.getCaseByCaseId(parameter, userId);
-          
+
           // Fallback to UUID lookup if caseId lookup fails
           if (!caseRecord) {
-            console.log(`[REPORT] User caseId lookup failed, trying UUID lookup: ${parameter}`);
             caseRecord = await storage.getCase(parameter, userId);
           }
         } else {
-          console.log(`[REPORT] User lookup by UUID: ${parameter}, userId: ${userId}`);
           caseRecord = await storage.getCase(parameter, userId);
-          
+
           // Fallback to caseId lookup if UUID lookup fails
           if (!caseRecord) {
-            console.log(`[REPORT] User UUID lookup failed, trying caseId lookup: ${parameter}`);
             caseRecord = await storage.getCaseByCaseId(parameter, userId);
           }
         }
       }
-      
-      console.log(`[REPORT] Case lookup result: ${caseRecord ? 'Found' : 'Not found'} for parameter: ${parameter}`);
-      
+
       if (!caseRecord) {
-        console.log(`[REPORT] Case not found or access denied for parameter: ${parameter}, user: ${userId}`);
         return res.status(404).json({ error: "Case not found" });
       }
-      
-      console.log(`[REPORT] Generating PDF for case: ${caseRecord.caseId} (UUID: ${caseRecord.id})`);
     
 
       // Create a new PDF document with explicit UTF-8 support
@@ -834,7 +790,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       doc.end();
       
     } catch (error) {
-      console.error("Error generating PDF report:", error);
+      logger.error("Error generating PDF report:", error);
       res.status(500).json({ error: "Failed to generate report" });
     }
   });

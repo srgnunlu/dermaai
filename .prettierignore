@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs
+dist/
+build/
+coverage/
+
+# Generated files
+*.css.map
+*.js.map
+
+# Config files
+*.config.js
+*.config.ts
+
+# Test files
+**/__snapshots__/
+
+# Other
+.env
+.env.*
+*.log
+.DS_Store

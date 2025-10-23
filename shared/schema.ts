@@ -64,7 +64,8 @@ export const cases = pgTable(
       .notNull()
       .references(() => users.id),
     patientId: varchar('patient_id').references(() => patients.id),
-    imageUrl: text('image_url').notNull(),
+    imageUrl: text('image_url'), // Kept for backward compatibility
+    imageUrls: jsonb('image_urls').$type<string[]>(), // New: support 1-3 images
     lesionLocation: text('lesion_location'),
     symptoms: jsonb('symptoms').$type<string[]>(),
     additionalSymptoms: text('additional_symptoms'),

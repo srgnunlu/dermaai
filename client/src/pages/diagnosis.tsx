@@ -22,13 +22,13 @@ interface PatientData {
 }
 
 export default function DiagnosisPage() {
-  const [uploadedImageUrl, setUploadedImageUrl] = useState<string>('');
+  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
   const [analysisResult, setAnalysisResult] = useState<Case | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const analyzeMutation = useMutation({
-    mutationFn: async (data: { patientData: PatientData; imageUrl: string }) => {
+    mutationFn: async (data: { patientData: PatientData; imageUrls: string[] }) => {
       // First create/get patient
       const patientResponse = await fetch('/api/patients', {
         method: 'POST',
@@ -42,10 +42,10 @@ export default function DiagnosisPage() {
 
       const patient = await patientResponse.json();
 
-      // Then analyze the case
+      // Then analyze the case with multiple images
       const caseData = {
         patientId: patient.id,
-        imageUrl: data.imageUrl,
+        imageUrls: data.imageUrls, // Support for 1-3 images
         lesionLocation: data.patientData.lesionLocation,
         symptoms: data.patientData.symptoms,
         additionalSymptoms: data.patientData.additionalSymptoms,
@@ -100,16 +100,16 @@ export default function DiagnosisPage() {
   });
 
   const handleFormSubmit = (patientData: PatientData) => {
-    if (!uploadedImageUrl) {
+    if (uploadedImageUrls.length === 0) {
       toast({
         title: 'Image Required',
-        description: 'Please upload a lesion image before analyzing.',
+        description: 'Please upload at least one lesion image before analyzing.',
         variant: 'destructive',
       });
       return;
     }
 
-    analyzeMutation.mutate({ patientData, imageUrl: uploadedImageUrl });
+    analyzeMutation.mutate({ patientData, imageUrls: uploadedImageUrls });
   };
 
   const handleSaveCase = () => {
@@ -127,7 +127,7 @@ export default function DiagnosisPage() {
   };
 
   const handleNewAnalysis = () => {
-    setUploadedImageUrl('');
+    setUploadedImageUrls([]);
     setAnalysisResult(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -140,7 +140,7 @@ export default function DiagnosisPage() {
             Dermatological Diagnosis Support
           </h2>
           <p className="text-muted-foreground">
-            AI-powered analysis of skin lesions using advanced machine learning models
+            AI-powered analysis of skin lesions using advanced machine learning models (supports 1-3 images per case)
           </p>
         </div>
 
@@ -161,7 +161,7 @@ export default function DiagnosisPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Image Upload Section */}
             <div className="lg:col-span-1">
-              <ImageUpload onImageUploaded={setUploadedImageUrl} uploadedImage={uploadedImageUrl} />
+              <ImageUpload onImagesUploaded={setUploadedImageUrls} uploadedImages={uploadedImageUrls} />
             </div>
 
             {/* Patient Information Form */}

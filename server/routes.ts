@@ -540,7 +540,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create case record with authenticated user
       const userId = req.user.id;
-      const newCase = await storage.createCase(caseData, userId);
+      
+      // Handle both single imageUrl (backward compatibility) and multiple imageUrls
+      let imageUrls: string[] = [];
+      if (caseData.imageUrls && Array.isArray(caseData.imageUrls) && caseData.imageUrls.length > 0) {
+        imageUrls = (caseData.imageUrls as string[]).slice(0, 3); // Max 3 images
+      } else if (caseData.imageUrl) {
+        imageUrls = [caseData.imageUrl];
+      } else {
+        return res.status(400).json({ error: 'At least one image is required' });
+      }
+
+      // Create case record - store both imageUrl (first one for backward compatibility) and imageUrls (array)
+      const caseDataToStore = {
+        ...caseData,
+        imageUrl: imageUrls[0], // Keep first URL for backward compatibility
+        imageUrls: imageUrls, // Store all URLs
+      };
+
+      const newCase = await storage.createCase(caseDataToStore, userId);
 
       // Start AI analysis in parallel
       const symptomsString = Array.isArray(caseData.symptoms)
@@ -559,7 +577,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tasks: Promise<any>[] = [];
       if (runGemini) {
         tasks.push(
-          analyzeWithGemini(caseData.imageUrl, symptomsString, {
+          analyzeWithGemini(imageUrls, symptomsString, {
             lesionLocation: caseData.lesionLocation || undefined,
             medicalHistory: (caseData.medicalHistory as string[]) || undefined,
           })
@@ -568,7 +586,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (runOpenAI) {
         tasks.push(
           analyzeWithOpenAI(
-            caseData.imageUrl,
+            imageUrls,
             symptomsString,
             {
               lesionLocation: caseData.lesionLocation || undefined,

@@ -47,7 +47,7 @@ interface AnalysisContext {
 }
 
 export async function analyzeWithOpenAI(
-  imageUrl: string,
+  imageUrls: string | string[],
   symptoms: string,
   context: AnalysisContext = {},
   options: { model?: string; allowFallback?: boolean } = {}
@@ -58,42 +58,69 @@ export async function analyzeWithOpenAI(
   const startTime = Date.now();
 
   try {
-    let file;
+    // Normalize input to array
+    const urlArray = Array.isArray(imageUrls) ? imageUrls : [imageUrls];
 
-    // Check if it's a Cloudinary URL
-    if (imageUrl.includes('cloudinary.com')) {
-      const { CloudinaryStorageService } = await import('./cloudinaryStorage');
-      const cloudinaryService = new CloudinaryStorageService();
-      file = await cloudinaryService.getObjectEntityFile(imageUrl);
-    } else {
-      // Use local file storage
-      const { LocalFileStorageService } = await import('./localFileStorage');
-      const fileStorageService = new LocalFileStorageService();
-      const normalizedPath = fileStorageService.normalizeObjectEntityPath(imageUrl);
-      file = await fileStorageService.getObjectEntityFile(normalizedPath);
+    // Limit to max 3 images
+    if (urlArray.length > 3) {
+      urlArray.length = 3;
     }
 
-    // Get image data and metadata directly from the file
-    const [imageBuffer] = await file.download();
-    const [metadata] = await file.getMetadata();
-    const imageBase64 = Buffer.from(imageBuffer).toString('base64');
-    const mimeType = metadata.contentType || 'image/jpeg';
-    const imageBytes = imageBuffer.length;
-    if (imageBytes > 18 * 1024 * 1024) {
+    if (urlArray.length === 0) {
+      throw new Error('At least one image URL is required');
+    }
+
+    // Fetch and encode all images
+    const imageDataArray: { mimeType: string; base64: string }[] = [];
+    let totalImageBytes = 0;
+
+    for (const imageUrl of urlArray) {
+      let file;
+
+      // Check if it's a Cloudinary URL
+      if (imageUrl.includes('cloudinary.com')) {
+        const { CloudinaryStorageService } = await import('./cloudinaryStorage');
+        const cloudinaryService = new CloudinaryStorageService();
+        file = await cloudinaryService.getObjectEntityFile(imageUrl);
+      } else {
+        // Use local file storage
+        const { LocalFileStorageService } = await import('./localFileStorage');
+        const fileStorageService = new LocalFileStorageService();
+        const normalizedPath = fileStorageService.normalizeObjectEntityPath(imageUrl);
+        file = await fileStorageService.getObjectEntityFile(normalizedPath);
+      }
+
+      // Get image data and metadata directly from the file
+      const [imageBuffer] = await file.download();
+      const [metadata] = await file.getMetadata();
+      const imageBase64 = Buffer.from(imageBuffer).toString('base64');
+      const mimeType = metadata.contentType || 'image/jpeg';
+      const imageBytes = imageBuffer.length;
+
+      imageDataArray.push({ mimeType, base64: imageBase64 });
+      totalImageBytes += imageBytes;
+    }
+
+    if (totalImageBytes > 18 * 1024 * 1024) {
       console.warn(
-        `[OpenAI] Large image detected (${(imageBytes / 1024 / 1024).toFixed(
+        `[OpenAI] Large images detected (${(totalImageBytes / 1024 / 1024).toFixed(
           1
-        )} MB). Consider uploading a smaller image (<18MB).`
+        )} MB total). Consider uploading smaller images (<18MB total).`
       );
     }
 
-    const systemPrompt = `You are an expert dermatologist AI assistant. Analyze the provided skin lesion image and patient information to provide differential diagnoses.
+    const multipleImagesNote =
+      urlArray.length > 1
+        ? `\n\nYou are provided with ${urlArray.length} images of the same lesion from different angles or locations. Analyze all images together to provide a comprehensive diagnosis.`
+        : '';
+
+    const systemPrompt = `You are an expert dermatologist AI assistant. Analyze the provided skin lesion image(s) and patient information to provide differential diagnoses.
 
 Consider:
 - Visual characteristics of the lesion (color, shape, size, texture, borders)
 - Patient symptoms: ${symptoms}
 - Lesion location: ${context.lesionLocation || 'Not specified'}
-- Medical history: ${context.medicalHistory?.join(', ') || 'None specified'}
+- Medical history: ${context.medicalHistory?.join(', ') || 'None specified'}${multipleImagesNote}
 
 Provide exactly 5 differential diagnoses ranked by confidence level, with confidence scores between 0-100.
 
@@ -113,6 +140,21 @@ Respond with JSON in this exact format:
     const model = options.model || process.env.OPENAI_MODEL || 'gpt-4o-mini';
     const isGpt5 = model === 'gpt-5';
 
+    // Build message content with all images
+    const userContent: any[] = [
+      {
+        type: 'text',
+        text: `Please analyze ${urlArray.length > 1 ? 'these dermatological images' : 'this dermatological image'} and provide differential diagnoses based on the clinical information provided.`,
+      },
+    ];
+
+    for (const imageData of imageDataArray) {
+      userContent.push({
+        type: 'image_url',
+        image_url: { url: `data:${imageData.mimeType};base64,${imageData.base64}` },
+      });
+    }
+
     const baseRequest = {
       messages: [
         {
@@ -124,16 +166,7 @@ Respond with JSON in this exact format:
         },
         {
           role: 'user' as const,
-          content: [
-            {
-              type: 'text' as const,
-              text: 'Please analyze this dermatological image and provide differential diagnoses based on the clinical information provided.',
-            },
-            {
-              type: 'image_url' as const,
-              image_url: { url: `data:${mimeType};base64,${imageBase64}` },
-            },
-          ],
+          content: userContent,
         },
       ],
       max_completion_tokens: isGpt5 ? 800 : 2000,
@@ -211,7 +244,7 @@ Respond with JSON in this exact format:
         hint: refusal
           ? 'The request may have been blocked by a safety filter.'
           : 'Try reducing image size/quality or retrying later.',
-        details: { refusal, finishReason, model, mimeType, imageBytes },
+        details: { refusal, finishReason, model, imageCount: urlArray.length, totalImageBytes },
       });
     }
 

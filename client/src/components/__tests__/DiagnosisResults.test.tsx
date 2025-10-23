@@ -10,6 +10,7 @@ describe('DiagnosisResults', () => {
     userId: 'user1',
     patientId: 'patient1',
     imageUrl: 'https://example.com/image.jpg',
+    imageUrls: ['https://example.com/image.jpg'],
     status: 'completed',
     createdAt: new Date(),
     lesionLocation: 'arm',

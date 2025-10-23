@@ -253,6 +253,7 @@ export class DatabaseStorage implements IStorage {
             userId: userId,
             patientId: insertCase.patientId || null,
             imageUrl: insertCase.imageUrl,
+            imageUrls: insertCase.imageUrls || null, // Add imageUrls array
             lesionLocation: insertCase.lesionLocation || null,
             symptoms: insertCase.symptoms || null,
             additionalSymptoms: insertCase.additionalSymptoms || null,

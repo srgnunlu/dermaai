@@ -20,6 +20,7 @@ import { db } from './db';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import logger from './logger';
+import * as cache from './cache';
 
 export interface IStorage {
   // User operations
@@ -248,6 +249,10 @@ export class DatabaseStorage implements IStorage {
             status: 'pending',
           } as any)
           .returning();
+
+        // Invalidate admin cache when new case is created
+        cache.invalidatePattern('admin:');
+
         return caseRecord;
       } catch (error: any) {
         attempts++;
@@ -321,12 +326,20 @@ export class DatabaseStorage implements IStorage {
 
     const [updatedCase] = await db.update(cases).set(updates).where(eq(cases.id, id)).returning();
 
+    // Invalidate admin cache when case is updated
+    cache.invalidatePattern('admin:');
+
     return updatedCase;
   }
 
   async deleteCase(id: string): Promise<boolean> {
     try {
       const result = await db.delete(cases).where(eq(cases.id, id));
+
+      // Invalidate admin cache when case is deleted
+      if (result.rowCount && result.rowCount > 0) {
+        cache.invalidatePattern('admin:');
+      }
 
       return result.rowCount ? result.rowCount > 0 : false;
     } catch (error) {
@@ -413,33 +426,40 @@ export class DatabaseStorage implements IStorage {
 
   // Admin operations
   async getAllCasesForAdmin(): Promise<(Case & { user?: User })[]> {
-    // Get all cases with user information
-    const allCases = await db.select().from(cases);
+    // Use cache for expensive query (2 minute TTL)
+    return cache.cached(
+      'admin:all-cases',
+      async () => {
+        // Get all cases with user information
+        const allCases = await db.select().from(cases);
 
-    // Get unique user IDs
-    const userIds = Array.from(new Set(allCases.map((c) => c.userId)));
+        // Get unique user IDs
+        const userIds = Array.from(new Set(allCases.map((c) => c.userId)));
 
-    // Create a map of users
-    const userMap = new Map<string, User>();
-    for (const userId of userIds) {
-      const [user] = await db.select().from(users).where(eq(users.id, userId));
-      if (user) {
-        userMap.set(userId, user);
-      }
-    }
+        // Create a map of users
+        const userMap = new Map<string, User>();
+        for (const userId of userIds) {
+          const [user] = await db.select().from(users).where(eq(users.id, userId));
+          if (user) {
+            userMap.set(userId, user);
+          }
+        }
 
-    // Combine cases with user information
-    const casesWithUsers = allCases.map((caseRecord) => ({
-      ...caseRecord,
-      user: userMap.get(caseRecord.userId),
-    }));
+        // Combine cases with user information
+        const casesWithUsers = allCases.map((caseRecord) => ({
+          ...caseRecord,
+          user: userMap.get(caseRecord.userId),
+        }));
 
-    // Sort by creation date (newest first)
-    return casesWithUsers.sort((a, b) => {
-      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return bTime - aTime;
-    });
+        // Sort by creation date (newest first)
+        return casesWithUsers.sort((a, b) => {
+          const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return bTime - aTime;
+        });
+      },
+      120 // 2 minutes cache
+    );
   }
 
   async getCasesForAdminPaginated(
@@ -523,66 +543,80 @@ export class DatabaseStorage implements IStorage {
     activeUsers: number;
     avgDiagnosisTime: number;
   }> {
-    const allCases = await db.select().from(cases);
-    const allUsers = await db.select().from(users);
+    // Use cache for expensive statistics calculation (2 minute TTL)
+    return cache.cached(
+      'admin:stats',
+      async () => {
+        const allCases = await db.select().from(cases);
+        const allUsers = await db.select().from(users);
 
-    const totalCases = allCases.length;
-    const pendingCases = allCases.filter((c) => c.status === 'pending').length;
-    const completedCases = allCases.filter((c) => c.status === 'completed').length;
-    const totalUsers = allUsers.length;
+        const totalCases = allCases.length;
+        const pendingCases = allCases.filter((c) => c.status === 'pending').length;
+        const completedCases = allCases.filter((c) => c.status === 'completed').length;
+        const totalUsers = allUsers.length;
 
-    // Calculate active users (users who have created cases in the last 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        // Calculate active users (users who have created cases in the last 30 days)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const recentCases = allCases.filter((c) => {
-      if (!c.createdAt) return false;
-      return new Date(c.createdAt) > thirtyDaysAgo;
-    });
+        const recentCases = allCases.filter((c) => {
+          if (!c.createdAt) return false;
+          return new Date(c.createdAt) > thirtyDaysAgo;
+        });
 
-    const activeUserIds = new Set(recentCases.map((c) => c.userId));
-    const activeUsers = activeUserIds.size;
+        const activeUserIds = new Set(recentCases.map((c) => c.userId));
+        const activeUsers = activeUserIds.size;
 
-    // Calculate average diagnosis time (time from case creation to completion)
-    let totalDiagnosisTime = 0;
-    let diagnosisCount = 0;
+        // Calculate average diagnosis time (time from case creation to completion)
+        let totalDiagnosisTime = 0;
+        let diagnosisCount = 0;
 
-    for (const caseRecord of allCases) {
-      if (caseRecord.status === 'completed' && caseRecord.createdAt) {
-        // For now, we'll estimate diagnosis time as 5 minutes average
-        // In a real system, you'd track actual completion time
-        totalDiagnosisTime += 5;
-        diagnosisCount++;
-      }
-    }
+        for (const caseRecord of allCases) {
+          if (caseRecord.status === 'completed' && caseRecord.createdAt) {
+            // For now, we'll estimate diagnosis time as 5 minutes average
+            // In a real system, you'd track actual completion time
+            totalDiagnosisTime += 5;
+            diagnosisCount++;
+          }
+        }
 
-    const avgDiagnosisTime =
-      diagnosisCount > 0 ? Math.round(totalDiagnosisTime / diagnosisCount) : 0;
+        const avgDiagnosisTime =
+          diagnosisCount > 0 ? Math.round(totalDiagnosisTime / diagnosisCount) : 0;
 
-    return {
-      totalCases,
-      pendingCases,
-      completedCases,
-      totalUsers,
-      activeUsers,
-      avgDiagnosisTime,
-    };
+        return {
+          totalCases,
+          pendingCases,
+          completedCases,
+          totalUsers,
+          activeUsers,
+          avgDiagnosisTime,
+        };
+      },
+      120 // 2 minutes cache
+    );
   }
 
   async getAllUsers(): Promise<User[]> {
-    const allUsers = await db.select().from(users);
+    // Use cache for user list (2 minute TTL)
+    return cache.cached(
+      'admin:all-users',
+      async () => {
+        const allUsers = await db.select().from(users);
 
-    // Sort by creation date (newest first) and role (admins first)
-    return allUsers.sort((a, b) => {
-      // First sort by role (admin users first)
-      if (a.role === 'admin' && b.role !== 'admin') return -1;
-      if (b.role === 'admin' && a.role !== 'admin') return 1;
+        // Sort by creation date (newest first) and role (admins first)
+        return allUsers.sort((a, b) => {
+          // First sort by role (admin users first)
+          if (a.role === 'admin' && b.role !== 'admin') return -1;
+          if (b.role === 'admin' && a.role !== 'admin') return 1;
 
-      // Then sort by creation date (newest first)
-      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return bTime - aTime;
-    });
+          // Then sort by creation date (newest first)
+          const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return bTime - aTime;
+        });
+      },
+      120 // 2 minutes cache
+    );
   }
 
   async promoteUserToAdmin(userId: string): Promise<User> {

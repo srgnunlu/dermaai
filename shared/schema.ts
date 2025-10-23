@@ -17,23 +17,30 @@ export const sessions = pgTable(
 
 // User storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
-export const users = pgTable('users', {
-  id: varchar('id')
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  email: varchar('email').unique(),
-  firstName: varchar('first_name'),
-  lastName: varchar('last_name'),
-  profileImageUrl: varchar('profile_image_url'),
-  role: varchar('role').default('user').notNull(), // user, admin
-  medicalLicenseNumber: varchar('medical_license_number'),
-  specialization: varchar('specialization'),
-  hospital: varchar('hospital'),
-  yearsOfExperience: integer('years_of_experience'),
-  phoneNumber: varchar('phone_number'),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
-});
+export const users = pgTable(
+  'users',
+  {
+    id: varchar('id')
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    email: varchar('email').unique(),
+    firstName: varchar('first_name'),
+    lastName: varchar('last_name'),
+    profileImageUrl: varchar('profile_image_url'),
+    role: varchar('role').default('user').notNull(), // user, admin
+    medicalLicenseNumber: varchar('medical_license_number'),
+    specialization: varchar('specialization'),
+    hospital: varchar('hospital'),
+    yearsOfExperience: integer('years_of_experience'),
+    phoneNumber: varchar('phone_number'),
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow(),
+  },
+  (table) => [
+    index('idx_users_role').on(table.role),
+    index('idx_users_created_at').on(table.createdAt),
+  ]
+);
 
 export const patients = pgTable('patients', {
   id: varchar('id')
@@ -46,55 +53,64 @@ export const patients = pgTable('patients', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
-export const cases = pgTable('cases', {
-  id: varchar('id')
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  caseId: text('case_id').notNull().unique(),
-  userId: varchar('user_id')
-    .notNull()
-    .references(() => users.id),
-  patientId: varchar('patient_id').references(() => patients.id),
-  imageUrl: text('image_url').notNull(),
-  lesionLocation: text('lesion_location'),
-  symptoms: jsonb('symptoms').$type<string[]>(),
-  additionalSymptoms: text('additional_symptoms'),
-  symptomDuration: text('symptom_duration'),
-  medicalHistory: jsonb('medical_history').$type<string[]>(),
-  geminiAnalysis: jsonb('gemini_analysis').$type<{
-    diagnoses: Array<{
-      name: string;
-      confidence: number;
-      description: string;
-      keyFeatures: string[];
-      recommendations: string[];
-    }>;
-    analysisTime: number;
-  }>(),
-  openaiAnalysis: jsonb('openai_analysis').$type<{
-    diagnoses: Array<{
-      name: string;
-      confidence: number;
-      description: string;
-      keyFeatures: string[];
-      recommendations: string[];
-    }>;
-    analysisTime: number;
-  }>(),
-  finalDiagnoses: jsonb('final_diagnoses').$type<
-    Array<{
-      rank: number;
-      name: string;
-      confidence: number;
-      description: string;
-      keyFeatures: string[];
-      recommendations: string[];
-      isUrgent: boolean;
-    }>
-  >(),
-  status: text('status').default('pending'),
-  createdAt: timestamp('created_at').defaultNow(),
-});
+export const cases = pgTable(
+  'cases',
+  {
+    id: varchar('id')
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    caseId: text('case_id').notNull().unique(),
+    userId: varchar('user_id')
+      .notNull()
+      .references(() => users.id),
+    patientId: varchar('patient_id').references(() => patients.id),
+    imageUrl: text('image_url').notNull(),
+    lesionLocation: text('lesion_location'),
+    symptoms: jsonb('symptoms').$type<string[]>(),
+    additionalSymptoms: text('additional_symptoms'),
+    symptomDuration: text('symptom_duration'),
+    medicalHistory: jsonb('medical_history').$type<string[]>(),
+    geminiAnalysis: jsonb('gemini_analysis').$type<{
+      diagnoses: Array<{
+        name: string;
+        confidence: number;
+        description: string;
+        keyFeatures: string[];
+        recommendations: string[];
+      }>;
+      analysisTime: number;
+    }>(),
+    openaiAnalysis: jsonb('openai_analysis').$type<{
+      diagnoses: Array<{
+        name: string;
+        confidence: number;
+        description: string;
+        keyFeatures: string[];
+        recommendations: string[];
+      }>;
+      analysisTime: number;
+    }>(),
+    finalDiagnoses: jsonb('final_diagnoses').$type<
+      Array<{
+        rank: number;
+        name: string;
+        confidence: number;
+        description: string;
+        keyFeatures: string[];
+        recommendations: string[];
+        isUrgent: boolean;
+      }>
+    >(),
+    status: text('status').default('pending'),
+    createdAt: timestamp('created_at').defaultNow(),
+  },
+  (table) => [
+    index('idx_cases_user_id').on(table.userId),
+    index('idx_cases_status').on(table.status),
+    index('idx_cases_created_at').on(table.createdAt),
+    index('idx_cases_user_created').on(table.userId, table.createdAt),
+  ]
+);
 
 export const insertPatientSchema = createInsertSchema(patients).omit({
   id: true,

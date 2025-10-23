@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CloudUpload, Camera, Trash2, Plus } from 'lucide-react';
+import React from 'react';
 
 interface ImageUploadProps {
   onImagesUploaded: (imageUrls: string[]) => void;
@@ -12,45 +13,67 @@ export function ImageUpload({ onImagesUploaded, uploadedImages = [] }: ImageUplo
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrls, setPreviewUrls] = useState<string[]>(uploadedImages);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const currentUrlsRef = useRef<string[]>(uploadedImages);
 
-  const handleFileUpload = async (file: File) => {
-    // Check if we already have 3 images
-    if (previewUrls.length >= 3) {
-      alert('Maksimum 3 görsel yükleyebilirsiniz.');
-      return;
-    }
+  // Update the ref whenever previewUrls changes
+  React.useEffect(() => {
+    currentUrlsRef.current = previewUrls;
+  }, [previewUrls]);
 
-    setIsUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
+  const uploadFileSequentially = async (files: File[]): Promise<string[]> => {
+    const uploadedUrls: string[] = [...currentUrlsRef.current];
 
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to upload file');
+    for (const file of files) {
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        alert(`"${file.name}" görsel dosyası değil. Lütfen sadece resim dosyası seçin.`);
+        continue;
       }
 
-      const { url } = await response.json();
-      const newUrls = [...previewUrls, url];
-      setPreviewUrls(newUrls);
-      onImagesUploaded(newUrls);
-    } catch (error) {
-      console.error('Upload error:', error);
-      alert('Dosya yükleme hatası. Lütfen tekrar deneyin.');
-    } finally {
-      setIsUploading(false);
+      // Check file size (10MB max)
+      if (file.size > 10 * 1024 * 1024) {
+        alert(`"${file.name}" 10MB'dan büyük. Lütfen daha küçük dosya seçin.`);
+        continue;
+      }
+
+      // Check total limit
+      if (uploadedUrls.length >= 3) {
+        alert('Maksimum 3 görsel yükleyebilirsiniz.');
+        break;
+      }
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to upload file');
+        }
+
+        const { url } = await response.json();
+        uploadedUrls.push(url);
+        
+        // Update state after each upload
+        setPreviewUrls(uploadedUrls);
+      } catch (error) {
+        console.error(`Upload error for ${file.name}:`, error);
+        alert(`"${file.name}" yükleme hatası. Lütfen tekrar deneyin.`);
+      }
     }
+
+    return uploadedUrls;
   };
 
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
 
-    // Convert FileList to Array and process all files
+    // Convert FileList to Array
     const fileArray = Array.from(files);
     
     // Check total images limit (1-3 total)
@@ -61,32 +84,21 @@ export function ImageUpload({ onImagesUploaded, uploadedImages = [] }: ImageUplo
       return;
     }
 
-    // Process each file
-    let processedCount = 0;
-    let errorCount = 0;
-
-    fileArray.forEach((file) => {
-      // Check file type
-      if (!file.type.startsWith('image/')) {
-        alert(`"${file.name}" görsel dosyası değil. Lütfen sadece resim dosyası seçin.`);
-        errorCount++;
-        return;
-      }
-
-      // Check file size (10MB max)
-      if (file.size > 10 * 1024 * 1024) {
-        alert(`"${file.name}" 10MB'dan büyük. Lütfen daha küçük dosya seçin.`);
-        errorCount++;
-        return;
-      }
-
-      handleFileUpload(file);
-      processedCount++;
-    });
-
-    // Reset input so same files can be selected again
-    event.target.value = '';
-  }, [previewUrls]);
+    // Upload files sequentially
+    setIsUploading(true);
+    uploadFileSequentially(fileArray)
+      .then((finalUrls) => {
+        setPreviewUrls(finalUrls);
+        onImagesUploaded(finalUrls);
+      })
+      .catch((error) => {
+        console.error('Upload batch error:', error);
+      })
+      .finally(() => {
+        setIsUploading(false);
+        event.target.value = '';
+      });
+  }, [previewUrls, onImagesUploaded]);
 
   const handleRemoveImage = (index: number) => {
     const newUrls = previewUrls.filter((_, i) => i !== index);

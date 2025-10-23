@@ -204,16 +204,53 @@ STRICT REQUIREMENTS:
       console.warn('[OpenAI] Empty content on first attempt', {
         refusal,
         finishReason,
+        model,
       });
 
-      // Attempt 2: relax response_format (some models e.g. gpt-5 only allow default temperature)
-      response = await getOpenAIClient().chat.completions.create({
-        model,
-        ...baseRequest,
-      });
-      content = response.choices?.[0]?.message?.content ?? '';
-      refusal = (response.choices?.[0] as any)?.message?.refusal;
-      finishReason = (response.choices?.[0] as any)?.finish_reason;
+      // Attempt 2: For multi-image with GPT-5, try with first image only
+      if (isGpt5 && urlArray.length > 1) {
+        console.warn(`[OpenAI] GPT-5 multi-image failed, retrying with single image`);
+        const singleImageContent: any[] = [
+          {
+            type: 'text',
+            text: `Please analyze this dermatological image and provide differential diagnoses based on the clinical information provided. (Note: using first image of ${urlArray.length} images)`,
+          },
+        ];
+        
+        if (imageDataArray.length > 0) {
+          singleImageContent.push({
+            type: 'image_url',
+            image_url: { url: `data:${imageDataArray[0].mimeType};base64,${imageDataArray[0].base64}` },
+          });
+        }
+
+        response = await getOpenAIClient().chat.completions.create({
+          model,
+          messages: [
+            {
+              role: 'system' as const,
+              content: systemPrompt + '\nRespond with ONLY valid JSON, no other text.',
+            },
+            {
+              role: 'user' as const,
+              content: singleImageContent,
+            },
+          ],
+          max_completion_tokens: 1000,
+        });
+        content = response.choices?.[0]?.message?.content ?? '';
+        refusal = (response.choices?.[0] as any)?.message?.refusal;
+        finishReason = (response.choices?.[0] as any)?.finish_reason;
+      } else {
+        // Attempt 2b: regular retry
+        response = await getOpenAIClient().chat.completions.create({
+          model,
+          ...baseRequest,
+        });
+        content = response.choices?.[0]?.message?.content ?? '';
+        refusal = (response.choices?.[0] as any)?.message?.refusal;
+        finishReason = (response.choices?.[0] as any)?.finish_reason;
+      }
     }
 
     // Attempt 2b: if still empty because of 'length', try compact JSON without strict response_format
@@ -243,9 +280,33 @@ STRICT REQUIREMENTS:
     // Attempt 3: fallback model
     if (!content && !model.includes('gpt-4o-mini') && (options.allowFallback ?? true)) {
       console.warn('[OpenAI] Retrying with fallback model gpt-4o-mini');
+      
+      // For multi-image, use only first image with fallback
+      const fallbackContent = urlArray.length > 1 ? [
+        {
+          type: 'text' as const,
+          text: `Please analyze this dermatological image and provide differential diagnoses based on the clinical information provided. (Note: using first image of ${urlArray.length} images)`,
+        },
+        {
+          type: 'image_url' as const,
+          image_url: { url: `data:${imageDataArray[0].mimeType};base64,${imageDataArray[0].base64}` },
+        },
+      ] : userContent;
+
       response = await getOpenAIClient().chat.completions.create({
         model: 'gpt-4o-mini',
-        ...baseRequest,
+        messages: [
+          {
+            role: 'system' as const,
+            content: systemPrompt,
+          },
+          {
+            role: 'user' as const,
+            content: fallbackContent,
+          },
+        ],
+        max_completion_tokens: 2000,
+        response_format: { type: 'json_object' as const },
       });
       content = response.choices?.[0]?.message?.content ?? '';
     }

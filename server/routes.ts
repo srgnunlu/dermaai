@@ -1051,7 +1051,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .fontSize(11)
           .font('Helvetica-Bold')
           .fillColor('#2d5d5d')
-          .text(sanitizeTextForPDF('GPT-4o Mini Analysis'), { underline: true })
+          .text(sanitizeTextForPDF('GPT-5 Mini Analysis'), { underline: true })
           .fillColor('#000000')
           .font('Helvetica')
           .fontSize(9)

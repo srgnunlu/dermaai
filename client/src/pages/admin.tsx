@@ -1264,7 +1264,7 @@ export default function AdminPage() {
                     <div className="mb-6">
                       <div className="flex items-center gap-2 mb-4 pb-3 border-b-2 border-green-300">
                         <div className="w-4 h-4 rounded bg-green-600"></div>
-                        <h4 className="text-base font-bold text-green-900">GPT-4o Mini Analysis</h4>
+                        <h4 className="text-base font-bold text-green-900">GPT-5 Mini Analysis</h4>
                       </div>
                       <div className="space-y-3">
                         {selectedCase.openaiAnalysis.diagnoses.slice(0, 5).map((diagnosis: any, index: number) => (

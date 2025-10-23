@@ -225,7 +225,7 @@ export default function AnalyticsPage() {
                     <CardHeader>
                       <CardTitle className="text-lg flex items-center gap-2">
                         <Brain className="h-5 w-5 text-green-500" />
-                        GPT-4o Mini
+                        GPT-5 Mini
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2">

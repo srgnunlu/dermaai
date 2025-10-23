@@ -8,6 +8,70 @@ import { History, Eye, FileText, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Case } from '@shared/schema';
 
+// Helper function to get top diagnosis from either finalDiagnoses or merged separate AI results
+const getTopDiagnosis = (caseRecord: Case) => {
+  if (caseRecord.finalDiagnoses && caseRecord.finalDiagnoses.length > 0) {
+    return caseRecord.finalDiagnoses[0];
+  }
+
+  // If finalDiagnoses is null, try to get from separate AI results
+  const allDiagnoses: any[] = [];
+
+  if (caseRecord.geminiAnalysis?.diagnoses && Array.isArray(caseRecord.geminiAnalysis.diagnoses)) {
+    allDiagnoses.push(...caseRecord.geminiAnalysis.diagnoses);
+  }
+
+  if (caseRecord.openaiAnalysis?.diagnoses && Array.isArray(caseRecord.openaiAnalysis.diagnoses)) {
+    allDiagnoses.push(...caseRecord.openaiAnalysis.diagnoses);
+  }
+
+  if (allDiagnoses.length === 0) return undefined;
+
+  // Sort by confidence and deduplicate
+  allDiagnoses.sort((a, b) => b.confidence - a.confidence);
+  const seen = new Set<string>();
+  const unique = allDiagnoses.filter((d) => {
+    const key = d.name.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  return unique[0];
+};
+
+// Helper function to get all diagnoses for modal
+const getAllDiagnoses = (caseRecord: Case) => {
+  if (caseRecord.finalDiagnoses && caseRecord.finalDiagnoses.length > 0) {
+    return caseRecord.finalDiagnoses;
+  }
+
+  // If finalDiagnoses is null, merge separate AI results
+  const allDiagnoses: any[] = [];
+
+  if (caseRecord.geminiAnalysis?.diagnoses && Array.isArray(caseRecord.geminiAnalysis.diagnoses)) {
+    allDiagnoses.push(...caseRecord.geminiAnalysis.diagnoses);
+  }
+
+  if (caseRecord.openaiAnalysis?.diagnoses && Array.isArray(caseRecord.openaiAnalysis.diagnoses)) {
+    allDiagnoses.push(...caseRecord.openaiAnalysis.diagnoses);
+  }
+
+  if (allDiagnoses.length === 0) return [];
+
+  // Sort by confidence and deduplicate
+  allDiagnoses.sort((a, b) => b.confidence - a.confidence);
+  const seen = new Set<string>();
+  const unique = allDiagnoses.filter((d) => {
+    const key = d.name.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  return unique;
+};
+
 export function CaseHistory() {
   const { data: cases = [], isLoading } = useQuery<Case[]>({
     queryKey: ['/api/cases'],
@@ -84,7 +148,7 @@ export function CaseHistory() {
                 </thead>
                 <tbody>
                   {cases.map((caseRecord) => {
-                    const topDiagnosis = caseRecord.finalDiagnoses?.[0];
+                    const topDiagnosis = getTopDiagnosis(caseRecord);
                     return (
                       <tr
                         key={caseRecord.id}
@@ -247,11 +311,11 @@ export function CaseHistory() {
               </div>
 
               {/* Diagnoses */}
-              {selectedCase.finalDiagnoses && selectedCase.finalDiagnoses.length > 0 && (
+              {getAllDiagnoses(selectedCase).length > 0 && (
                 <div>
                   <h4 className="font-semibold mb-3">AI Diagnosis Results</h4>
                   <div className="space-y-3">
-                    {selectedCase.finalDiagnoses.slice(0, 3).map((diagnosis, index) => (
+                    {getAllDiagnoses(selectedCase).map((diagnosis, index) => (
                       <div key={index} className="border rounded-lg p-3">
                         <div className="flex items-center justify-between mb-2">
                           <h5 className="font-medium">{diagnosis.name}</h5>

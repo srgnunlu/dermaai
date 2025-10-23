@@ -20,6 +20,7 @@ import logger from './logger';
 import { sanitizeCSVFormula, formatSymptomsForCSV, mapDurationToTurkish } from './utils/csv';
 import { sanitizeTextForPDF } from './utils/pdf';
 import { lookupCaseWithAuth } from './utils/caseHelpers';
+import { mergeAnalysesWithoutConsensus } from './utils/aiAnalysis';
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -293,7 +294,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ];
 
       const csvRows = cases.map((c) => {
-        const topDiagnosis = c.finalDiagnoses && c.finalDiagnoses[0] ? c.finalDiagnoses[0] : null;
+        // Try to get topDiagnosis from finalDiagnoses, or merge from separate AI results if not available
+        let topDiagnosis = null;
+        if (c.finalDiagnoses && c.finalDiagnoses[0]) {
+          topDiagnosis = c.finalDiagnoses[0];
+        } else if (c.geminiAnalysis || c.openaiAnalysis) {
+          // Merge separate AI results for display
+          const merged = mergeAnalysesWithoutConsensus(c.geminiAnalysis, c.openaiAnalysis);
+          topDiagnosis = merged.length > 0 ? merged[0] : null;
+        }
+
         const patient = c.patientId ? patientMap.get(c.patientId) : null;
 
         return [
@@ -785,6 +795,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
             doc.moveDown(0.5);
           }
         });
+      } else {
+        // No finalDiagnoses, try to merge separate AI results
+        const mergedDiagnoses = mergeAnalysesWithoutConsensus(caseRecord.geminiAnalysis, caseRecord.openaiAnalysis);
+        if (mergedDiagnoses && mergedDiagnoses.length > 0) {
+          doc
+            .fontSize(16)
+            .text(sanitizeTextForPDF('AI Diagnosis Results'), { underline: true })
+            .moveDown(0.5);
+
+          mergedDiagnoses.forEach((diagnosis, index) => {
+            doc
+              .fontSize(12)
+              .text(sanitizeTextForPDF(`${index + 1}. ${diagnosis.name}`), { continued: false })
+              .fontSize(10)
+              .text(sanitizeTextForPDF(`   Confidence: ${diagnosis.confidence}%`))
+              .text(sanitizeTextForPDF(`   Description: ${diagnosis.description}`))
+              .moveDown(0.3);
+
+            if (diagnosis.keyFeatures && diagnosis.keyFeatures.length > 0) {
+              doc
+                .text(sanitizeTextForPDF(`   Key Features: ${diagnosis.keyFeatures.join(', ')}`))
+                .moveDown(0.3);
+            }
+
+            if (diagnosis.recommendations && diagnosis.recommendations.length > 0) {
+              doc
+                .text(
+                  sanitizeTextForPDF(`   Recommendations: ${diagnosis.recommendations.join(', ')}`)
+                )
+                .moveDown(0.3);
+            }
+
+            if (diagnosis.isUrgent) {
+              doc
+                .fontSize(10)
+                .fillColor('red')
+                .text(sanitizeTextForPDF('   ⚠️ URGENT: Requires immediate medical attention'), {
+                  continued: false,
+                })
+                .fillColor('black')
+                .moveDown(0.5);
+            } else {
+              doc.moveDown(0.5);
+            }
+          });
+        }
       }
 
       // Add footer

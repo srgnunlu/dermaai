@@ -61,6 +61,38 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 
+// Helper function to get merged diagnoses from finalDiagnoses or separate AI results
+const getMergedDiagnoses = (caseItem: any) => {
+  if (caseItem.finalDiagnoses && caseItem.finalDiagnoses.length > 0) {
+    return caseItem.finalDiagnoses;
+  }
+
+  // If finalDiagnoses is null, merge separate AI results
+  const allDiagnoses: any[] = [];
+
+  if (caseItem.geminiAnalysis?.diagnoses && Array.isArray(caseItem.geminiAnalysis.diagnoses)) {
+    allDiagnoses.push(...caseItem.geminiAnalysis.diagnoses);
+  }
+
+  if (caseItem.openaiAnalysis?.diagnoses && Array.isArray(caseItem.openaiAnalysis.diagnoses)) {
+    allDiagnoses.push(...caseItem.openaiAnalysis.diagnoses);
+  }
+
+  if (allDiagnoses.length === 0) return [];
+
+  // Sort by confidence and deduplicate
+  allDiagnoses.sort((a, b) => b.confidence - a.confidence);
+  const seen = new Set<string>();
+  const unique = allDiagnoses.filter((d) => {
+    const key = d.name.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  return unique;
+};
+
 export default function AdminPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -1131,11 +1163,11 @@ export default function AdminPage() {
               )}
 
               {/* AI Diagnosis Results */}
-              {selectedCase.finalDiagnoses && selectedCase.finalDiagnoses.length > 0 && (
+              {getMergedDiagnoses(selectedCase).length > 0 && (
                 <div>
                   <h3 className="font-semibold mb-2">AI Diagnosis Results</h3>
                   <div className="space-y-3">
-                    {selectedCase.finalDiagnoses.map((diagnosis: any, index: number) => (
+                    {getMergedDiagnoses(selectedCase).map((diagnosis: any, index: number) => (
                       <Card key={index} className="p-4">
                         <div className="flex justify-between items-start mb-2">
                           <h4 className="font-medium text-lg">{diagnosis.name}</h4>

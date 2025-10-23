@@ -102,3 +102,56 @@ export function isUrgentCondition(diagnosisName: string, confidence: number): bo
     ) && confidence > 25
   );
 }
+
+/**
+ * Merge separate AI analyses without consensus - just combine top results from each model
+ * Used when consensus system is disabled or for display purposes
+ */
+export function mergeAnalysesWithoutConsensus(geminiAnalysis: any, openaiAnalysis: any): FinalDiagnosis[] {
+  const diagnoses = new Map<string, FinalDiagnosis>();
+
+  // Collect diagnoses from both models
+  const allDiagnoses: FinalDiagnosis[] = [];
+
+  if (geminiAnalysis?.diagnoses && Array.isArray(geminiAnalysis.diagnoses)) {
+    geminiAnalysis.diagnoses.forEach((diagnosis: Diagnosis) => {
+      const isUrgent = isUrgentCondition(diagnosis.name, diagnosis.confidence);
+      allDiagnoses.push({
+        ...diagnosis,
+        rank: 0,
+        isUrgent,
+      });
+    });
+  }
+
+  if (openaiAnalysis?.diagnoses && Array.isArray(openaiAnalysis.diagnoses)) {
+    openaiAnalysis.diagnoses.forEach((diagnosis: Diagnosis) => {
+      const isUrgent = isUrgentCondition(diagnosis.name, diagnosis.confidence);
+      allDiagnoses.push({
+        ...diagnosis,
+        rank: 0,
+        isUrgent,
+      });
+    });
+  }
+
+  // Sort by confidence and remove duplicates (keep highest confidence version)
+  allDiagnoses.sort((a, b) => b.confidence - a.confidence);
+
+  // Deduplicate by name (case-insensitive), keep highest confidence
+  const seen = new Set<string>();
+  const uniqueDiagnoses = allDiagnoses.filter((d) => {
+    const key = d.name.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  // Set ranks
+  uniqueDiagnoses.forEach((diagnosis, index) => {
+    diagnosis.rank = index + 1;
+  });
+
+  // Return top 5 diagnoses
+  return uniqueDiagnoses.slice(0, 5);
+}

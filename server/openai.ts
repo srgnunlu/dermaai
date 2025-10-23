@@ -116,13 +116,22 @@ export async function analyzeWithOpenAI(
 
     const systemPrompt = `You are an expert dermatologist AI assistant. Analyze the provided skin lesion image(s) and patient information to provide differential diagnoses.
 
+IMPORTANT VALIDATION:
+- FIRST, verify that the image(s) show an actual skin lesion or dermatological condition
+- If the image is NOT a skin lesion (e.g., non-medical image, random object, etc.), respond with ONLY this JSON:
+{
+  "error": true,
+  "message": "The provided image does not appear to be a skin lesion. Please upload a clear image of a skin condition for analysis."
+}
+- Do NOT provide diagnoses for non-dermatological images
+
 Consider:
 - Visual characteristics of the lesion (color, shape, size, texture, borders)
 - Patient symptoms: ${symptoms}
 - Lesion location: ${context.lesionLocation || 'Not specified'}
 - Medical history: ${context.medicalHistory?.join(', ') || 'None specified'}${multipleImagesNote}
 
-Provide exactly 5 differential diagnoses ranked by confidence level, with confidence scores between 0-100.
+If the image IS a valid skin lesion, provide exactly 5 differential diagnoses ranked by confidence level, with confidence scores between 0-100.
 
 Respond with JSON in this exact format:
 {

@@ -630,6 +630,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (geminiResult.status === 'fulfilled') {
         geminiAnalysis = geminiResult.value;
+        // Check if AI returned an error (non-skin-lesion image)
+        if ((geminiAnalysis as any).error) {
+          analysisErrors.push({
+            provider: 'gemini',
+            code: 'INVALID_IMAGE',
+            message: (geminiAnalysis as any).message || 'Image does not appear to be a skin lesion',
+          });
+          geminiAnalysis = null;
+        }
       } else {
         logger.error('Gemini analysis failed:', geminiResult.reason);
         const reason: any = geminiResult.reason;
@@ -644,6 +653,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (openaiResult.status === 'fulfilled') {
         openaiAnalysis = openaiResult.value;
+        // Check if AI returned an error (non-skin-lesion image)
+        if ((openaiAnalysis as any).error) {
+          analysisErrors.push({
+            provider: 'openai',
+            code: 'INVALID_IMAGE',
+            message: (openaiAnalysis as any).message || 'Image does not appear to be a skin lesion',
+          });
+          openaiAnalysis = null;
+        }
       } else {
         logger.error('OpenAI analysis failed:', openaiResult.reason);
         const reason: any = openaiResult.reason;

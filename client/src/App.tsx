@@ -15,6 +15,7 @@ const CaseHistoryPage = lazy(() => import('@/pages/case-history'));
 const SettingsPage = lazy(() => import('@/pages/settings'));
 const ProfilePage = lazy(() => import('@/pages/profile'));
 const AdminPage = lazy(() => import('@/pages/admin'));
+const AnalyticsPage = lazy(() => import('@/pages/analytics'));
 const PrivacyPolicyPage = lazy(() => import('@/pages/privacy-policy'));
 const TermsOfServicePage = lazy(() => import('@/pages/terms-of-service'));
 const MedicalDisclaimerPage = lazy(() => import('@/pages/medical-disclaimer'));
@@ -56,6 +57,7 @@ function Router() {
               <Route path="/settings" component={SettingsPage} />
               <Route path="/profile" component={ProfilePage} />
               <Route path="/admin" component={AdminPage} />
+              <Route path="/analytics" component={AnalyticsPage} />
             </>
           )}
           <Route component={NotFound} />

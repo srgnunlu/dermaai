@@ -835,6 +835,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Analytics endpoints
+  app.get('/api/admin/analytics/diagnosis-distribution', requireAdmin, async (_req, res) => {
+    try {
+      const distribution = await storage.getAnalyticsDiagnosisDistribution();
+      res.json(distribution);
+    } catch (error) {
+      logger.error('Error fetching diagnosis distribution:', error);
+      res.status(500).json({ error: 'Failed to fetch diagnosis distribution' });
+    }
+  });
+
+  app.get('/api/admin/analytics/timeseries', requireAdmin, async (req, res) => {
+    try {
+      const days = parseInt(req.query.days as string) || 30;
+      const data = await storage.getAnalyticsTimeSeriesData(days);
+      res.json(data);
+    } catch (error) {
+      logger.error('Error fetching timeseries data:', error);
+      res.status(500).json({ error: 'Failed to fetch timeseries data' });
+    }
+  });
+
+  app.get('/api/admin/analytics/ai-performance', requireAdmin, async (_req, res) => {
+    try {
+      const performance = await storage.getAnalyticsAIPerformance();
+      res.json(performance);
+    } catch (error) {
+      logger.error('Error fetching AI performance:', error);
+      res.status(500).json({ error: 'Failed to fetch AI performance' });
+    }
+  });
+
+  app.get('/api/admin/analytics/user-activity', requireAdmin, async (_req, res) => {
+    try {
+      const activity = await storage.getAnalyticsUserActivity();
+      res.json(activity);
+    } catch (error) {
+      logger.error('Error fetching user activity:', error);
+      res.status(500).json({ error: 'Failed to fetch user activity' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

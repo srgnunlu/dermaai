@@ -80,6 +80,21 @@ export interface IStorage {
   // System settings
   getSystemSettings(): Promise<SystemSettings>;
   updateSystemSettings(updates: UpdateSystemSettings): Promise<SystemSettings>;
+  // Analytics operations
+  getAnalyticsDiagnosisDistribution(): Promise<
+    Array<{ diagnosis: string; count: number; percentage: number }>
+  >;
+  getAnalyticsTimeSeriesData(days: number): Promise<
+    Array<{ date: string; total: number; completed: number; pending: number }>
+  >;
+  getAnalyticsAIPerformance(): Promise<{
+    gemini: { total: number; avgConfidence: number; avgTime: number };
+    openai: { total: number; avgConfidence: number; avgTime: number };
+    consensus: number;
+  }>;
+  getAnalyticsUserActivity(): Promise<
+    Array<{ userId: string; email: string; casesCount: number; lastActive: Date | null }>
+  >;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -697,6 +712,212 @@ export class DatabaseStorage implements IStorage {
       .where(eq(systemSettings.id, current.id))
       .returning();
     return updated as SystemSettings;
+  }
+
+  // Analytics operations
+  async getAnalyticsDiagnosisDistribution(): Promise<
+    Array<{ diagnosis: string; count: number; percentage: number }>
+  > {
+    return cache.cached(
+      'analytics:diagnosis-distribution',
+      async () => {
+        const allCases = await db.select().from(cases);
+        const diagnosisMap = new Map<string, number>();
+
+        // Count each diagnosis from finalDiagnoses
+        for (const caseRecord of allCases) {
+          if (caseRecord.finalDiagnoses && Array.isArray(caseRecord.finalDiagnoses)) {
+            for (const diagnosis of caseRecord.finalDiagnoses) {
+              const name = diagnosis.name || 'Unknown';
+              diagnosisMap.set(name, (diagnosisMap.get(name) || 0) + 1);
+            }
+          }
+        }
+
+        const total = Array.from(diagnosisMap.values()).reduce((sum, count) => sum + count, 0);
+
+        // Convert to array and calculate percentages
+        const distribution = Array.from(diagnosisMap.entries())
+          .map(([diagnosis, count]) => ({
+            diagnosis,
+            count,
+            percentage: total > 0 ? Math.round((count / total) * 100 * 10) / 10 : 0,
+          }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 10); // Top 10 diagnoses
+
+        return distribution;
+      },
+      300 // 5 minutes cache
+    );
+  }
+
+  async getAnalyticsTimeSeriesData(days: number = 30): Promise<
+    Array<{ date: string; total: number; completed: number; pending: number }>
+  > {
+    return cache.cached(
+      `analytics:timeseries:${days}`,
+      async () => {
+        const allCases = await db.select().from(cases);
+        const now = new Date();
+        const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+
+        // Group cases by date
+        const dateMap = new Map<
+          string,
+          { total: number; completed: number; pending: number }
+        >();
+
+        for (const caseRecord of allCases) {
+          if (!caseRecord.createdAt) continue;
+
+          const caseDate = new Date(caseRecord.createdAt);
+          if (caseDate < startDate) continue;
+
+          const dateKey = caseDate.toISOString().split('T')[0]; // YYYY-MM-DD
+          const stats = dateMap.get(dateKey) || { total: 0, completed: 0, pending: 0 };
+
+          stats.total++;
+          if (caseRecord.status === 'completed') stats.completed++;
+          if (caseRecord.status === 'pending') stats.pending++;
+
+          dateMap.set(dateKey, stats);
+        }
+
+        // Fill in missing dates with zeros
+        const result: Array<{ date: string; total: number; completed: number; pending: number }> =
+          [];
+        for (let i = days - 1; i >= 0; i--) {
+          const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+          const dateKey = date.toISOString().split('T')[0];
+          const stats = dateMap.get(dateKey) || { total: 0, completed: 0, pending: 0 };
+          result.push({ date: dateKey, ...stats });
+        }
+
+        return result;
+      },
+      300 // 5 minutes cache
+    );
+  }
+
+  async getAnalyticsAIPerformance(): Promise<{
+    gemini: { total: number; avgConfidence: number; avgTime: number };
+    openai: { total: number; avgConfidence: number; avgTime: number };
+    consensus: number;
+  }> {
+    return cache.cached(
+      'analytics:ai-performance',
+      async () => {
+        const allCases = await db.select().from(cases);
+
+        let geminiTotal = 0;
+        let geminiConfidenceSum = 0;
+        let geminiTimeSum = 0;
+
+        let openaiTotal = 0;
+        let openaiConfidenceSum = 0;
+        let openaiTimeSum = 0;
+
+        let consensusCount = 0;
+
+        for (const caseRecord of allCases) {
+          // Gemini stats
+          if (caseRecord.geminiAnalysis) {
+            geminiTotal++;
+            const analysis = caseRecord.geminiAnalysis as any;
+            if (analysis.analysisTime) geminiTimeSum += analysis.analysisTime;
+            if (analysis.diagnoses && Array.isArray(analysis.diagnoses)) {
+              const avgConf =
+                analysis.diagnoses.reduce((sum: number, d: any) => sum + (d.confidence || 0), 0) /
+                analysis.diagnoses.length;
+              geminiConfidenceSum += avgConf;
+            }
+          }
+
+          // OpenAI stats
+          if (caseRecord.openaiAnalysis) {
+            openaiTotal++;
+            const analysis = caseRecord.openaiAnalysis as any;
+            if (analysis.analysisTime) openaiTimeSum += analysis.analysisTime;
+            if (analysis.diagnoses && Array.isArray(analysis.diagnoses)) {
+              const avgConf =
+                analysis.diagnoses.reduce((sum: number, d: any) => sum + (d.confidence || 0), 0) /
+                analysis.diagnoses.length;
+              openaiConfidenceSum += avgConf;
+            }
+          }
+
+          // Consensus (both models analyzed)
+          if (caseRecord.geminiAnalysis && caseRecord.openaiAnalysis) {
+            consensusCount++;
+          }
+        }
+
+        return {
+          gemini: {
+            total: geminiTotal,
+            avgConfidence: geminiTotal > 0 ? Math.round(geminiConfidenceSum / geminiTotal) : 0,
+            avgTime: geminiTotal > 0 ? Math.round((geminiTimeSum / geminiTotal) * 10) / 10 : 0,
+          },
+          openai: {
+            total: openaiTotal,
+            avgConfidence: openaiTotal > 0 ? Math.round(openaiConfidenceSum / openaiTotal) : 0,
+            avgTime: openaiTotal > 0 ? Math.round((openaiTimeSum / openaiTotal) * 10) / 10 : 0,
+          },
+          consensus: allCases.length > 0 ? Math.round((consensusCount / allCases.length) * 100) : 0,
+        };
+      },
+      300 // 5 minutes cache
+    );
+  }
+
+  async getAnalyticsUserActivity(): Promise<
+    Array<{ userId: string; email: string; casesCount: number; lastActive: Date | null }>
+  > {
+    return cache.cached(
+      'analytics:user-activity',
+      async () => {
+        const allUsers = await db.select().from(users);
+        const allCases = await db.select().from(cases);
+
+        // Count cases per user and find last activity
+        const userStatsMap = new Map<
+          string,
+          { email: string; casesCount: number; lastActive: Date | null }
+        >();
+
+        for (const user of allUsers) {
+          userStatsMap.set(user.id, {
+            email: user.email || 'No email',
+            casesCount: 0,
+            lastActive: null,
+          });
+        }
+
+        for (const caseRecord of allCases) {
+          const stats = userStatsMap.get(caseRecord.userId);
+          if (stats) {
+            stats.casesCount++;
+            const caseDate = caseRecord.createdAt ? new Date(caseRecord.createdAt) : null;
+            if (caseDate && (!stats.lastActive || caseDate > stats.lastActive)) {
+              stats.lastActive = caseDate;
+            }
+          }
+        }
+
+        // Convert to array and sort by cases count
+        return Array.from(userStatsMap.entries())
+          .map(([userId, stats]) => ({
+            userId,
+            email: stats.email,
+            casesCount: stats.casesCount,
+            lastActive: stats.lastActive,
+          }))
+          .sort((a, b) => b.casesCount - a.casesCount)
+          .slice(0, 20); // Top 20 active users
+      },
+      300 // 5 minutes cache
+    );
   }
 }
 

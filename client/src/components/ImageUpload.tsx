@@ -65,7 +65,7 @@ export function ImageUpload({ onImagesUploaded, uploadedImages = [] }: ImageUplo
     }
     // Reset input so same file can be selected again
     event.target.value = '';
-  }, [previewUrls]);
+  }, []);
 
   const handleRemoveImage = (index: number) => {
     const newUrls = previewUrls.filter((_, i) => i !== index);
@@ -74,7 +74,10 @@ export function ImageUpload({ onImagesUploaded, uploadedImages = [] }: ImageUplo
   };
 
   const handleAddMore = () => {
-    fileInputRef.current?.click();
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
   };
 
   return (

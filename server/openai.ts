@@ -1,8 +1,8 @@
-import OpenAI from "openai";
+import OpenAI from 'openai';
 
 // Structured diagnostic error info
 export type AnalysisErrorInfo = {
-  provider: "openai";
+  provider: 'openai';
   code: string;
   message: string;
   hint?: string;
@@ -14,7 +14,7 @@ export class AIAnalysisError extends Error {
   info: AnalysisErrorInfo;
   constructor(info: AnalysisErrorInfo) {
     super(info.message);
-    this.name = "AIAnalysisError";
+    this.name = 'AIAnalysisError';
     this.info = info;
   }
   toJSON() {
@@ -27,7 +27,7 @@ let openai: OpenAI;
 const getOpenAIClient = () => {
   if (!openai) {
     openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "",
+      apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || '',
     });
   }
   return openai;
@@ -61,13 +61,13 @@ export async function analyzeWithOpenAI(
     let file;
 
     // Check if it's a Cloudinary URL
-    if (imageUrl.includes("cloudinary.com")) {
-      const { CloudinaryStorageService } = await import("./cloudinaryStorage");
+    if (imageUrl.includes('cloudinary.com')) {
+      const { CloudinaryStorageService } = await import('./cloudinaryStorage');
       const cloudinaryService = new CloudinaryStorageService();
       file = await cloudinaryService.getObjectEntityFile(imageUrl);
     } else {
       // Use local file storage
-      const { LocalFileStorageService } = await import("./localFileStorage");
+      const { LocalFileStorageService } = await import('./localFileStorage');
       const fileStorageService = new LocalFileStorageService();
       const normalizedPath = fileStorageService.normalizeObjectEntityPath(imageUrl);
       file = await fileStorageService.getObjectEntityFile(normalizedPath);
@@ -76,14 +76,14 @@ export async function analyzeWithOpenAI(
     // Get image data and metadata directly from the file
     const [imageBuffer] = await file.download();
     const [metadata] = await file.getMetadata();
-    const imageBase64 = Buffer.from(imageBuffer).toString("base64");
-    const mimeType = metadata.contentType || "image/jpeg";
+    const imageBase64 = Buffer.from(imageBuffer).toString('base64');
+    const mimeType = metadata.contentType || 'image/jpeg';
     const imageBytes = imageBuffer.length;
     if (imageBytes > 18 * 1024 * 1024) {
       console.warn(
         `[OpenAI] Large image detected (${(imageBytes / 1024 / 1024).toFixed(
-          1,
-        )} MB). Consider uploading a smaller image (<18MB).`,
+          1
+        )} MB). Consider uploading a smaller image (<18MB).`
       );
     }
 
@@ -92,8 +92,8 @@ export async function analyzeWithOpenAI(
 Consider:
 - Visual characteristics of the lesion (color, shape, size, texture, borders)
 - Patient symptoms: ${symptoms}
-- Lesion location: ${context.lesionLocation || "Not specified"}
-- Medical history: ${context.medicalHistory?.join(", ") || "None specified"}
+- Lesion location: ${context.lesionLocation || 'Not specified'}
+- Medical history: ${context.medicalHistory?.join(', ') || 'None specified'}
 
 Provide exactly 5 differential diagnoses ranked by confidence level, with confidence scores between 0-100.
 
@@ -110,28 +110,27 @@ Respond with JSON in this exact format:
   ]
 }`;
 
-    const model = options.model || process.env.OPENAI_MODEL || "gpt-4o-mini";
-    const isGpt5 = model === "gpt-5";
+    const model = options.model || process.env.OPENAI_MODEL || 'gpt-4o-mini';
+    const isGpt5 = model === 'gpt-5';
 
     const baseRequest = {
       messages: [
         {
-          role: "system" as const,
+          role: 'system' as const,
           content: isGpt5
             ? systemPrompt +
-              "\nReturn compact JSON only (no prose). Keep description <= 12 words; keyFeatures up to 3; recommendations up to 2."
+              '\nReturn compact JSON only (no prose). Keep description <= 12 words; keyFeatures up to 3; recommendations up to 2.'
             : systemPrompt,
         },
         {
-          role: "user" as const,
+          role: 'user' as const,
           content: [
             {
-              type: "text" as const,
-              text:
-                "Please analyze this dermatological image and provide differential diagnoses based on the clinical information provided.",
+              type: 'text' as const,
+              text: 'Please analyze this dermatological image and provide differential diagnoses based on the clinical information provided.',
             },
             {
-              type: "image_url" as const,
+              type: 'image_url' as const,
               image_url: { url: `data:${mimeType};base64,${imageBase64}` },
             },
           ],
@@ -144,27 +143,27 @@ Respond with JSON in this exact format:
     let response = await getOpenAIClient().chat.completions.create({
       model,
       ...baseRequest,
-      ...(isGpt5 ? {} : { response_format: { type: "json_object" as const } }),
+      ...(isGpt5 ? {} : { response_format: { type: 'json_object' as const } }),
     });
 
     const analysisTime = (Date.now() - startTime) / 1000;
-    let content = response.choices?.[0]?.message?.content ?? "";
+    let content = response.choices?.[0]?.message?.content ?? '';
     let refusal = (response.choices?.[0] as any)?.message?.refusal;
     let finishReason = (response.choices?.[0] as any)?.finish_reason;
     if (!content) {
-      console.warn("[OpenAI] Empty content on first attempt", {
+      console.warn('[OpenAI] Empty content on first attempt', {
         refusal,
         finishReason,
       });
 
-    // Attempt 2: relax response_format (some models e.g. gpt-5 only allow default temperature)
+      // Attempt 2: relax response_format (some models e.g. gpt-5 only allow default temperature)
       const supportsTemp = !isGpt5;
       response = await getOpenAIClient().chat.completions.create({
         model,
         ...baseRequest,
         ...(supportsTemp ? { temperature: 0.2 } : {}),
       });
-      content = response.choices?.[0]?.message?.content ?? "";
+      content = response.choices?.[0]?.message?.content ?? '';
       refusal = (response.choices?.[0] as any)?.message?.refusal;
       finishReason = (response.choices?.[0] as any)?.finish_reason;
     }
@@ -177,7 +176,7 @@ Respond with JSON in this exact format:
             role: 'system' as const,
             content:
               systemPrompt +
-              "\nKeep the JSON extremely concise: description <= 12 words, keyFeatures length <= 3, recommendations length <= 2.",
+              '\nKeep the JSON extremely concise: description <= 12 words, keyFeatures length <= 3, recommendations length <= 2.',
           },
           ...(baseRequest as any).messages.slice(1),
         ],
@@ -188,30 +187,30 @@ Respond with JSON in this exact format:
         ...(compactBase as any),
         ...(isGpt5 ? {} : { response_format: { type: 'json_object' as const } }),
       });
-      content = resp2b.choices?.[0]?.message?.content ?? "";
+      content = resp2b.choices?.[0]?.message?.content ?? '';
       refusal = (resp2b.choices?.[0] as any)?.message?.refusal;
       finishReason = (resp2b.choices?.[0] as any)?.finish_reason;
     }
 
     // Attempt 3: fallback model
-    if (!content && model !== "gpt-4o-mini" && (options.allowFallback ?? true)) {
-      console.warn("[OpenAI] Retrying with fallback model gpt-4o-mini");
+    if (!content && model !== 'gpt-4o-mini' && (options.allowFallback ?? true)) {
+      console.warn('[OpenAI] Retrying with fallback model gpt-4o-mini');
       response = await getOpenAIClient().chat.completions.create({
-        model: "gpt-4o-mini",
+        model: 'gpt-4o-mini',
         ...baseRequest,
         temperature: 0.2,
       });
-      content = response.choices?.[0]?.message?.content ?? "";
+      content = response.choices?.[0]?.message?.content ?? '';
     }
 
     if (!content) {
       throw new AIAnalysisError({
-        provider: "openai",
-        code: "EMPTY_CONTENT",
-        message: "Model returned no content",
+        provider: 'openai',
+        code: 'EMPTY_CONTENT',
+        message: 'Model returned no content',
         hint: refusal
-          ? "The request may have been blocked by a safety filter."
-          : "Try reducing image size/quality or retrying later.",
+          ? 'The request may have been blocked by a safety filter.'
+          : 'Try reducing image size/quality or retrying later.',
         details: { refusal, finishReason, model, mimeType, imageBytes },
       });
     }
@@ -224,10 +223,10 @@ Respond with JSON in this exact format:
       const match = content.match(/\{[\s\S]*\}/);
       if (!match)
         throw new AIAnalysisError({
-          provider: "openai",
-          code: "NON_JSON_OUTPUT",
-          message: "Model returned non‑JSON output",
-          hint: "Remove strict JSON requirement or relax formatting.",
+          provider: 'openai',
+          code: 'NON_JSON_OUTPUT',
+          message: 'Model returned non‑JSON output',
+          hint: 'Remove strict JSON requirement or relax formatting.',
           details: { preview: content.slice(0, 120) },
         });
       result = JSON.parse(match[0]);
@@ -243,18 +242,18 @@ Respond with JSON in this exact format:
   } catch (error: any) {
     // Convert generic errors to structured diagnostics
     if (error instanceof AIAnalysisError) {
-      console.error("OpenAI analysis failed:", error.info);
+      console.error('OpenAI analysis failed:', error.info);
       throw error;
     }
 
     const status = error?.status ?? error?.response?.status;
     const code = error?.code || error?.error?.code;
     const type = error?.type || error?.error?.type;
-    const message = error?.message || "Unknown OpenAI error";
+    const message = error?.message || 'Unknown OpenAI error';
 
     let mapped: AnalysisErrorInfo = {
-      provider: "openai",
-      code: "UNKNOWN",
+      provider: 'openai',
+      code: 'UNKNOWN',
       message,
       httpStatus: status,
       details: { code, type },
@@ -268,41 +267,41 @@ Respond with JSON in this exact format:
         httpStatus: status,
         hint: 'Remove temperature or use a model that supports it',
       };
-    } else if (status === 401 || code === "invalid_api_key") {
+    } else if (status === 401 || code === 'invalid_api_key') {
       mapped = {
-        provider: "openai",
-        code: "AUTH_ERROR",
-        message: "Invalid or missing OpenAI API key",
+        provider: 'openai',
+        code: 'AUTH_ERROR',
+        message: 'Invalid or missing OpenAI API key',
         httpStatus: status,
-        hint: "Check OPENAI_API_KEY env",
+        hint: 'Check OPENAI_API_KEY env',
       };
-    } else if (status === 429 || code === "rate_limit_exceeded") {
+    } else if (status === 429 || code === 'rate_limit_exceeded') {
       mapped = {
-        provider: "openai",
-        code: "RATE_LIMIT",
-        message: "Rate limit or quota exceeded",
+        provider: 'openai',
+        code: 'RATE_LIMIT',
+        message: 'Rate limit or quota exceeded',
         httpStatus: status,
-        hint: "Wait and retry; check usage limits",
+        hint: 'Wait and retry; check usage limits',
       };
     } else if (status >= 500) {
       mapped = {
-        provider: "openai",
-        code: "SERVER_ERROR",
-        message: "OpenAI server error",
+        provider: 'openai',
+        code: 'SERVER_ERROR',
+        message: 'OpenAI server error',
         httpStatus: status,
-        hint: "Retry later",
+        hint: 'Retry later',
       };
     } else if (/timeout/i.test(message)) {
       mapped = {
-        provider: "openai",
-        code: "TIMEOUT",
-        message: "Request timed out",
+        provider: 'openai',
+        code: 'TIMEOUT',
+        message: 'Request timed out',
         httpStatus: status,
-        hint: "Retry; reduce image size",
+        hint: 'Retry; reduce image size',
       };
     }
 
-    console.error("OpenAI analysis failed:", mapped);
+    console.error('OpenAI analysis failed:', mapped);
     throw new AIAnalysisError(mapped);
   }
 }

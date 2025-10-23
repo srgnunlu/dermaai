@@ -12,7 +12,9 @@ function testSettingsSave() {
   console.log('3. Click the "Save Settings" button');
   console.log('4. You should see a success toast "Settings saved"');
   console.log('\nThe fix applied:');
-  console.log('- Changed apiRequest calls from apiRequest(url, {method, body}) to apiRequest(method, url, data)');
+  console.log(
+    '- Changed apiRequest calls from apiRequest(url, {method, body}) to apiRequest(method, url, data)'
+  );
   console.log('- Fixed both settings.tsx and profile.tsx');
   console.log('- Added comprehensive error logging to identify issues');
   console.log('\nThe settings save should now work correctly!');

@@ -1,7 +1,7 @@
-import { useState, useCallback, useRef } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { CloudUpload, Camera, Trash2 } from "lucide-react";
+import { useState, useCallback, useRef } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { CloudUpload, Camera, Trash2 } from 'lucide-react';
 
 interface ImageUploadProps {
   onImageUploaded: (imageUrl: string) => void;
@@ -18,22 +18,22 @@ export function ImageUpload({ onImageUploaded, uploadedImage }: ImageUploadProps
     try {
       const formData = new FormData();
       formData.append('file', file);
-      
-      const response = await fetch("/api/upload", {
-        method: "POST",
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
         body: formData,
       });
-      
+
       if (!response.ok) {
-        throw new Error("Failed to upload file");
+        throw new Error('Failed to upload file');
       }
-      
+
       const { url } = await response.json();
       setPreviewUrl(url);
       onImageUploaded(url);
     } catch (error) {
-      console.error("Upload error:", error);
-      alert("Dosya yükleme hatası. Lütfen tekrar deneyin.");
+      console.error('Upload error:', error);
+      alert('Dosya yükleme hatası. Lütfen tekrar deneyin.');
     } finally {
       setIsUploading(false);
     }
@@ -47,20 +47,20 @@ export function ImageUpload({ onImageUploaded, uploadedImage }: ImageUploadProps
         alert('Lütfen sadece resim dosyası seçin.');
         return;
       }
-      
+
       // Check file size (10MB max)
       if (file.size > 10 * 1024 * 1024) {
-        alert('Dosya boyutu 10MB\'dan küçük olmalıdır.');
+        alert("Dosya boyutu 10MB'dan küçük olmalıdır.");
         return;
       }
-      
+
       handleFileUpload(file);
     }
   }, []);
 
   const handleRemove = () => {
     setPreviewUrl(undefined);
-    onImageUploaded("");
+    onImageUploaded('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -77,14 +77,14 @@ export function ImageUpload({ onImageUploaded, uploadedImage }: ImageUploadProps
           <Camera className="text-primary mr-2" size={20} />
           Lesion Image Upload
         </h3>
-        
+
         {!previewUrl ? (
           <div className="drag-zone rounded-lg p-8 text-center border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-all duration-300">
             <div className="flex flex-col items-center">
               <CloudUpload className="text-4xl text-muted-foreground mb-4" size={48} />
               <p className="text-lg font-medium text-foreground mb-2">Click to select image</p>
               <p className="text-sm text-muted-foreground mb-4">Maximum file size: 10MB</p>
-              
+
               <input
                 ref={fileInputRef}
                 type="file"
@@ -92,21 +92,21 @@ export function ImageUpload({ onImageUploaded, uploadedImage }: ImageUploadProps
                 onChange={handleFileSelect}
                 className="hidden"
               />
-              
+
               <Button
                 onClick={handleButtonClick}
                 disabled={isUploading}
                 className="bg-primary hover:bg-primary/90 text-primary-foreground"
               >
-                {isUploading ? "Yükleniyor..." : "Resim Seç"}
+                {isUploading ? 'Yükleniyor...' : 'Resim Seç'}
               </Button>
             </div>
           </div>
         ) : (
           <div data-testid="image-preview">
-            <img 
-              src={previewUrl} 
-              alt="Uploaded skin lesion for analysis" 
+            <img
+              src={previewUrl}
+              alt="Uploaded skin lesion for analysis"
               className="w-full h-48 object-cover rounded-lg border border-border"
               data-testid="img-uploaded-lesion"
             />

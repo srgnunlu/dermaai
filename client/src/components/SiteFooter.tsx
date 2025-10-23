@@ -1,5 +1,5 @@
-import { Link } from "wouter";
-import { Microscope } from "lucide-react";
+import { Link } from 'wouter';
+import { Microscope } from 'lucide-react';
 
 export function SiteFooter() {
   return (
@@ -13,11 +13,14 @@ export function SiteFooter() {
               </div>
               <div className="ml-3">
                 <p className="text-lg font-semibold text-foreground">DermaAI</p>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Medical Support Platform</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Medical Support Platform
+                </p>
               </div>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Clinical decision support for dermatology teams. Dual-model AI analysis, structured reporting, and secure patient workflows in a single platform.
+              Clinical decision support for dermatology teams. Dual-model AI analysis, structured
+              reporting, and secure patient workflows in a single platform.
             </p>
           </div>
 
@@ -66,7 +69,8 @@ export function SiteFooter() {
 
         <div className="border-t border-border mt-10 pt-6 text-center">
           <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} DermaAI. Clinical decision support for dermatology specialists. Not a substitute for professional diagnosis.
+            © {new Date().getFullYear()} DermaAI. Clinical decision support for dermatology
+            specialists. Not a substitute for professional diagnosis.
           </p>
         </div>
       </div>

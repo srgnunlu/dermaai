@@ -1,18 +1,18 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { MapPin, Award, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import SiteFooter from "@/components/SiteFooter";
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { MapPin, Award, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import SiteFooter from '@/components/SiteFooter';
 
 // Form validation schema
 const profileFormSchema = z.object({
@@ -27,25 +27,50 @@ const profileFormSchema = z.object({
 
 type ProfileFormData = z.infer<typeof profileFormSchema>;
 
+// Profile response type
+interface ProfileData {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  medicalLicenseNumber?: string;
+  specialization?: string;
+  hospital?: string;
+  yearsOfExperience?: number;
+  profileImageUrl?: string;
+  role?: string;
+  createdAt?: string;
+  statistics?: {
+    totalCases?: number;
+    thisMonthCases?: number;
+    accuracyRate?: number;
+  };
+}
+
 export default function ProfilePage() {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
 
   // Fetch user profile and statistics
-  const { data: profile, isLoading, error } = useQuery({
-    queryKey: ["/api/profile"],
+  const {
+    data: profile,
+    isLoading,
+    error,
+  } = useQuery<ProfileData>({
+    queryKey: ['/api/profile'],
   });
 
   // Form setup
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      firstName: "",
-      lastName: "",
-      phoneNumber: "",
-      medicalLicenseNumber: "",
-      specialization: "",
-      hospital: "",
+      firstName: '',
+      lastName: '',
+      phoneNumber: '',
+      medicalLicenseNumber: '',
+      specialization: '',
+      hospital: '',
       yearsOfExperience: undefined,
     },
   });
@@ -54,12 +79,12 @@ export default function ProfilePage() {
   useEffect(() => {
     if (profile) {
       form.reset({
-        firstName: profile.firstName || "",
-        lastName: profile.lastName || "",
-        phoneNumber: profile.phoneNumber || "",
-        medicalLicenseNumber: profile.medicalLicenseNumber || "",
-        specialization: profile.specialization || "",
-        hospital: profile.hospital || "",
+        firstName: profile.firstName || '',
+        lastName: profile.lastName || '',
+        phoneNumber: profile.phoneNumber || '',
+        medicalLicenseNumber: profile.medicalLicenseNumber || '',
+        specialization: profile.specialization || '',
+        hospital: profile.hospital || '',
         yearsOfExperience: profile.yearsOfExperience || undefined,
       });
     }
@@ -68,22 +93,22 @@ export default function ProfilePage() {
   // Update profile mutation
   const updateProfileMutation = useMutation({
     mutationFn: async (data: ProfileFormData) => {
-      const response = await apiRequest("PUT", "/api/profile", data);
+      const response = await apiRequest('PUT', '/api/profile', data);
       return response.json();
     },
     onSuccess: (updatedProfile) => {
-      queryClient.setQueryData(["/api/profile"], updatedProfile);
+      queryClient.setQueryData(['/api/profile'], updatedProfile);
       toast({
-        title: "Profile updated",
-        description: "Your profile has been successfully updated.",
+        title: 'Profile updated',
+        description: 'Your profile has been successfully updated.',
       });
       setIsEditing(false);
     },
     onError: (error) => {
       toast({
-        title: "Update failed",
-        description: "Failed to update profile. Please try again.",
-        variant: "destructive",
+        title: 'Update failed',
+        description: 'Failed to update profile. Please try again.',
+        variant: 'destructive',
       });
     },
   });
@@ -94,15 +119,15 @@ export default function ProfilePage() {
 
   const handlePasswordChange = () => {
     toast({
-      title: "Coming soon",
-      description: "Password change functionality will be available soon.",
+      title: 'Coming soon',
+      description: 'Password change functionality will be available soon.',
     });
   };
 
   const handleEnable2FA = () => {
     toast({
-      title: "Coming soon",
-      description: "Two-factor authentication will be available soon.",
+      title: 'Coming soon',
+      description: 'Two-factor authentication will be available soon.',
     });
   };
 
@@ -113,7 +138,7 @@ export default function ProfilePage() {
     } else if (profile?.email) {
       return profile.email.substring(0, 2).toUpperCase();
     }
-    return "U";
+    return 'U';
   };
 
   if (error) {
@@ -134,7 +159,7 @@ export default function ProfilePage() {
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold text-foreground mb-6">User Profile</h1>
-          
+
           <div className="grid gap-6 md:grid-cols-[300px_1fr]">
             {/* Profile Summary Card */}
             <Card>
@@ -151,17 +176,26 @@ export default function ProfilePage() {
                     <div className="flex flex-col items-center text-center">
                       <Avatar className="h-24 w-24 mb-4">
                         <AvatarImage src={profile?.profileImageUrl} alt="Profile" />
-                        <AvatarFallback className="bg-primary text-primary-foreground text-2xl" data-testid="avatar-fallback">
+                        <AvatarFallback
+                          className="bg-primary text-primary-foreground text-2xl"
+                          data-testid="avatar-fallback"
+                        >
                           {getInitials()}
                         </AvatarFallback>
                       </Avatar>
-                      <h3 className="text-xl font-semibold text-foreground" data-testid="text-username">
-                        {profile?.firstName && profile?.lastName 
+                      <h3
+                        className="text-xl font-semibold text-foreground"
+                        data-testid="text-username"
+                      >
+                        {profile?.firstName && profile?.lastName
                           ? `${profile.firstName} ${profile.lastName}`
-                          : profile?.email || "User"}
+                          : profile?.email || 'User'}
                       </h3>
-                      <p className="text-sm text-muted-foreground mt-1" data-testid="text-specialization">
-                        {profile?.specialization || "Medical Professional"}
+                      <p
+                        className="text-sm text-muted-foreground mt-1"
+                        data-testid="text-specialization"
+                      >
+                        {profile?.specialization || 'Medical Professional'}
                       </p>
                       {profile?.medicalLicenseNumber && (
                         <div className="flex items-center mt-3 text-sm text-muted-foreground">
@@ -176,17 +210,23 @@ export default function ProfilePage() {
                         </div>
                       )}
                     </div>
-                    
+
                     <div className="mt-6 space-y-3">
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Total Cases</span>
-                        <span className="font-medium text-foreground" data-testid="text-total-cases">
+                        <span
+                          className="font-medium text-foreground"
+                          data-testid="text-total-cases"
+                        >
                           {profile?.statistics?.totalCases || 0}
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">This Month</span>
-                        <span className="font-medium text-foreground" data-testid="text-month-cases">
+                        <span
+                          className="font-medium text-foreground"
+                          data-testid="text-month-cases"
+                        >
                           {profile?.statistics?.thisMonthCases || 0}
                         </span>
                       </div>
@@ -225,7 +265,7 @@ export default function ProfilePage() {
                             <Label htmlFor="first-name">First Name</Label>
                             <Input
                               id="first-name"
-                              {...form.register("firstName")}
+                              {...form.register('firstName')}
                               disabled={!isEditing}
                               data-testid="input-first-name"
                             />
@@ -234,7 +274,7 @@ export default function ProfilePage() {
                             <Label htmlFor="last-name">Last Name</Label>
                             <Input
                               id="last-name"
-                              {...form.register("lastName")}
+                              {...form.register('lastName')}
                               disabled={!isEditing}
                               data-testid="input-last-name"
                             />
@@ -245,7 +285,7 @@ export default function ProfilePage() {
                           <Input
                             id="email"
                             type="email"
-                            value={profile?.email || ""}
+                            value={profile?.email || ''}
                             disabled
                             data-testid="input-email"
                           />
@@ -255,7 +295,7 @@ export default function ProfilePage() {
                           <Input
                             id="phone"
                             type="tel"
-                            {...form.register("phoneNumber")}
+                            {...form.register('phoneNumber')}
                             disabled={!isEditing}
                             data-testid="input-phone"
                           />
@@ -285,7 +325,7 @@ export default function ProfilePage() {
                           <Label htmlFor="license">Medical License Number</Label>
                           <Input
                             id="license"
-                            {...form.register("medicalLicenseNumber")}
+                            {...form.register('medicalLicenseNumber')}
                             disabled={!isEditing}
                             data-testid="input-license"
                           />
@@ -294,7 +334,7 @@ export default function ProfilePage() {
                           <Label htmlFor="specialization">Specialization</Label>
                           <Input
                             id="specialization"
-                            {...form.register("specialization")}
+                            {...form.register('specialization')}
                             disabled={!isEditing}
                             data-testid="input-specialization"
                           />
@@ -303,7 +343,7 @@ export default function ProfilePage() {
                           <Label htmlFor="hospital">Hospital/Clinic</Label>
                           <Input
                             id="hospital"
-                            {...form.register("hospital")}
+                            {...form.register('hospital')}
                             disabled={!isEditing}
                             data-testid="input-hospital"
                           />
@@ -313,7 +353,7 @@ export default function ProfilePage() {
                           <Input
                             id="experience"
                             type="number"
-                            {...form.register("yearsOfExperience", { valueAsNumber: true })}
+                            {...form.register('yearsOfExperience', { valueAsNumber: true })}
                             disabled={!isEditing}
                             data-testid="input-experience"
                           />
@@ -350,7 +390,7 @@ export default function ProfilePage() {
                             Saving...
                           </>
                         ) : (
-                          "Save Changes"
+                          'Save Changes'
                         )}
                       </Button>
                     </>
@@ -374,16 +414,16 @@ export default function ProfilePage() {
                   <CardDescription>Manage your password and security settings</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full"
                     onClick={handlePasswordChange}
                     data-testid="button-change-password"
                   >
                     Change Password
                   </Button>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full"
                     onClick={handleEnable2FA}
                     data-testid="button-enable-2fa"

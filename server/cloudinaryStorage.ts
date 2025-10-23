@@ -1,5 +1,6 @@
 import { v2 as cloudinary } from 'cloudinary';
-import { Response } from "express";
+import { Response } from 'express';
+import logger from './logger';
 
 export class CloudinaryStorageService {
   constructor() {
@@ -20,35 +21,34 @@ export class CloudinaryStorageService {
           public_id: filename ? filename.split('.')[0] : undefined,
           transformation: [
             { quality: 'auto', fetch_format: 'auto' },
-            { width: 1024, height: 1024, crop: 'limit' }
-          ]
+            { width: 1024, height: 1024, crop: 'limit' },
+          ],
         };
 
-        cloudinary.uploader.upload_stream(
-          uploadOptions,
-          (error, result) => {
+        cloudinary.uploader
+          .upload_stream(uploadOptions, (error, result) => {
             if (error) {
-              console.error('Cloudinary upload error:', error);
+              logger.error('Cloudinary upload error:', error);
               reject(error);
             } else if (result) {
-              console.log('Cloudinary upload success:', result.secure_url);
+              logger.info('Cloudinary upload success:', result.secure_url);
               resolve(result.secure_url);
             } else {
               reject(new Error('Upload failed - no result'));
             }
-          }
-        ).end(buffer);
+          })
+          .end(buffer);
       });
     } catch (error) {
-      console.error('Error uploading to Cloudinary:', error);
+      logger.error('Error uploading to Cloudinary:', error);
       throw new Error('Failed to upload image');
     }
   }
 
   // Get image data from URL for AI analysis
-  async getImageForAnalysis(imageUrl: string): Promise<{ 
-    buffer: Buffer; 
-    contentType: string; 
+  async getImageForAnalysis(imageUrl: string): Promise<{
+    buffer: Buffer;
+    contentType: string;
     download: () => Promise<[Buffer]>;
     getMetadata: () => Promise<[{ contentType: string; size: number }]>;
   }> {
@@ -65,13 +65,15 @@ export class CloudinaryStorageService {
         buffer,
         contentType,
         download: async () => [buffer],
-        getMetadata: async () => [{
-          contentType,
-          size: buffer.length
-        }]
+        getMetadata: async () => [
+          {
+            contentType,
+            size: buffer.length,
+          },
+        ],
       };
     } catch (error) {
-      console.error('Error fetching image from Cloudinary:', error);
+      logger.error('Error fetching image from Cloudinary:', error);
       throw new Error('Failed to fetch image for analysis');
     }
   }
@@ -82,7 +84,7 @@ export class CloudinaryStorageService {
     if (rawPath.includes('cloudinary.com')) {
       return rawPath;
     }
-    
+
     // If it's a local path, convert to Cloudinary format
     return rawPath;
   }
@@ -92,7 +94,7 @@ export class CloudinaryStorageService {
     if (path.includes('cloudinary.com')) {
       return this.getImageForAnalysis(path);
     }
-    
+
     throw new Error('Invalid image path');
   }
 }

@@ -877,6 +877,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bulk operations
+  app.post('/api/admin/bulk/delete-cases', requireAdmin, async (req, res) => {
+    try {
+      const { caseIds } = req.body;
+
+      if (!Array.isArray(caseIds) || caseIds.length === 0) {
+        return res.status(400).json({ error: 'caseIds must be a non-empty array' });
+      }
+
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const caseId of caseIds) {
+        const success = await storage.deleteCase(caseId);
+        if (success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      }
+
+      logger.info(`Bulk delete: ${successCount} succeeded, ${failCount} failed`);
+
+      res.json({
+        success: true,
+        deleted: successCount,
+        failed: failCount,
+        total: caseIds.length,
+      });
+    } catch (error) {
+      logger.error('Error in bulk delete:', error);
+      res.status(500).json({ error: 'Failed to delete cases' });
+    }
+  });
+
+  app.post('/api/admin/bulk/export-cases', requireAdmin, async (req, res) => {
+    try {
+      const { caseIds, format = 'csv' } = req.body;
+
+      if (!Array.isArray(caseIds) || caseIds.length === 0) {
+        return res.status(400).json({ error: 'caseIds must be a non-empty array' });
+      }
+
+      // Get all cases
+      const allCases = await storage.getAllCasesForAdmin();
+      const selectedCases = allCases.filter((c) => caseIds.includes(c.id));
+
+      if (selectedCases.length === 0) {
+        return res.status(404).json({ error: 'No cases found' });
+      }
+
+      if (format === 'csv') {
+        const { generateCSV } = await import('./utils/csv');
+
+        // Get unique patient IDs
+        const patientIds = Array.from(
+          new Set(selectedCases.map((c) => c.patientId).filter(Boolean))
+        );
+
+        // Fetch patient data
+        const patientMap = new Map();
+        for (const patientId of patientIds) {
+          try {
+            const patient = await storage.getPatient(patientId!);
+            if (patient) {
+              patientMap.set(patientId, patient);
+            }
+          } catch (error) {
+            logger.error(`Error fetching patient ${patientId}:`, error);
+          }
+        }
+
+        const csv = generateCSV(selectedCases, patientMap);
+        const filename = `bulk_export_${Date.now()}.csv`;
+
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.send(csv);
+      } else {
+        res.status(400).json({ error: 'Unsupported format. Use csv.' });
+      }
+    } catch (error) {
+      logger.error('Error in bulk export:', error);
+      res.status(500).json({ error: 'Failed to export cases' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

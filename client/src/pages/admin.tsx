@@ -687,7 +687,8 @@ export default function AdminPage() {
                   <TableBody>
                     {filteredCases && filteredCases.length > 0 ? (
                       filteredCases.map((caseItem: any) => {
-                        const topDiagnosis = caseItem.finalDiagnoses?.[0];
+                        const mergedDiagnoses = getMergedDiagnoses(caseItem);
+                        const topDiagnosis = mergedDiagnoses.length > 0 ? mergedDiagnoses[0] : null;
                         return (
                           <TableRow key={caseItem.id} data-testid={`row-case-${caseItem.id}`}>
                             <TableCell className="font-medium">{caseItem.caseId}</TableCell>
@@ -735,7 +736,7 @@ export default function AdminPage() {
                                 'N/A'
                               )}
                             </TableCell>
-                            <TableCell>{getUrgencyBadge(caseItem.finalDiagnoses)}</TableCell>
+                            <TableCell>{getUrgencyBadge(mergedDiagnoses)}</TableCell>
                             <TableCell>
                               <div className="flex gap-2">
                                 <Button
@@ -1165,51 +1166,103 @@ export default function AdminPage() {
               {/* AI Diagnosis Results */}
               {getMergedDiagnoses(selectedCase).length > 0 && (
                 <div>
-                  <h3 className="font-semibold mb-2">AI Diagnosis Results</h3>
-                  <div className="space-y-3">
-                    {getMergedDiagnoses(selectedCase).map((diagnosis: any, index: number) => (
-                      <Card key={index} className="p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <h4 className="font-medium text-lg">{diagnosis.name}</h4>
-                          <div className="flex items-center gap-2">
-                            <div className="text-sm font-medium">{diagnosis.confidence}%</div>
-                            {diagnosis.isUrgent && (
-                              <Badge variant="destructive" className="text-xs">
-                                <AlertCircle className="w-3 h-3 mr-1" />
-                                Urgent
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-
-                        <p className="text-sm text-gray-600 mb-3">{diagnosis.description}</p>
-
-                        {diagnosis.keyFeatures && diagnosis.keyFeatures.length > 0 && (
-                          <div className="mb-2">
-                            <span className="font-medium text-sm">Key Features:</span>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {diagnosis.keyFeatures.map((feature: string, idx: number) => (
-                                <Badge key={idx} variant="outline" className="text-xs">
-                                  {feature}
-                                </Badge>
-                              ))}
+                  <h3 className="font-semibold mb-4">AI Diagnosis Results</h3>
+                  
+                  {/* Gemini Results */}
+                  {selectedCase?.geminiAnalysis?.diagnoses && selectedCase.geminiAnalysis.diagnoses.length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full bg-purple-500"></span>
+                        Gemini 2.5 Flash
+                      </h4>
+                      <div className="space-y-3">
+                        {selectedCase.geminiAnalysis.diagnoses.slice(0, 5).map((diagnosis: any, index: number) => (
+                          <Card key={index} className="p-4 border-purple-200 bg-purple-50">
+                            <div className="flex justify-between items-start mb-2">
+                              <h4 className="font-medium text-lg">{diagnosis.name}</h4>
+                              <div className="flex items-center gap-2">
+                                <div className="text-sm font-medium">{diagnosis.confidence}%</div>
+                              </div>
                             </div>
-                          </div>
-                        )}
 
-                        {diagnosis.recommendations && diagnosis.recommendations.length > 0 && (
-                          <div>
-                            <span className="font-medium text-sm">Recommendations:</span>
-                            <ul className="list-disc list-inside text-sm text-gray-600 mt-1">
-                              {diagnosis.recommendations.map((rec: string, idx: number) => (
-                                <li key={idx}>{rec}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </Card>
-                    ))}
-                  </div>
+                            <p className="text-sm text-gray-600 mb-3">{diagnosis.description}</p>
+
+                            {diagnosis.keyFeatures && diagnosis.keyFeatures.length > 0 && (
+                              <div className="mb-2">
+                                <span className="font-medium text-sm">Key Features:</span>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {diagnosis.keyFeatures.map((feature: string, idx: number) => (
+                                    <Badge key={idx} variant="outline" className="text-xs">
+                                      {feature}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {diagnosis.recommendations && diagnosis.recommendations.length > 0 && (
+                              <div>
+                                <span className="font-medium text-sm">Recommendations:</span>
+                                <ul className="list-disc list-inside text-sm text-gray-600 mt-1">
+                                  {diagnosis.recommendations.map((rec: string, idx: number) => (
+                                    <li key={idx}>{rec}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* OpenAI Results */}
+                  {selectedCase?.openaiAnalysis?.diagnoses && selectedCase.openaiAnalysis.diagnoses.length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full bg-green-500"></span>
+                        GPT-4o Mini
+                      </h4>
+                      <div className="space-y-3">
+                        {selectedCase.openaiAnalysis.diagnoses.slice(0, 5).map((diagnosis: any, index: number) => (
+                          <Card key={index} className="p-4 border-green-200 bg-green-50">
+                            <div className="flex justify-between items-start mb-2">
+                              <h4 className="font-medium text-lg">{diagnosis.name}</h4>
+                              <div className="flex items-center gap-2">
+                                <div className="text-sm font-medium">{diagnosis.confidence}%</div>
+                              </div>
+                            </div>
+
+                            <p className="text-sm text-gray-600 mb-3">{diagnosis.description}</p>
+
+                            {diagnosis.keyFeatures && diagnosis.keyFeatures.length > 0 && (
+                              <div className="mb-2">
+                                <span className="font-medium text-sm">Key Features:</span>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {diagnosis.keyFeatures.map((feature: string, idx: number) => (
+                                    <Badge key={idx} variant="outline" className="text-xs">
+                                      {feature}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {diagnosis.recommendations && diagnosis.recommendations.length > 0 && (
+                              <div>
+                                <span className="font-medium text-sm">Recommendations:</span>
+                                <ul className="list-disc list-inside text-sm text-gray-600 mt-1">
+                                  {diagnosis.recommendations.map((rec: string, idx: number) => (
+                                    <li key={idx}>{rec}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -276,7 +276,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Create CSV content with Turkish headers including patient demographics
+      // Create CSV content with Turkish headers including separate AI results
       const csvHeaders = [
         'Vaka ID',
         'Kullanıcı Email',
@@ -285,28 +285,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'Cinsiyet',
         'Durum',
         'Oluşturma Tarihi',
-        'Ana Teşhis',
-        'Güven Oranı',
-        'Acil mi',
         'Belirtiler',
         'Ek Belirtiler',
         'Belirti Süresi',
+        'Gemini Top1 Tanı',
+        'Gemini Top1 Güven',
+        'Gemini Top2 Tanı',
+        'Gemini Top2 Güven',
+        'Gemini Top3 Tanı',
+        'Gemini Top3 Güven',
+        'Gemini Top4 Tanı',
+        'Gemini Top4 Güven',
+        'Gemini Top5 Tanı',
+        'Gemini Top5 Güven',
+        'ChatGPT Top1 Tanı',
+        'ChatGPT Top1 Güven',
+        'ChatGPT Top2 Tanı',
+        'ChatGPT Top2 Güven',
+        'ChatGPT Top3 Tanı',
+        'ChatGPT Top3 Güven',
+        'ChatGPT Top4 Tanı',
+        'ChatGPT Top4 Güven',
+        'ChatGPT Top5 Tanı',
+        'ChatGPT Top5 Güven',
       ];
 
       const csvRows = cases.map((c) => {
-        // Try to get topDiagnosis from finalDiagnoses, or merge from separate AI results if not available
-        let topDiagnosis = null;
-        if (c.finalDiagnoses && c.finalDiagnoses[0]) {
-          topDiagnosis = c.finalDiagnoses[0];
-        } else if (c.geminiAnalysis || c.openaiAnalysis) {
-          // Merge separate AI results for display
-          const merged = mergeAnalysesWithoutConsensus(c.geminiAnalysis, c.openaiAnalysis);
-          topDiagnosis = merged.length > 0 ? merged[0] : null;
-        }
-
         const patient = c.patientId ? patientMap.get(c.patientId) : null;
+        const geminiDiagnoses = c.geminiAnalysis?.diagnoses ?? [];
+        const openaiDiagnoses = c.openaiAnalysis?.diagnoses ?? [];
 
-        return [
+        // Build base row
+        const baseRow = [
           c.caseId,
           sanitizeCSVFormula(c.user?.email) || 'Bilinmiyor',
           c.patientId || 'Yok',
@@ -314,13 +324,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
           patient?.gender ? sanitizeCSVFormula(patient.gender) : 'Belirtilmedi',
           c.status === 'pending' ? 'Beklemede' : c.status === 'completed' ? 'Tamamlandı' : c.status,
           c.createdAt ? new Date(c.createdAt).toLocaleDateString('tr-TR') : 'Yok',
-          sanitizeCSVFormula(topDiagnosis?.name) || 'Yok',
-          topDiagnosis?.confidence ? `%${topDiagnosis.confidence}` : 'Yok',
-          topDiagnosis?.isUrgent ? 'Evet' : 'Hayır',
           formatSymptomsForCSV(c.symptoms as string[]),
           sanitizeCSVFormula(c.additionalSymptoms) || 'Yok',
           mapDurationToTurkish(c.symptomDuration),
         ];
+
+        // Add Gemini diagnoses (top 5)
+        for (let i = 0; i < 5; i++) {
+          if (geminiDiagnoses[i]) {
+            baseRow.push(sanitizeCSVFormula(geminiDiagnoses[i].name) || 'Yok');
+            baseRow.push(`%${geminiDiagnoses[i].confidence}`);
+          } else {
+            baseRow.push('Yok');
+            baseRow.push('Yok');
+          }
+        }
+
+        // Add ChatGPT diagnoses (top 5)
+        for (let i = 0; i < 5; i++) {
+          if (openaiDiagnoses[i]) {
+            baseRow.push(sanitizeCSVFormula(openaiDiagnoses[i].name) || 'Yok');
+            baseRow.push(`%${openaiDiagnoses[i].confidence}`);
+          } else {
+            baseRow.push('Yok');
+            baseRow.push('Yok');
+          }
+        }
+
+        return baseRow;
       });
 
       // Add UTF-8 BOM for proper Turkish character support
@@ -753,13 +784,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // AI Diagnosis Results
-      if (caseRecord.finalDiagnoses && caseRecord.finalDiagnoses.length > 0) {
-        doc
-          .fontSize(16)
-          .text(sanitizeTextForPDF('AI Diagnosis Results'), { underline: true })
-          .moveDown(0.5);
+      doc
+        .fontSize(16)
+        .text(sanitizeTextForPDF('AI Diagnosis Results'), { underline: true })
+        .moveDown(0.5);
 
-        caseRecord.finalDiagnoses.forEach((diagnosis, index) => {
+      // Gemini Results
+      if (caseRecord.geminiAnalysis?.diagnoses && caseRecord.geminiAnalysis.diagnoses.length > 0) {
+        doc
+          .fontSize(14)
+          .text(sanitizeTextForPDF('Gemini 2.5 Flash Analysis'), { underline: false })
+          .moveDown(0.3);
+
+        caseRecord.geminiAnalysis.diagnoses.slice(0, 5).forEach((diagnosis: any, index: number) => {
           doc
             .fontSize(12)
             .text(sanitizeTextForPDF(`${index + 1}. ${diagnosis.name}`), { continued: false })
@@ -782,65 +819,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
               .moveDown(0.3);
           }
 
-          if (diagnosis.isUrgent) {
-            doc
-              .fontSize(10)
-              .fillColor('red')
-              .text(sanitizeTextForPDF('   ⚠️ URGENT: Requires immediate medical attention'), {
-                continued: false,
-              })
-              .fillColor('black')
-              .moveDown(0.5);
-          } else {
-            doc.moveDown(0.5);
-          }
+          doc.moveDown(0.5);
         });
-      } else {
-        // No finalDiagnoses, try to merge separate AI results
-        const mergedDiagnoses = mergeAnalysesWithoutConsensus(caseRecord.geminiAnalysis, caseRecord.openaiAnalysis);
-        if (mergedDiagnoses && mergedDiagnoses.length > 0) {
+      }
+
+      // OpenAI Results
+      if (caseRecord.openaiAnalysis?.diagnoses && caseRecord.openaiAnalysis.diagnoses.length > 0) {
+        doc
+          .fontSize(14)
+          .text(sanitizeTextForPDF('GPT-4o Mini Analysis'), { underline: false })
+          .moveDown(0.3);
+
+        caseRecord.openaiAnalysis.diagnoses.slice(0, 5).forEach((diagnosis: any, index: number) => {
           doc
-            .fontSize(16)
-            .text(sanitizeTextForPDF('AI Diagnosis Results'), { underline: true })
-            .moveDown(0.5);
+            .fontSize(12)
+            .text(sanitizeTextForPDF(`${index + 1}. ${diagnosis.name}`), { continued: false })
+            .fontSize(10)
+            .text(sanitizeTextForPDF(`   Confidence: ${diagnosis.confidence}%`))
+            .text(sanitizeTextForPDF(`   Description: ${diagnosis.description}`))
+            .moveDown(0.3);
 
-          mergedDiagnoses.forEach((diagnosis, index) => {
+          if (diagnosis.keyFeatures && diagnosis.keyFeatures.length > 0) {
             doc
-              .fontSize(12)
-              .text(sanitizeTextForPDF(`${index + 1}. ${diagnosis.name}`), { continued: false })
-              .fontSize(10)
-              .text(sanitizeTextForPDF(`   Confidence: ${diagnosis.confidence}%`))
-              .text(sanitizeTextForPDF(`   Description: ${diagnosis.description}`))
+              .text(sanitizeTextForPDF(`   Key Features: ${diagnosis.keyFeatures.join(', ')}`))
               .moveDown(0.3);
+          }
 
-            if (diagnosis.keyFeatures && diagnosis.keyFeatures.length > 0) {
-              doc
-                .text(sanitizeTextForPDF(`   Key Features: ${diagnosis.keyFeatures.join(', ')}`))
-                .moveDown(0.3);
-            }
+          if (diagnosis.recommendations && diagnosis.recommendations.length > 0) {
+            doc
+              .text(
+                sanitizeTextForPDF(`   Recommendations: ${diagnosis.recommendations.join(', ')}`)
+              )
+              .moveDown(0.3);
+          }
 
-            if (diagnosis.recommendations && diagnosis.recommendations.length > 0) {
-              doc
-                .text(
-                  sanitizeTextForPDF(`   Recommendations: ${diagnosis.recommendations.join(', ')}`)
-                )
-                .moveDown(0.3);
-            }
+          doc.moveDown(0.5);
+        });
+      }
 
-            if (diagnosis.isUrgent) {
-              doc
-                .fontSize(10)
-                .fillColor('red')
-                .text(sanitizeTextForPDF('   ⚠️ URGENT: Requires immediate medical attention'), {
-                  continued: false,
-                })
-                .fillColor('black')
-                .moveDown(0.5);
-            } else {
-              doc.moveDown(0.5);
-            }
-          });
-        }
+      if (
+        (!caseRecord.geminiAnalysis?.diagnoses || caseRecord.geminiAnalysis.diagnoses.length === 0) &&
+        (!caseRecord.openaiAnalysis?.diagnoses || caseRecord.openaiAnalysis.diagnoses.length === 0)
+      ) {
+        doc.text(sanitizeTextForPDF('No AI analysis results available')).moveDown(1);
       }
 
       // Add footer

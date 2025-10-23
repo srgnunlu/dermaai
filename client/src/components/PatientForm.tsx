@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, memo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,7 +31,10 @@ interface PatientFormProps {
   isLoading?: boolean;
 }
 
-export function PatientForm({ onSubmit, isLoading = false }: PatientFormProps) {
+export const PatientForm = memo(function PatientForm({
+  onSubmit,
+  isLoading = false,
+}: PatientFormProps) {
   const [formData, setFormData] = useState<PatientData>({
     patientId: '',
     age: null,
@@ -44,28 +47,31 @@ export function PatientForm({ onSubmit, isLoading = false }: PatientFormProps) {
     medicalHistory: [],
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(formData);
-  };
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      onSubmit(formData);
+    },
+    [formData, onSubmit]
+  );
 
-  const handleMedicalHistoryChange = (condition: string, checked: boolean) => {
+  const handleMedicalHistoryChange = useCallback((condition: string, checked: boolean) => {
     setFormData((prev) => ({
       ...prev,
       medicalHistory: checked
         ? [...prev.medicalHistory, condition]
         : prev.medicalHistory.filter((item) => item !== condition),
     }));
-  };
+  }, []);
 
-  const handleSymptomChange = (symptom: string, checked: boolean) => {
+  const handleSymptomChange = useCallback((symptom: string, checked: boolean) => {
     setFormData((prev) => ({
       ...prev,
       symptoms: checked
         ? [...prev.symptoms, symptom]
         : prev.symptoms.filter((item) => item !== symptom),
     }));
-  };
+  }, []);
 
   const dermatologicalSymptoms = [
     'Itching (Kaşıntı)',
@@ -322,4 +328,4 @@ export function PatientForm({ onSubmit, isLoading = false }: PatientFormProps) {
       </CardContent>
     </Card>
   );
-}
+});

@@ -56,6 +56,14 @@ export interface IStorage {
 
   // Admin operations
   getAllCasesForAdmin(): Promise<(Case & { user?: User })[]>;
+  getCasesForAdminPaginated(
+    page: number,
+    limit: number
+  ): Promise<{ cases: (Case & { user?: User })[]; total: number; pages: number }>;
+  getUsersPaginated(
+    page: number,
+    limit: number
+  ): Promise<{ users: User[]; total: number; pages: number }>;
   getSystemStatistics(): Promise<{
     totalCases: number;
     pendingCases: number;
@@ -432,6 +440,79 @@ export class DatabaseStorage implements IStorage {
       const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
       return bTime - aTime;
     });
+  }
+
+  async getCasesForAdminPaginated(
+    page: number = 1,
+    limit: number = 20
+  ): Promise<{ cases: (Case & { user?: User })[]; total: number; pages: number }> {
+    // Get total count
+    const allCases = await db.select().from(cases);
+    const total = allCases.length;
+
+    // Calculate pagination
+    const offset = (page - 1) * limit;
+    const pages = Math.ceil(total / limit);
+
+    // Get unique user IDs
+    const userIds = Array.from(new Set(allCases.map((c) => c.userId)));
+
+    // Create a map of users
+    const userMap = new Map<string, User>();
+    for (const userId of userIds) {
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (user) {
+        userMap.set(userId, user);
+      }
+    }
+
+    // Combine cases with user information
+    const casesWithUsers = allCases.map((caseRecord) => ({
+      ...caseRecord,
+      user: userMap.get(caseRecord.userId),
+    }));
+
+    // Sort by creation date (newest first) and paginate
+    const sortedCases = casesWithUsers.sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bTime - aTime;
+    });
+
+    const paginatedCases = sortedCases.slice(offset, offset + limit);
+
+    return {
+      cases: paginatedCases,
+      total,
+      pages,
+    };
+  }
+
+  async getUsersPaginated(
+    page: number = 1,
+    limit: number = 20
+  ): Promise<{ users: User[]; total: number; pages: number }> {
+    const allUsers = await db.select().from(users);
+    const total = allUsers.length;
+
+    // Calculate pagination
+    const offset = (page - 1) * limit;
+    const pages = Math.ceil(total / limit);
+
+    // Sort by creation date (newest first) and paginate
+    const sortedUsers = allUsers.sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bTime - aTime;
+    });
+
+    const paginatedUsers = sortedUsers.slice(offset, offset + limit);
+
+    return {
+      users: paginatedUsers,
+      total,
+      pages,
+    };
   }
 
   async getSystemStatistics(): Promise<{

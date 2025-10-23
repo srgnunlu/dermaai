@@ -143,6 +143,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin routes
+  // Paginated endpoint (preferred for performance)
+  app.get('/api/admin/cases/paginated', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const result = await storage.getCasesForAdminPaginated(page, limit);
+      res.json(result);
+    } catch (error) {
+      logger.error('Error fetching paginated admin cases:', error);
+      res.status(500).json({ error: 'Failed to fetch cases' });
+    }
+  });
+
+  // Legacy endpoint (kept for backwards compatibility)
   app.get('/api/admin/cases', isAuthenticated, requireAdmin, async (req: any, res) => {
     try {
       const cases = await storage.getAllCasesForAdmin();
@@ -164,6 +178,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User management endpoints
+  // Paginated endpoint (preferred for performance)
+  app.get('/api/admin/users/paginated', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const result = await storage.getUsersPaginated(page, limit);
+      res.json(result);
+    } catch (error) {
+      logger.error('Error fetching paginated users:', error);
+      res.status(500).json({ error: 'Failed to fetch users' });
+    }
+  });
+
+  // Legacy endpoint (kept for backwards compatibility)
   app.get('/api/admin/users', isAuthenticated, requireAdmin, async (req: any, res) => {
     try {
       const users = await storage.getAllUsers();

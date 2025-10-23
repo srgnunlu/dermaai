@@ -1,3 +1,4 @@
+import { memo, useMemo, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,13 +12,42 @@ interface DiagnosisResultsProps {
   onNewAnalysis: () => void;
 }
 
-export function DiagnosisResults({
+// Pure helper functions moved outside component
+const getConfidenceColor = (confidence: number): string => {
+  if (confidence >= 80) return 'text-success';
+  if (confidence >= 60) return 'text-foreground';
+  if (confidence >= 40) return 'text-muted-foreground';
+  return 'text-destructive';
+};
+
+const getConfidenceBarColor = (confidence: number): string => {
+  if (confidence >= 80) return 'bg-success';
+  if (confidence >= 60) return 'bg-foreground';
+  if (confidence >= 40) return 'bg-muted-foreground';
+  return 'bg-destructive';
+};
+
+const getBorderColor = (rank: number, isUrgent: boolean): string => {
+  if (rank === 1 && !isUrgent)
+    return 'border-success/20 bg-gradient-to-r from-success/10 to-success/5';
+  if (isUrgent)
+    return 'border-destructive/20 bg-gradient-to-r from-destructive/10 to-destructive/5';
+  return 'border-border bg-card';
+};
+
+export const DiagnosisResults = memo(function DiagnosisResults({
   caseData,
   onSaveCase,
   onGenerateReport,
   onNewAnalysis,
 }: DiagnosisResultsProps) {
   const { finalDiagnoses, geminiAnalysis, openaiAnalysis } = caseData;
+
+  // Memoize consensus calculation
+  const consensus = useMemo(
+    () => (geminiAnalysis && openaiAnalysis ? 94 : 0),
+    [geminiAnalysis, openaiAnalysis]
+  );
 
   if (!finalDiagnoses || finalDiagnoses.length === 0) {
     return (
@@ -35,30 +65,6 @@ export function DiagnosisResults({
       </Card>
     );
   }
-
-  const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 80) return 'text-success';
-    if (confidence >= 60) return 'text-foreground';
-    if (confidence >= 40) return 'text-muted-foreground';
-    return 'text-destructive';
-  };
-
-  const getConfidenceBarColor = (confidence: number) => {
-    if (confidence >= 80) return 'bg-success';
-    if (confidence >= 60) return 'bg-foreground';
-    if (confidence >= 40) return 'bg-muted-foreground';
-    return 'bg-destructive';
-  };
-
-  const getBorderColor = (rank: number, isUrgent: boolean) => {
-    if (rank === 1 && !isUrgent)
-      return 'border-success/20 bg-gradient-to-r from-success/10 to-success/5';
-    if (isUrgent)
-      return 'border-destructive/20 bg-gradient-to-r from-destructive/10 to-destructive/5';
-    return 'border-border bg-card';
-  };
-
-  const consensus = geminiAnalysis && openaiAnalysis ? 94 : 0;
 
   return (
     <Card className="bg-card border border-border shadow-sm">
@@ -281,4 +287,4 @@ export function DiagnosisResults({
       </CardContent>
     </Card>
   );
-}
+});

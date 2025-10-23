@@ -461,10 +461,18 @@ export class DatabaseStorage implements IStorage {
         }
 
         // Combine cases with user information
-        const casesWithUsers = allCases.map((caseRecord) => ({
-          ...caseRecord,
-          user: userMap.get(caseRecord.userId),
-        }));
+        const casesWithUsers = allCases.map((caseRecord) => {
+          // Ensure imageUrls is always an array
+          const imageUrls = caseRecord.imageUrls && Array.isArray(caseRecord.imageUrls) 
+            ? caseRecord.imageUrls 
+            : [];
+          
+          return {
+            ...caseRecord,
+            imageUrls: imageUrls, // Explicitly ensure it's set
+            user: userMap.get(caseRecord.userId),
+          };
+        });
 
         // Sort by creation date (newest first)
         return casesWithUsers.sort((a, b) => {

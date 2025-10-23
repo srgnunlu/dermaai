@@ -255,7 +255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/admin/export/cases', isAuthenticated, requireAdmin, async (req: any, res) => {
+  app.get('/api/admin/export/cases', isAuthenticated, requireAdmin, async (req, res) => {
     try {
       const cases = await storage.getAllCasesForAdmin();
 
@@ -720,24 +720,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create a new PDF document with explicit UTF-8 support
       const doc = new PDFDocument({
-        margin: 50,
+        margin: 40,
         bufferPages: true,
         autoFirstPage: true,
-        compress: false, // Disable compression to avoid encoding issues
+        compress: false,
       });
 
-      // Configure font - try Unicode font first, fallback to Helvetica with character replacement
-      let useUnicodeFont = false;
-      try {
-        // Try to use a Unicode-capable font
-        doc.font('Helvetica-Bold');
-        useUnicodeFont = true;
-      } catch (error) {
-        // Fallback to standard Helvetica
-        console.warn('Using Helvetica with Turkish character replacement for PDF compatibility');
-        doc.font('Helvetica');
-        useUnicodeFont = false;
-      }
+      // Configure font
+      doc.font('Helvetica');
 
       // Set response headers for PDF download
       res.setHeader('Content-Type', 'application/pdf');
@@ -749,59 +739,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Pipe the PDF document to the response
       doc.pipe(res);
 
-      // Add header
+      // Professional Header with background
+      const pageWidth = doc.page.width;
       doc
-        .fontSize(20)
-        .text(sanitizeTextForPDF('Medical Case Report'), { align: 'center' })
-        .moveDown(2);
+        .rect(0, 0, pageWidth, 80)
+        .fill('#1a5490')
+        .fillColor('#ffffff')
+        .fontSize(28)
+        .font('Helvetica-Bold')
+        .text(sanitizeTextForPDF('MEDICAL CASE REPORT'), 0, 20, {
+          align: 'center',
+          width: pageWidth,
+        })
+        .fontSize(11)
+        .font('Helvetica')
+        .text(sanitizeTextForPDF('AI-Powered Dermatological Analysis'), 0, 50, {
+          align: 'center',
+          width: pageWidth,
+        })
+        .fillColor('#000000')
+        .moveDown(3);
 
-      // Case information
+      // Case Header Section - with border
       doc
-        .fontSize(14)
-        .text(sanitizeTextForPDF(`Case ID: ${caseRecord.caseId}`), { continued: false })
+        .rect(doc.x, doc.y, pageWidth - 80, 80)
+        .stroke('#1a5490');
+
+      doc
+        .fontSize(10)
+        .font('Helvetica-Bold')
+        .text(sanitizeTextForPDF('CASE INFORMATION'), doc.x + 10, doc.y + 5, {
+          width: pageWidth - 100,
+        })
+        .font('Helvetica')
+        .fontSize(9)
+        .moveDown(0.3)
+        .text(sanitizeTextForPDF(`Case ID: ${caseRecord.caseId}`), doc.x + 10)
         .text(sanitizeTextForPDF(`Patient ID: ${caseRecord.patientId || 'N/A'}`))
         .text(
           sanitizeTextForPDF(
-            `Date: ${caseRecord.createdAt ? new Date(caseRecord.createdAt).toLocaleDateString() : 'N/A'}`
+            `Date: ${caseRecord.createdAt ? new Date(caseRecord.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}`
           )
         )
-        .text(sanitizeTextForPDF(`Status: ${caseRecord.status}`))
-        .moveDown(1);
+        .text(
+          sanitizeTextForPDF(
+            `Status: ${caseRecord.status === 'completed' ? 'Completed' : 'Pending'}`
+          )
+        )
+        .moveDown(1.5);
 
-      // Clinical information
-      doc
-        .fontSize(16)
-        .text(sanitizeTextForPDF('Clinical Information'), { underline: true })
-        .moveDown(0.5);
-
+      // Clinical Information Section
       doc
         .fontSize(12)
-        .text(
-          sanitizeTextForPDF(`Lesion Location: ${caseRecord.lesionLocation || 'Not specified'}`)
-        )
-        .text(
-          sanitizeTextForPDF(
-            `Symptoms: ${Array.isArray(caseRecord.symptoms) ? caseRecord.symptoms.join(', ') : caseRecord.symptoms || 'None reported'}`
-          )
-        )
-        .text(
-          sanitizeTextForPDF(
-            `Additional Symptoms: ${caseRecord.additionalSymptoms || 'None reported'}`
-          )
-        )
-        .text(
-          sanitizeTextForPDF(`Symptom Duration: ${caseRecord.symptomDuration || 'Not specified'}`)
-        )
-        .moveDown(1);
+        .font('Helvetica-Bold')
+        .fillColor('#1a5490')
+        .text(sanitizeTextForPDF('CLINICAL INFORMATION'), {
+          underline: true,
+        })
+        .fillColor('#000000')
+        .font('Helvetica')
+        .fontSize(10)
+        .moveDown(0.5);
 
-      // Medical history
-      if (caseRecord.medicalHistory && caseRecord.medicalHistory.length > 0) {
+      const clinicalData = [
+        [`Lesion Location:`, sanitizeTextForPDF(caseRecord.lesionLocation || 'Not specified')],
+        [
+          `Symptoms:`,
+          sanitizeTextForPDF(
+            Array.isArray(caseRecord.symptoms)
+              ? caseRecord.symptoms.join(', ')
+              : caseRecord.symptoms || 'None reported'
+          ),
+        ],
+        [
+          `Duration:`,
+          sanitizeTextForPDF(caseRecord.symptomDuration || 'Not specified'),
+        ],
+      ];
+
+      clinicalData.forEach(([label, value]) => {
         doc
-          .text(sanitizeTextForPDF(`Medical History: ${caseRecord.medicalHistory.join(', ')}`))
-          .moveDown(1);
+          .font('Helvetica-Bold')
+          .text(label, { continued: true })
+          .font('Helvetica')
+          .text(` ${value}`);
+      });
+
+      if (caseRecord.additionalSymptoms) {
+        doc
+          .font('Helvetica-Bold')
+          .text('Additional Symptoms:', { continued: true })
+          .font('Helvetica')
+          .text(` ${sanitizeTextForPDF(caseRecord.additionalSymptoms)}`);
       }
 
-      // Lesion Images
+      if (caseRecord.medicalHistory && caseRecord.medicalHistory.length > 0) {
+        doc
+          .font('Helvetica-Bold')
+          .text('Medical History:', { continued: true })
+          .font('Helvetica')
+          .text(` ${sanitizeTextForPDF(caseRecord.medicalHistory.join(', '))}`);
+      }
+
+      doc.moveDown(1.5);
+
+      // Lesion Images Section
       const imageUrls = (caseRecord as any).imageUrls && Array.isArray((caseRecord as any).imageUrls)
         ? (caseRecord as any).imageUrls
         : caseRecord.imageUrl
@@ -810,10 +852,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (imageUrls && imageUrls.length > 0) {
         doc
-          .fontSize(16)
-          .text(sanitizeTextForPDF('Lesion Image' + (imageUrls.length > 1 ? 's' : '')), {
+          .fontSize(12)
+          .font('Helvetica-Bold')
+          .fillColor('#1a5490')
+          .text(sanitizeTextForPDF('LESION IMAGE' + (imageUrls.length > 1 ? 'S' : '')), {
             underline: true,
           })
+          .fillColor('#000000')
+          .fontSize(10)
           .moveDown(0.5);
 
         for (let imgIdx = 0; imgIdx < imageUrls.length; imgIdx++) {
@@ -821,131 +867,205 @@ export async function registerRoutes(app: Express): Promise<Server> {
           try {
             let file;
 
-            // Check if it's a Cloudinary URL
             if (imageUrl.includes('cloudinary.com')) {
               const { CloudinaryStorageService } = await import('./cloudinaryStorage');
               const cloudinaryService = new CloudinaryStorageService();
               file = await cloudinaryService.getObjectEntityFile(imageUrl);
             } else {
-              // Use local file storage
               const { LocalFileStorageService } = await import('./localFileStorage');
               const fileStorageService = new LocalFileStorageService();
               const normalizedPath = fileStorageService.normalizeObjectEntityPath(imageUrl);
               file = await fileStorageService.getObjectEntityFile(normalizedPath);
             }
 
-            // Get image buffer
             const [imageBuffer] = await file.download();
             const imageBase64 = Buffer.from(imageBuffer).toString('base64');
 
-            // Add image label
             if (imageUrls.length > 1) {
               doc
-                .fontSize(11)
-                .text(sanitizeTextForPDF(`Image ${imgIdx + 1} of ${imageUrls.length}`), {
-                  underline: false,
-                })
-                .moveDown(0.3);
+                .fontSize(9)
+                .font('Helvetica-Bold')
+                .fillColor('#1a5490')
+                .text(sanitizeTextForPDF(`Image ${imgIdx + 1} of ${imageUrls.length}`))
+                .fillColor('#000000')
+                .moveDown(0.2);
             }
 
-            // Add image to PDF (max height 3.5 inches to fit on page)
             try {
+              const maxWidth = imageUrls.length === 1 ? 300 : 200;
               doc.image(Buffer.from(imageBase64, 'base64'), {
-                fit: [500, 250],
+                fit: [maxWidth, 220],
                 align: 'center',
               });
             } catch (imgErr) {
               console.warn(`Failed to embed image ${imgIdx + 1} in PDF:`, imgErr);
-              doc
-                .fontSize(10)
-                .text(sanitizeTextForPDF(`[Image ${imgIdx + 1} - Failed to embed]`));
             }
 
-            doc.moveDown(0.5);
+            doc.moveDown(0.3);
           } catch (error) {
             console.warn(`Failed to fetch image ${imgIdx + 1}:`, error);
-            doc
-              .fontSize(10)
-              .text(sanitizeTextForPDF(`[Image ${imgIdx + 1} - Failed to load from storage]`));
-            doc.moveDown(0.5);
           }
         }
 
         doc.moveDown(1);
       }
 
-      // AI Diagnosis Results
+      // Add page break for diagnoses if images are large
+      if (imageUrls.length > 0) {
+        doc.addPage();
+      }
+
+      // AI Diagnosis Results Section
       doc
-        .fontSize(16)
-        .text(sanitizeTextForPDF('AI Diagnosis Results'), { underline: true })
+        .fontSize(12)
+        .font('Helvetica-Bold')
+        .fillColor('#1a5490')
+        .text(sanitizeTextForPDF('AI ANALYSIS RESULTS'), {
+          underline: true,
+        })
+        .fillColor('#000000')
+        .font('Helvetica')
+        .fontSize(10)
         .moveDown(0.5);
 
       // Gemini Results
       if (caseRecord.geminiAnalysis?.diagnoses && caseRecord.geminiAnalysis.diagnoses.length > 0) {
         doc
-          .fontSize(14)
-          .text(sanitizeTextForPDF('Gemini 2.5 Flash Analysis'), { underline: false })
-          .moveDown(0.3);
+          .fontSize(11)
+          .font('Helvetica-Bold')
+          .fillColor('#6b4423')
+          .text(sanitizeTextForPDF('Gemini 2.5 Flash Analysis'), { underline: true })
+          .fillColor('#000000')
+          .font('Helvetica')
+          .fontSize(9)
+          .moveDown(0.5);
+
+        // Table header
+        const tableY = doc.y;
+        const colWidths = [30, 70, 50, 250];
+        const rowHeight = 20;
+        const tableLeft = 50;
+
+        doc
+          .rect(tableLeft, tableY, 500, rowHeight)
+          .fill('#f0f0f0');
+
+        doc
+          .fontSize(9)
+          .font('Helvetica-Bold')
+          .fillColor('#000000')
+          .text('Rank', tableLeft + 5, tableY + 3, { width: colWidths[0] - 5 })
+          .text('Confidence', tableLeft + colWidths[0] + 5, tableY + 3, {
+            width: colWidths[1] - 5,
+          })
+          .text('Name', tableLeft + colWidths[0] + colWidths[1] + 5, tableY + 3, {
+            width: colWidths[2] - 5,
+          })
+          .text('Description', tableLeft + colWidths[0] + colWidths[1] + colWidths[2] + 5, tableY + 3, {
+            width: colWidths[3] - 5,
+          });
+
+        let currentY = tableY + rowHeight;
 
         caseRecord.geminiAnalysis.diagnoses.slice(0, 5).forEach((diagnosis: any, index: number) => {
+          const diagY = currentY;
+          const shortDesc = diagnosis.description
+            ? sanitizeTextForPDF(diagnosis.description.substring(0, 80))
+            : '';
+
           doc
-            .fontSize(12)
-            .text(sanitizeTextForPDF(`${index + 1}. ${diagnosis.name}`), { continued: false })
-            .fontSize(10)
-            .text(sanitizeTextForPDF(`   Confidence: ${diagnosis.confidence}%`))
-            .text(sanitizeTextForPDF(`   Description: ${diagnosis.description}`))
-            .moveDown(0.3);
+            .rect(tableLeft, diagY, 500, rowHeight)
+            .stroke('#cccccc');
 
-          if (diagnosis.keyFeatures && diagnosis.keyFeatures.length > 0) {
-            doc
-              .text(sanitizeTextForPDF(`   Key Features: ${diagnosis.keyFeatures.join(', ')}`))
-              .moveDown(0.3);
-          }
+          doc
+            .fontSize(8)
+            .font('Helvetica')
+            .fillColor('#000000')
+            .text(String(index + 1), tableLeft + 5, diagY + 5, { width: colWidths[0] - 5 })
+            .text(`${diagnosis.confidence}%`, tableLeft + colWidths[0] + 5, diagY + 5, {
+              width: colWidths[1] - 5,
+            })
+            .text(sanitizeTextForPDF(diagnosis.name), tableLeft + colWidths[0] + colWidths[1] + 5, diagY + 5, {
+              width: colWidths[2] - 5,
+            })
+            .text(shortDesc, tableLeft + colWidths[0] + colWidths[1] + colWidths[2] + 5, diagY + 5, {
+              width: colWidths[3] - 5,
+            });
 
-          if (diagnosis.recommendations && diagnosis.recommendations.length > 0) {
-            doc
-              .text(
-                sanitizeTextForPDF(`   Recommendations: ${diagnosis.recommendations.join(', ')}`)
-              )
-              .moveDown(0.3);
-          }
-
-          doc.moveDown(0.5);
+          currentY += rowHeight;
         });
+
+        doc.moveDown(4);
       }
 
       // OpenAI Results
       if (caseRecord.openaiAnalysis?.diagnoses && caseRecord.openaiAnalysis.diagnoses.length > 0) {
         doc
-          .fontSize(14)
-          .text(sanitizeTextForPDF('GPT-4o Mini Analysis'), { underline: false })
-          .moveDown(0.3);
+          .fontSize(11)
+          .font('Helvetica-Bold')
+          .fillColor('#2d5d5d')
+          .text(sanitizeTextForPDF('GPT-4o Mini Analysis'), { underline: true })
+          .fillColor('#000000')
+          .font('Helvetica')
+          .fontSize(9)
+          .moveDown(0.5);
+
+        // Table header
+        const tableY = doc.y;
+        const colWidths = [30, 70, 50, 250];
+        const rowHeight = 20;
+        const tableLeft = 50;
+
+        doc
+          .rect(tableLeft, tableY, 500, rowHeight)
+          .fill('#f0f0f0');
+
+        doc
+          .fontSize(9)
+          .font('Helvetica-Bold')
+          .fillColor('#000000')
+          .text('Rank', tableLeft + 5, tableY + 3, { width: colWidths[0] - 5 })
+          .text('Confidence', tableLeft + colWidths[0] + 5, tableY + 3, {
+            width: colWidths[1] - 5,
+          })
+          .text('Name', tableLeft + colWidths[0] + colWidths[1] + 5, tableY + 3, {
+            width: colWidths[2] - 5,
+          })
+          .text('Description', tableLeft + colWidths[0] + colWidths[1] + colWidths[2] + 5, tableY + 3, {
+            width: colWidths[3] - 5,
+          });
+
+        let currentY = tableY + rowHeight;
 
         caseRecord.openaiAnalysis.diagnoses.slice(0, 5).forEach((diagnosis: any, index: number) => {
+          const diagY = currentY;
+          const shortDesc = diagnosis.description
+            ? sanitizeTextForPDF(diagnosis.description.substring(0, 80))
+            : '';
+
           doc
-            .fontSize(12)
-            .text(sanitizeTextForPDF(`${index + 1}. ${diagnosis.name}`), { continued: false })
-            .fontSize(10)
-            .text(sanitizeTextForPDF(`   Confidence: ${diagnosis.confidence}%`))
-            .text(sanitizeTextForPDF(`   Description: ${diagnosis.description}`))
-            .moveDown(0.3);
+            .rect(tableLeft, diagY, 500, rowHeight)
+            .stroke('#cccccc');
 
-          if (diagnosis.keyFeatures && diagnosis.keyFeatures.length > 0) {
-            doc
-              .text(sanitizeTextForPDF(`   Key Features: ${diagnosis.keyFeatures.join(', ')}`))
-              .moveDown(0.3);
-          }
+          doc
+            .fontSize(8)
+            .font('Helvetica')
+            .fillColor('#000000')
+            .text(String(index + 1), tableLeft + 5, diagY + 5, { width: colWidths[0] - 5 })
+            .text(`${diagnosis.confidence}%`, tableLeft + colWidths[0] + 5, diagY + 5, {
+              width: colWidths[1] - 5,
+            })
+            .text(sanitizeTextForPDF(diagnosis.name), tableLeft + colWidths[0] + colWidths[1] + 5, diagY + 5, {
+              width: colWidths[2] - 5,
+            })
+            .text(shortDesc, tableLeft + colWidths[0] + colWidths[1] + colWidths[2] + 5, diagY + 5, {
+              width: colWidths[3] - 5,
+            });
 
-          if (diagnosis.recommendations && diagnosis.recommendations.length > 0) {
-            doc
-              .text(
-                sanitizeTextForPDF(`   Recommendations: ${diagnosis.recommendations.join(', ')}`)
-              )
-              .moveDown(0.3);
-          }
-
-          doc.moveDown(0.5);
+          currentY += rowHeight;
         });
+
+        doc.moveDown(3);
       }
 
       if (
@@ -955,20 +1075,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         doc.text(sanitizeTextForPDF('No AI analysis results available')).moveDown(1);
       }
 
-      // Add footer
+      // Professional Footer
+      doc.moveDown(2);
+      doc
+        .rect(0, doc.page.height - 60, doc.page.width, 60)
+        .fill('#f5f5f5');
+
       doc
         .fontSize(8)
+        .font('Helvetica')
+        .fillColor('#555555')
         .text(
           sanitizeTextForPDF(
-            `Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`
+            `Generated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date().toLocaleTimeString('en-US')}`
           ),
           50,
           doc.page.height - 50,
-          { align: 'center' }
+          { align: 'center', width: doc.page.width - 100 }
         )
+        .fontSize(7)
         .text(
           sanitizeTextForPDF(
-            'This report is generated by AI analysis and should be reviewed by a qualified medical professional.'
+            'MEDICAL DISCLAIMER: This report is generated by AI analysis and should be reviewed by a qualified medical professional. It is for informational purposes only.'
           ),
           { align: 'center' }
         );

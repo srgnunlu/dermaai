@@ -146,8 +146,20 @@ describe('DiagnosisResults', () => {
       ...mockCase,
       geminiAnalysis: {
         diagnoses: [
-          { name: 'Diagnosis 1', confidence: 90, description: '', keyFeatures: [], recommendations: [] },
-          { name: 'Diagnosis 2', confidence: 75, description: '', keyFeatures: [], recommendations: [] },
+          {
+            name: 'Diagnosis 1',
+            confidence: 90,
+            description: '',
+            keyFeatures: [],
+            recommendations: [],
+          },
+          {
+            name: 'Diagnosis 2',
+            confidence: 75,
+            description: '',
+            keyFeatures: [],
+            recommendations: [],
+          },
         ],
         analysisTime: 2.0,
       },

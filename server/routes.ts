@@ -932,7 +932,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Get unique patient IDs
         const patientIds = Array.from(
-          new Set(selectedCases.map((c) => c.patientId).filter(Boolean))
+          new Set(
+            selectedCases
+              .map((c) => c.patientId)
+              .filter((id): id is string => id !== null && id !== undefined)
+          )
         );
 
         // Fetch patient data

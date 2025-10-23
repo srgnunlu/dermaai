@@ -35,7 +35,12 @@ interface AIAnalysisCardProps {
   color: string;
 }
 
-const AIAnalysisCard = memo(function AIAnalysisCard({ title, icon, analysis, color }: AIAnalysisCardProps) {
+const AIAnalysisCard = memo(function AIAnalysisCard({
+  title,
+  icon,
+  analysis,
+  color,
+}: AIAnalysisCardProps) {
   if (!analysis || !analysis.diagnoses || analysis.diagnoses.length === 0) {
     return (
       <Card className={`border-2 ${color}`}>
@@ -73,9 +78,7 @@ const AIAnalysisCard = memo(function AIAnalysisCard({ title, icon, analysis, col
           <div
             key={index}
             className={`p-4 rounded-lg border ${
-              index === 0
-                ? 'border-primary/40 bg-primary/5'
-                : 'border-border bg-muted/30'
+              index === 0 ? 'border-primary/40 bg-primary/5' : 'border-border bg-muted/30'
             }`}
           >
             {/* Rank and Confidence */}

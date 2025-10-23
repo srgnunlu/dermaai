@@ -12,7 +12,7 @@ app.use(
   compression({
     level: 6, // Balance between speed and compression ratio
     threshold: 1024, // Only compress responses larger than 1KB
-    filter: (req, res) => {
+    filter: (req: Request, res: Response) => {
       // Compress all responses except if explicitly disabled
       if (req.headers['x-no-compression']) {
         return false;

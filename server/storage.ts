@@ -84,9 +84,9 @@ export interface IStorage {
   getAnalyticsDiagnosisDistribution(): Promise<
     Array<{ diagnosis: string; count: number; percentage: number }>
   >;
-  getAnalyticsTimeSeriesData(days: number): Promise<
-    Array<{ date: string; total: number; completed: number; pending: number }>
-  >;
+  getAnalyticsTimeSeriesData(
+    days: number
+  ): Promise<Array<{ date: string; total: number; completed: number; pending: number }>>;
   getAnalyticsAIPerformance(): Promise<{
     gemini: { total: number; avgConfidence: number; avgTime: number };
     openai: { total: number; avgConfidence: number; avgTime: number };
@@ -766,9 +766,9 @@ export class DatabaseStorage implements IStorage {
     );
   }
 
-  async getAnalyticsTimeSeriesData(days: number = 30): Promise<
-    Array<{ date: string; total: number; completed: number; pending: number }>
-  > {
+  async getAnalyticsTimeSeriesData(
+    days: number = 30
+  ): Promise<Array<{ date: string; total: number; completed: number; pending: number }>> {
     return cache.cached(
       `analytics:timeseries:${days}`,
       async () => {
@@ -777,10 +777,7 @@ export class DatabaseStorage implements IStorage {
         const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
 
         // Group cases by date
-        const dateMap = new Map<
-          string,
-          { total: number; completed: number; pending: number }
-        >();
+        const dateMap = new Map<string, { total: number; completed: number; pending: number }>();
 
         for (const caseRecord of allCases) {
           if (!caseRecord.createdAt) continue;

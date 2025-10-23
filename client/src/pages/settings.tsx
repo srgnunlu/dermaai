@@ -141,7 +141,7 @@ export default function SettingsPage() {
                   <Label htmlFor="use-gemini">Use Gemini 2.5 Flash</Label>
                   <Switch
                     id="use-gemini"
-                    checked={formData.useGemini}
+                    checked={formData.useGemini ?? false}
                     onCheckedChange={(checked) => setFormData({ ...formData, useGemini: checked })}
                     data-testid="switch-use-gemini"
                   />
@@ -150,7 +150,7 @@ export default function SettingsPage() {
                   <Label htmlFor="use-openai">Use ChatGPT-5</Label>
                   <Switch
                     id="use-openai"
-                    checked={formData.useOpenAI}
+                    checked={formData.useOpenAI ?? false}
                     onCheckedChange={(checked) => setFormData({ ...formData, useOpenAI: checked })}
                     data-testid="switch-use-openai"
                   />
@@ -160,7 +160,7 @@ export default function SettingsPage() {
                   <Input
                     type="number"
                     id="confidence-threshold"
-                    value={formData.confidenceThreshold}
+                    value={formData.confidenceThreshold ?? ''}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
@@ -189,7 +189,7 @@ export default function SettingsPage() {
                   <Label htmlFor="auto-save">Auto-save cases</Label>
                   <Switch
                     id="auto-save"
-                    checked={formData.autoSaveCases}
+                    checked={formData.autoSaveCases ?? false}
                     onCheckedChange={(checked) =>
                       setFormData({ ...formData, autoSaveCases: checked })
                     }
@@ -200,7 +200,7 @@ export default function SettingsPage() {
                   <Label htmlFor="anonymize">Anonymize patient data</Label>
                   <Switch
                     id="anonymize"
-                    checked={formData.anonymizeData}
+                    checked={formData.anonymizeData ?? false}
                     onCheckedChange={(checked) =>
                       setFormData({ ...formData, anonymizeData: checked })
                     }
@@ -210,7 +210,7 @@ export default function SettingsPage() {
                 <div className="space-y-2">
                   <Label htmlFor="retention">Data retention period</Label>
                   <Select
-                    value={formData.dataRetention}
+                    value={formData.dataRetention ?? undefined}
                     onValueChange={(value) => setFormData({ ...formData, dataRetention: value })}
                   >
                     <SelectTrigger id="retention" data-testid="select-retention">
@@ -241,7 +241,7 @@ export default function SettingsPage() {
                 <div className="space-y-2">
                   <Label htmlFor="theme">Theme</Label>
                   <Select
-                    value={formData.theme}
+                    value={formData.theme ?? undefined}
                     onValueChange={(value) => setFormData({ ...formData, theme: value })}
                   >
                     <SelectTrigger id="theme" data-testid="select-theme">
@@ -258,7 +258,7 @@ export default function SettingsPage() {
                   <Label htmlFor="compact-mode">Compact mode</Label>
                   <Switch
                     id="compact-mode"
-                    checked={formData.compactMode}
+                    checked={formData.compactMode ?? false}
                     onCheckedChange={(checked) =>
                       setFormData({ ...formData, compactMode: checked })
                     }
@@ -282,7 +282,7 @@ export default function SettingsPage() {
                   <Label htmlFor="analysis-complete">Analysis complete notifications</Label>
                   <Switch
                     id="analysis-complete"
-                    checked={formData.analysisNotifications}
+                    checked={formData.analysisNotifications ?? false}
                     onCheckedChange={(checked) =>
                       setFormData({ ...formData, analysisNotifications: checked })
                     }
@@ -293,7 +293,7 @@ export default function SettingsPage() {
                   <Label htmlFor="urgent-cases">Urgent case alerts</Label>
                   <Switch
                     id="urgent-cases"
-                    checked={formData.urgentAlerts}
+                    checked={formData.urgentAlerts ?? false}
                     onCheckedChange={(checked) =>
                       setFormData({ ...formData, urgentAlerts: checked })
                     }
@@ -304,7 +304,7 @@ export default function SettingsPage() {
                   <Label htmlFor="sound">Sound notifications</Label>
                   <Switch
                     id="sound"
-                    checked={formData.soundNotifications}
+                    checked={formData.soundNotifications ?? false}
                     onCheckedChange={(checked) =>
                       setFormData({ ...formData, soundNotifications: checked })
                     }

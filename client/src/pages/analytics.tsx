@@ -29,7 +29,16 @@ import { Skeleton } from '@/components/ui/skeleton';
 import SiteFooter from '@/components/SiteFooter';
 
 // Chart color palette
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
+const COLORS = [
+  '#3b82f6',
+  '#10b981',
+  '#f59e0b',
+  '#ef4444',
+  '#8b5cf6',
+  '#ec4899',
+  '#14b8a6',
+  '#f97316',
+];
 
 export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState('30');

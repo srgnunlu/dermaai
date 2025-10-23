@@ -187,7 +187,6 @@ STRICT REQUIREMENTS:
         },
       ],
       max_completion_tokens: isGpt5 ? 1000 : 2000,
-      ...(isGpt5 ? { temperature: 0.1 } : {}), // Lower temperature for more deterministic JSON
     };
 
     // Attempt 1: strict JSON output (skip response_format for gpt-5)

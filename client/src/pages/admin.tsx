@@ -1195,28 +1195,45 @@ export default function AdminPage() {
                   {/* Gemini Results */}
                   {selectedCase?.geminiAnalysis?.diagnoses && selectedCase.geminiAnalysis.diagnoses.length > 0 && (
                     <div className="mb-6">
-                      <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-full bg-purple-500"></span>
-                        Gemini 2.5 Flash
-                      </h4>
+                      <div className="flex items-center gap-2 mb-4 pb-3 border-b-2 border-purple-300">
+                        <div className="w-4 h-4 rounded bg-purple-600"></div>
+                        <h4 className="text-base font-bold text-purple-900">Gemini 2.5 Flash Analysis</h4>
+                      </div>
                       <div className="space-y-3">
                         {selectedCase.geminiAnalysis.diagnoses.slice(0, 5).map((diagnosis: any, index: number) => (
-                          <Card key={index} className="p-4 border-purple-200 bg-purple-50">
+                          <div
+                            key={index}
+                            className="border-l-4 border-purple-600 bg-white p-4 rounded-r-lg shadow-sm hover:shadow-md transition-shadow"
+                          >
                             <div className="flex justify-between items-start mb-2">
-                              <h4 className="font-medium text-lg">{diagnosis.name}</h4>
-                              <div className="flex items-center gap-2">
-                                <div className="text-sm font-medium">{diagnosis.confidence}%</div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-600 text-white text-xs font-bold">
+                                    {index + 1}
+                                  </span>
+                                  <h5 className="font-bold text-gray-900 text-sm">{diagnosis.name}</h5>
+                                </div>
+                              </div>
+                              <div className="ml-2 text-right">
+                                <div className="inline-block px-2 py-1 rounded bg-purple-100 text-purple-900 font-semibold text-xs">
+                                  {diagnosis.confidence}%
+                                </div>
                               </div>
                             </div>
 
-                            <p className="text-sm text-gray-600 mb-3">{diagnosis.description}</p>
+                            <p className="text-sm text-gray-700 mb-3">{diagnosis.description}</p>
 
                             {diagnosis.keyFeatures && diagnosis.keyFeatures.length > 0 && (
                               <div className="mb-2">
-                                <span className="font-medium text-sm">Key Features:</span>
-                                <div className="flex flex-wrap gap-1 mt-1">
+                                <span className="font-semibold text-xs text-gray-900 uppercase tracking-wide">
+                                  Key Features:
+                                </span>
+                                <div className="flex flex-wrap gap-1 mt-2">
                                   {diagnosis.keyFeatures.map((feature: string, idx: number) => (
-                                    <Badge key={idx} variant="outline" className="text-xs">
+                                    <Badge
+                                      key={idx}
+                                      className="bg-purple-100 text-purple-900 border-purple-300 text-xs"
+                                    >
                                       {feature}
                                     </Badge>
                                   ))}
@@ -1226,15 +1243,17 @@ export default function AdminPage() {
 
                             {diagnosis.recommendations && diagnosis.recommendations.length > 0 && (
                               <div>
-                                <span className="font-medium text-sm">Recommendations:</span>
-                                <ul className="list-disc list-inside text-sm text-gray-600 mt-1">
+                                <span className="font-semibold text-xs text-gray-900 uppercase tracking-wide">
+                                  Recommendations:
+                                </span>
+                                <ul className="list-disc list-inside text-xs text-gray-700 mt-2 space-y-1">
                                   {diagnosis.recommendations.map((rec: string, idx: number) => (
                                     <li key={idx}>{rec}</li>
                                   ))}
                                 </ul>
                               </div>
                             )}
-                          </Card>
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -1243,28 +1262,45 @@ export default function AdminPage() {
                   {/* OpenAI Results */}
                   {selectedCase?.openaiAnalysis?.diagnoses && selectedCase.openaiAnalysis.diagnoses.length > 0 && (
                     <div className="mb-6">
-                      <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-full bg-green-500"></span>
-                        GPT-4o Mini
-                      </h4>
+                      <div className="flex items-center gap-2 mb-4 pb-3 border-b-2 border-green-300">
+                        <div className="w-4 h-4 rounded bg-green-600"></div>
+                        <h4 className="text-base font-bold text-green-900">GPT-4o Mini Analysis</h4>
+                      </div>
                       <div className="space-y-3">
                         {selectedCase.openaiAnalysis.diagnoses.slice(0, 5).map((diagnosis: any, index: number) => (
-                          <Card key={index} className="p-4 border-green-200 bg-green-50">
+                          <div
+                            key={index}
+                            className="border-l-4 border-green-600 bg-white p-4 rounded-r-lg shadow-sm hover:shadow-md transition-shadow"
+                          >
                             <div className="flex justify-between items-start mb-2">
-                              <h4 className="font-medium text-lg">{diagnosis.name}</h4>
-                              <div className="flex items-center gap-2">
-                                <div className="text-sm font-medium">{diagnosis.confidence}%</div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-600 text-white text-xs font-bold">
+                                    {index + 1}
+                                  </span>
+                                  <h5 className="font-bold text-gray-900 text-sm">{diagnosis.name}</h5>
+                                </div>
+                              </div>
+                              <div className="ml-2 text-right">
+                                <div className="inline-block px-2 py-1 rounded bg-green-100 text-green-900 font-semibold text-xs">
+                                  {diagnosis.confidence}%
+                                </div>
                               </div>
                             </div>
 
-                            <p className="text-sm text-gray-600 mb-3">{diagnosis.description}</p>
+                            <p className="text-sm text-gray-700 mb-3">{diagnosis.description}</p>
 
                             {diagnosis.keyFeatures && diagnosis.keyFeatures.length > 0 && (
                               <div className="mb-2">
-                                <span className="font-medium text-sm">Key Features:</span>
-                                <div className="flex flex-wrap gap-1 mt-1">
+                                <span className="font-semibold text-xs text-gray-900 uppercase tracking-wide">
+                                  Key Features:
+                                </span>
+                                <div className="flex flex-wrap gap-1 mt-2">
                                   {diagnosis.keyFeatures.map((feature: string, idx: number) => (
-                                    <Badge key={idx} variant="outline" className="text-xs">
+                                    <Badge
+                                      key={idx}
+                                      className="bg-green-100 text-green-900 border-green-300 text-xs"
+                                    >
                                       {feature}
                                     </Badge>
                                   ))}
@@ -1274,15 +1310,17 @@ export default function AdminPage() {
 
                             {diagnosis.recommendations && diagnosis.recommendations.length > 0 && (
                               <div>
-                                <span className="font-medium text-sm">Recommendations:</span>
-                                <ul className="list-disc list-inside text-sm text-gray-600 mt-1">
+                                <span className="font-semibold text-xs text-gray-900 uppercase tracking-wide">
+                                  Recommendations:
+                                </span>
+                                <ul className="list-disc list-inside text-xs text-gray-700 mt-2 space-y-1">
                                   {diagnosis.recommendations.map((rec: string, idx: number) => (
                                     <li key={idx}>{rec}</li>
                                   ))}
                                 </ul>
                               </div>
                             )}
-                          </Card>
+                          </div>
                         ))}
                       </div>
                     </div>

@@ -44,8 +44,8 @@ const logger = winston.createLogger({
       format: combine(colorize(), logFormat),
     }),
 
-    // File transport for errors (production)
-    ...(process.env.NODE_ENV === 'production'
+    // File transport only for local development (not in production/Render)
+    ...(process.env.NODE_ENV === 'development' && !process.env.RENDER
       ? [
           new winston.transports.File({
             filename: 'logs/error.log',

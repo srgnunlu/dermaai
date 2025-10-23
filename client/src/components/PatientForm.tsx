@@ -196,15 +196,34 @@ export const PatientForm = memo(function PatientForm({
             <Label htmlFor="lesionLocation" className="text-sm font-medium text-foreground mb-2">
               Lesion Location
             </Label>
-            <Input
-              id="lesionLocation"
-              type="text"
-              placeholder="e.g., Left shoulder, Face, etc."
+            <Select
               value={formData.lesionLocation}
-              onChange={(e) => setFormData((prev) => ({ ...prev, lesionLocation: e.target.value }))}
-              className="w-full"
-              data-testid="input-lesion-location"
-            />
+              onValueChange={(value) => setFormData((prev) => ({ ...prev, lesionLocation: value }))}
+            >
+              <SelectTrigger className="w-full" data-testid="select-lesion-location">
+                <SelectValue placeholder="Select lesion location" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Baş (Head)">Baş (Head)</SelectItem>
+                <SelectItem value="Yüz (Face)">Yüz (Face)</SelectItem>
+                <SelectItem value="Boyun (Neck)">Boyun (Neck)</SelectItem>
+                <SelectItem value="Göğüs (Chest)">Göğüs (Chest)</SelectItem>
+                <SelectItem value="Karın (Abdomen)">Karın (Abdomen)</SelectItem>
+                <SelectItem value="Sırt (Back)">Sırt (Back)</SelectItem>
+                <SelectItem value="Omuz (Shoulder)">Omuz (Shoulder)</SelectItem>
+                <SelectItem value="Kol (Arm)">Kol (Arm)</SelectItem>
+                <SelectItem value="Dirsek (Elbow)">Dirsek (Elbow)</SelectItem>
+                <SelectItem value="Ön Kol (Forearm)">Ön Kol (Forearm)</SelectItem>
+                <SelectItem value="El (Hand)">El (Hand)</SelectItem>
+                <SelectItem value="Parmak (Finger)">Parmak (Finger)</SelectItem>
+                <SelectItem value="Kalça (Hip)">Kalça (Hip)</SelectItem>
+                <SelectItem value="Bacak (Leg)">Bacak (Leg)</SelectItem>
+                <SelectItem value="Diz (Knee)">Diz (Knee)</SelectItem>
+                <SelectItem value="Baldır (Calf)">Baldır (Calf)</SelectItem>
+                <SelectItem value="Ayak (Foot)">Ayak (Foot)</SelectItem>
+                <SelectItem value="Ayak Parmağı (Toe)">Ayak Parmağı (Toe)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Structured Symptoms Collection */}

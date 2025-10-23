@@ -146,8 +146,8 @@ Respond with JSON in this exact format:
   ]
 }`;
 
-    const model = options.model || process.env.OPENAI_MODEL || 'gpt-4o-mini';
-    const isGpt5 = model === 'gpt-5';
+    const model = options.model || process.env.OPENAI_MODEL || 'gpt-5-mini';
+    const isGpt5 = model.includes('gpt-5');
 
     // Build message content with all images
     const userContent: any[] = [
@@ -235,7 +235,7 @@ Respond with JSON in this exact format:
     }
 
     // Attempt 3: fallback model
-    if (!content && model !== 'gpt-4o-mini' && (options.allowFallback ?? true)) {
+    if (!content && !model.includes('gpt-4o-mini') && (options.allowFallback ?? true)) {
       console.warn('[OpenAI] Retrying with fallback model gpt-4o-mini');
       response = await getOpenAIClient().chat.completions.create({
         model: 'gpt-4o-mini',

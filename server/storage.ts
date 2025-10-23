@@ -724,12 +724,26 @@ export class DatabaseStorage implements IStorage {
         const allCases = await db.select().from(cases);
         const diagnosisMap = new Map<string, number>();
 
-        // Count each diagnosis from finalDiagnoses
+        // Count each diagnosis from both AI analyses
         for (const caseRecord of allCases) {
-          if (caseRecord.finalDiagnoses && Array.isArray(caseRecord.finalDiagnoses)) {
-            for (const diagnosis of caseRecord.finalDiagnoses) {
-              const name = diagnosis.name || 'Unknown';
-              diagnosisMap.set(name, (diagnosisMap.get(name) || 0) + 1);
+          // Count Gemini diagnoses
+          if (caseRecord.geminiAnalysis && (caseRecord.geminiAnalysis as any).diagnoses) {
+            const diagnoses = (caseRecord.geminiAnalysis as any).diagnoses;
+            if (Array.isArray(diagnoses)) {
+              for (const diagnosis of diagnoses) {
+                const name = diagnosis.name || 'Unknown';
+                diagnosisMap.set(name, (diagnosisMap.get(name) || 0) + 1);
+              }
+            }
+          }
+          // Count OpenAI diagnoses
+          if (caseRecord.openaiAnalysis && (caseRecord.openaiAnalysis as any).diagnoses) {
+            const diagnoses = (caseRecord.openaiAnalysis as any).diagnoses;
+            if (Array.isArray(diagnoses)) {
+              for (const diagnosis of diagnoses) {
+                const name = diagnosis.name || 'Unknown';
+                diagnosisMap.set(name, (diagnosisMap.get(name) || 0) + 1);
+              }
             }
           }
         }

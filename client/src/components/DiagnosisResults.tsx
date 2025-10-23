@@ -1,8 +1,8 @@
-import { memo, useMemo, useCallback } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { memo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Bot, Brain, CheckCircle, AlertTriangle, Save, FileText, Plus } from 'lucide-react';
+import { Brain, Save, FileText, Plus, Sparkles, Zap } from 'lucide-react';
 import type { Case } from '@shared/schema';
 
 interface DiagnosisResultsProps {
@@ -12,28 +12,133 @@ interface DiagnosisResultsProps {
   onNewAnalysis: () => void;
 }
 
-// Pure helper functions moved outside component
+// Pure helper functions
 const getConfidenceColor = (confidence: number): string => {
-  if (confidence >= 80) return 'text-success';
-  if (confidence >= 60) return 'text-foreground';
-  if (confidence >= 40) return 'text-muted-foreground';
-  return 'text-destructive';
+  if (confidence >= 80) return 'text-green-600 dark:text-green-500';
+  if (confidence >= 60) return 'text-blue-600 dark:text-blue-500';
+  if (confidence >= 40) return 'text-yellow-600 dark:text-yellow-500';
+  return 'text-red-600 dark:text-red-500';
 };
 
 const getConfidenceBarColor = (confidence: number): string => {
-  if (confidence >= 80) return 'bg-success';
-  if (confidence >= 60) return 'bg-foreground';
-  if (confidence >= 40) return 'bg-muted-foreground';
-  return 'bg-destructive';
+  if (confidence >= 80) return 'bg-green-500';
+  if (confidence >= 60) return 'bg-blue-500';
+  if (confidence >= 40) return 'bg-yellow-500';
+  return 'bg-red-500';
 };
 
-const getBorderColor = (rank: number, isUrgent: boolean): string => {
-  if (rank === 1 && !isUrgent)
-    return 'border-success/20 bg-gradient-to-r from-success/10 to-success/5';
-  if (isUrgent)
-    return 'border-destructive/20 bg-gradient-to-r from-destructive/10 to-destructive/5';
-  return 'border-border bg-card';
-};
+// Single AI Analysis Card Component
+interface AIAnalysisCardProps {
+  title: string;
+  icon: React.ReactNode;
+  analysis: any;
+  color: string;
+}
+
+const AIAnalysisCard = memo(function AIAnalysisCard({ title, icon, analysis, color }: AIAnalysisCardProps) {
+  if (!analysis || !analysis.diagnoses || analysis.diagnoses.length === 0) {
+    return (
+      <Card className={`border-2 ${color}`}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            {icon}
+            {title}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground text-center py-8">No analysis available</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const diagnoses = analysis.diagnoses || [];
+  const analysisTime = analysis.analysisTime || 0;
+
+  return (
+    <Card className={`border-2 ${color}`}>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            {icon}
+            {title}
+          </CardTitle>
+          <Badge variant="secondary" className="text-xs">
+            {analysisTime.toFixed(1)}s
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {diagnoses.map((diagnosis: any, index: number) => (
+          <div
+            key={index}
+            className={`p-4 rounded-lg border ${
+              index === 0
+                ? 'border-primary/40 bg-primary/5'
+                : 'border-border bg-muted/30'
+            }`}
+          >
+            {/* Rank and Confidence */}
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/20 text-primary font-bold text-sm">
+                  {index + 1}
+                </div>
+                <h4 className="font-semibold text-lg">{diagnosis.name}</h4>
+              </div>
+              <div className="text-right">
+                <div className={`text-2xl font-bold ${getConfidenceColor(diagnosis.confidence)}`}>
+                  {diagnosis.confidence}%
+                </div>
+                <div className="w-20 h-2 bg-muted rounded-full overflow-hidden mt-1">
+                  <div
+                    className={`h-full ${getConfidenceBarColor(diagnosis.confidence)}`}
+                    style={{ width: `${diagnosis.confidence}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Description */}
+            {diagnosis.description && (
+              <p className="text-sm text-muted-foreground mb-3">{diagnosis.description}</p>
+            )}
+
+            {/* Key Features */}
+            {diagnosis.keyFeatures && diagnosis.keyFeatures.length > 0 && (
+              <div className="mb-3">
+                <h5 className="text-sm font-semibold mb-2">Key Features:</h5>
+                <ul className="space-y-1">
+                  {diagnosis.keyFeatures.map((feature: string, idx: number) => (
+                    <li key={idx} className="text-sm flex items-start">
+                      <span className="text-primary mr-2">•</span>
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Recommendations */}
+            {diagnosis.recommendations && diagnosis.recommendations.length > 0 && (
+              <div>
+                <h5 className="text-sm font-semibold mb-2">Recommendations:</h5>
+                <ul className="space-y-1">
+                  {diagnosis.recommendations.map((rec: string, idx: number) => (
+                    <li key={idx} className="text-sm flex items-start">
+                      <span className="text-primary mr-2">→</span>
+                      <span>{rec}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+});
 
 export const DiagnosisResults = memo(function DiagnosisResults({
   caseData,
@@ -41,15 +146,12 @@ export const DiagnosisResults = memo(function DiagnosisResults({
   onGenerateReport,
   onNewAnalysis,
 }: DiagnosisResultsProps) {
-  const { finalDiagnoses, geminiAnalysis, openaiAnalysis } = caseData;
+  const { geminiAnalysis, openaiAnalysis } = caseData;
 
-  // Memoize consensus calculation
-  const consensus = useMemo(
-    () => (geminiAnalysis && openaiAnalysis ? 94 : 0),
-    [geminiAnalysis, openaiAnalysis]
-  );
+  // Check if analysis is still in progress
+  const isAnalyzing = !geminiAnalysis && !openaiAnalysis;
 
-  if (!finalDiagnoses || finalDiagnoses.length === 0) {
+  if (isAnalyzing) {
     return (
       <Card className="bg-card border border-border shadow-sm">
         <CardContent className="p-8 text-center">
@@ -67,224 +169,83 @@ export const DiagnosisResults = memo(function DiagnosisResults({
   }
 
   return (
-    <Card className="bg-card border border-border shadow-sm">
-      {/* Analysis Header */}
-      <div className="px-6 py-4 border-b border-border bg-gradient-to-r from-primary/5 to-secondary/5">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-xl font-bold text-foreground flex items-center">
-              <Bot className="text-primary mr-2" size={24} />
-              AI Analysis Results
-            </h3>
-            <p className="text-sm text-muted-foreground mt-1">Dual AI model analysis completed</p>
+    <div className="space-y-6">
+      {/* Header */}
+      <Card className="bg-gradient-to-r from-primary/5 to-secondary/5">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                <Brain className="text-primary h-7 w-7" />
+                AI Analysis Results
+              </h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Independent analysis from two AI models
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={onSaveCase}
+                variant="outline"
+                className="flex items-center gap-2"
+                data-testid="button-save-case"
+              >
+                <Save size={16} />
+                Save Case
+              </Button>
+              <Button
+                onClick={onGenerateReport}
+                variant="outline"
+                className="flex items-center gap-2"
+                data-testid="button-generate-report"
+              >
+                <FileText size={16} />
+                Generate Report
+              </Button>
+              <Button
+                onClick={onNewAnalysis}
+                variant="default"
+                className="flex items-center gap-2"
+                data-testid="button-new-analysis"
+              >
+                <Plus size={16} />
+                New Analysis
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center space-x-4">
-            {geminiAnalysis && (
-              <div className="flex items-center text-sm text-success">
-                <CheckCircle size={16} className="mr-2" />
-                Gemini 2.5 Flash
-              </div>
-            )}
-            {openaiAnalysis && (
-              <div className="flex items-center text-sm text-success">
-                <CheckCircle size={16} className="mr-2" />
-                ChatGPT-5
-              </div>
-            )}
-          </div>
-        </div>
+        </CardContent>
+      </Card>
+
+      {/* Side-by-side AI Results */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Gemini Analysis */}
+        <AIAnalysisCard
+          title="Gemini 2.5 Flash"
+          icon={<Sparkles className="h-5 w-5 text-purple-600" />}
+          analysis={geminiAnalysis}
+          color="border-purple-500/30"
+        />
+
+        {/* OpenAI Analysis */}
+        <AIAnalysisCard
+          title="GPT-4o Mini"
+          icon={<Zap className="h-5 w-5 text-green-600" />}
+          analysis={openaiAnalysis}
+          color="border-green-500/30"
+        />
       </div>
 
-      <CardContent className="p-6">
-        {/* Ranked Diagnoses */}
-        <div className="space-y-4">
-          <h4 className="text-lg font-semibold text-foreground mb-4">
-            Preliminary Diagnoses (Ranked by Confidence)
-          </h4>
-
-          {finalDiagnoses.map((diagnosis, index) => (
-            <div
-              key={index}
-              className={`diagnosis-card rounded-lg p-4 transition-all duration-200 hover:translate-y-[-2px] hover:shadow-lg ${getBorderColor(diagnosis.rank, diagnosis.isUrgent)} border`}
-              data-testid={`diagnosis-card-${index + 1}`}
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <div className="flex items-center mb-2">
-                    <Badge
-                      variant={diagnosis.rank === 1 ? 'default' : 'secondary'}
-                      className={`mr-3 ${diagnosis.rank === 1 ? 'bg-success text-white' : 'bg-muted text-muted-foreground'}`}
-                    >
-                      {diagnosis.rank}
-                    </Badge>
-                    <h5
-                      className="text-lg font-semibold text-foreground"
-                      data-testid={`text-diagnosis-name-${index + 1}`}
-                    >
-                      {diagnosis.name}
-                    </h5>
-                    <span
-                      className={`ml-auto text-lg font-bold ${getConfidenceColor(diagnosis.confidence)}`}
-                      data-testid={`text-confidence-${index + 1}`}
-                    >
-                      {diagnosis.confidence}%
-                    </span>
-                  </div>
-                  <div className="probability-bar bg-muted h-2 rounded-full mb-3">
-                    <div
-                      className={`h-full rounded-full ${getConfidenceBarColor(diagnosis.confidence)}`}
-                      style={{ width: `${diagnosis.confidence}%` }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-
-              <p
-                className="text-sm text-muted-foreground mb-3"
-                data-testid={`text-description-${index + 1}`}
-              >
-                {diagnosis.description}
-              </p>
-
-              {(diagnosis.keyFeatures.length > 0 || diagnosis.recommendations.length > 0) && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  {diagnosis.keyFeatures.length > 0 && (
-                    <div>
-                      <span className="font-medium text-foreground">Key Features:</span>
-                      <ul className="text-muted-foreground mt-1 space-y-1">
-                        {diagnosis.keyFeatures.map((feature, idx) => (
-                          <li key={idx}>• {feature}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {diagnosis.recommendations.length > 0 && (
-                    <div>
-                      <span className="font-medium text-foreground">Recommendations:</span>
-                      <ul className="text-muted-foreground mt-1 space-y-1">
-                        {diagnosis.recommendations.map((rec, idx) => (
-                          <li key={idx}>• {rec}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {diagnosis.isUrgent && (
-                <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3 text-sm mt-3">
-                  <div className="flex items-center text-destructive">
-                    <AlertTriangle size={16} className="mr-2" />
-                    <span className="font-medium">
-                      {diagnosis.confidence > 50
-                        ? 'Immediate dermatological referral recommended'
-                        : 'Requires professional evaluation'}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* AI Model Confidence Comparison */}
-        {(geminiAnalysis || openaiAnalysis) && (
-          <div className="mt-8 bg-muted/30 rounded-lg p-6">
-            <h4 className="text-lg font-semibold text-foreground mb-4">AI Model Consensus</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {geminiAnalysis && (
-                <div>
-                  <div className="flex items-center mb-3">
-                    <Brain className="text-primary mr-2" size={20} />
-                    <span className="font-medium text-foreground">Gemini 2.5 Flash</span>
-                  </div>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Top diagnosis confidence:</span>
-                      <span
-                        className="font-medium text-foreground"
-                        data-testid="text-gemini-confidence"
-                      >
-                        {geminiAnalysis.diagnoses?.[0]?.confidence || 0}%
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Analysis time:</span>
-                      <span className="font-medium text-foreground" data-testid="text-gemini-time">
-                        {geminiAnalysis.analysisTime || 0}s
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-              {openaiAnalysis && (
-                <div>
-                  <div className="flex items-center mb-3">
-                    <Bot className="text-secondary mr-2" size={20} />
-                    <span className="font-medium text-foreground">ChatGPT-5</span>
-                  </div>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Top diagnosis confidence:</span>
-                      <span
-                        className="font-medium text-foreground"
-                        data-testid="text-openai-confidence"
-                      >
-                        {openaiAnalysis.diagnoses?.[0]?.confidence || 0}%
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Analysis time:</span>
-                      <span className="font-medium text-foreground" data-testid="text-openai-time">
-                        {openaiAnalysis.analysisTime || 0}s
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            {consensus > 0 && (
-              <div className="mt-4 p-4 bg-card rounded-md border border-border">
-                <div className="flex items-center text-success">
-                  <CheckCircle size={16} className="mr-2" />
-                  <span className="font-medium" data-testid="text-consensus">
-                    High consensus between AI models ({consensus}% agreement)
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="mt-8 flex flex-wrap gap-4 pt-6 border-t border-border">
-          <Button
-            onClick={onSaveCase}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 font-medium"
-            data-testid="button-save-case"
-          >
-            <Save size={16} className="mr-2" />
-            Save Case
-          </Button>
-          <Button
-            onClick={onGenerateReport}
-            className="bg-secondary hover:bg-secondary/90 text-secondary-foreground px-6 py-3 font-medium"
-            data-testid="button-generate-report"
-          >
-            <FileText size={16} className="mr-2" />
-            Generate Report
-          </Button>
-          <Button
-            onClick={onNewAnalysis}
-            variant="outline"
-            className="border-border hover:bg-muted/50 text-foreground px-6 py-3 font-medium"
-            data-testid="button-new-analysis"
-          >
-            <Plus size={16} className="mr-2" />
-            New Analysis
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+      {/* Disclaimer */}
+      <Card className="border-yellow-500/30 bg-yellow-500/5">
+        <CardContent className="p-4">
+          <p className="text-sm text-muted-foreground">
+            <strong>Medical Disclaimer:</strong> These AI-generated diagnoses are for informational
+            purposes only. Please consult with a qualified healthcare professional for accurate
+            diagnosis and treatment. The results from both AI models are shown independently for
+            comparison.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
   );
 });

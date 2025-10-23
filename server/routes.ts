@@ -17,7 +17,6 @@ import multer from 'multer';
 import PDFDocument from 'pdfkit';
 import crypto from 'crypto';
 import logger from './logger';
-import { combineAnalyses } from './utils/aiAnalysis';
 import { sanitizeCSVFormula, formatSymptomsForCSV, mapDurationToTurkish } from './utils/csv';
 import { sanitizeTextForPDF } from './utils/pdf';
 import { lookupCaseWithAuth } from './utils/caseHelpers';
@@ -598,14 +597,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Combine and rank diagnoses
-      const finalDiagnoses = combineAnalyses(geminiAnalysis, openaiAnalysis);
+      // Store separate AI analyses (no consensus combining)
+      // Each AI's results will be displayed separately in the UI
 
       // Update case with analysis results
       const updatedCase = await storage.updateCase(newCase.id, userId, {
         geminiAnalysis,
         openaiAnalysis,
-        finalDiagnoses,
+        finalDiagnoses: null, // No longer combining results
         status: 'completed',
       });
 

@@ -1,28 +1,27 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { DiagnosisResults } from '../DiagnosisResults';
 import type { Case } from '@shared/schema';
 
-describe('DiagnosisResults Component', () => {
-  const mockOnSaveCase = vi.fn();
-  const mockOnGenerateReport = vi.fn();
-  const mockOnNewAnalysis = vi.fn();
-
-  const mockCaseData: Case = {
-    id: 'case-1',
-    caseId: 'DR-2025-001',
-    userId: 'user-1',
+describe('DiagnosisResults', () => {
+  const mockCase: Case = {
+    id: '1',
+    caseId: 'CASE-001',
+    userId: 'user1',
+    patientId: 'patient1',
     imageUrl: 'https://example.com/image.jpg',
     status: 'completed',
     createdAt: new Date(),
+    lesionLocation: 'arm',
+    symptoms: ['redness', 'itching'],
     geminiAnalysis: {
       diagnoses: [
         {
           name: 'Eczema',
           confidence: 85,
           description: 'Inflammatory skin condition',
-          keyFeatures: ['Dry skin', 'Redness'],
-          recommendations: ['Moisturize regularly'],
+          keyFeatures: ['Dry skin', 'Itching'],
+          recommendations: ['Moisturize regularly', 'Avoid irritants'],
         },
       ],
       analysisTime: 2.5,
@@ -30,317 +29,141 @@ describe('DiagnosisResults Component', () => {
     openaiAnalysis: {
       diagnoses: [
         {
-          name: 'Eczema',
-          confidence: 82,
-          description: 'Inflammatory skin condition',
-          keyFeatures: ['Itching', 'Scaling'],
-          recommendations: ['Consult dermatologist'],
+          name: 'Contact Dermatitis',
+          confidence: 80,
+          description: 'Allergic reaction',
+          keyFeatures: ['Redness', 'Swelling'],
+          recommendations: ['Identify allergen', 'Use corticosteroid cream'],
         },
       ],
-      analysisTime: 3.0,
+      analysisTime: 3.2,
     },
-    finalDiagnoses: [
-      {
-        rank: 1,
-        name: 'Eczema',
-        confidence: 85,
-        description: 'Inflammatory skin condition causing dry, itchy skin',
-        keyFeatures: ['Dry skin', 'Redness', 'Itching'],
-        recommendations: ['Moisturize regularly', 'Avoid triggers'],
-        isUrgent: false,
-      },
-      {
-        rank: 2,
-        name: 'Contact Dermatitis',
-        confidence: 65,
-        description: 'Skin reaction to allergens or irritants',
-        keyFeatures: ['Rash', 'Blisters'],
-        recommendations: ['Identify and avoid allergens'],
-        isUrgent: false,
-      },
-    ],
-    lesionLocation: null,
-    symptoms: null,
-    additionalSymptoms: null,
-    symptomDuration: null,
-    medicalHistory: null,
-    patientId: null,
+    finalDiagnoses: null,
   };
 
-  beforeEach(() => {
-    mockOnSaveCase.mockClear();
-    mockOnGenerateReport.mockClear();
-    mockOnNewAnalysis.mockClear();
-  });
+  const mockHandlers = {
+    onSaveCase: vi.fn(),
+    onGenerateReport: vi.fn(),
+    onNewAnalysis: vi.fn(),
+  };
 
-  it('should show loading state when no diagnoses available', () => {
-    const caseDataWithoutDiagnoses: Case = {
-      ...mockCaseData,
-      finalDiagnoses: [],
-    };
-
-    render(
-      <DiagnosisResults
-        caseData={caseDataWithoutDiagnoses}
-        onSaveCase={mockOnSaveCase}
-        onGenerateReport={mockOnGenerateReport}
-        onNewAnalysis={mockOnNewAnalysis}
-      />
-    );
+  it('should show loading state when no analysis is available', () => {
+    const loadingCase = { ...mockCase, geminiAnalysis: null, openaiAnalysis: null };
+    render(<DiagnosisResults caseData={loadingCase} {...mockHandlers} />);
 
     expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
-    expect(screen.getByText(/Processing Analysis/i)).toBeInTheDocument();
+    expect(screen.getByText('Processing Analysis...')).toBeInTheDocument();
   });
 
-  it('should render AI analysis results header', () => {
-    render(
-      <DiagnosisResults
-        caseData={mockCaseData}
-        onSaveCase={mockOnSaveCase}
-        onGenerateReport={mockOnGenerateReport}
-        onNewAnalysis={mockOnNewAnalysis}
-      />
-    );
+  it('should display both AI analysis results', () => {
+    render(<DiagnosisResults caseData={mockCase} {...mockHandlers} />);
 
-    expect(screen.getByText(/AI Analysis Results/i)).toBeInTheDocument();
-    expect(screen.getByText(/Dual AI model analysis completed/i)).toBeInTheDocument();
+    expect(screen.getByText('Gemini 2.5 Flash')).toBeInTheDocument();
+    expect(screen.getByText('Eczema')).toBeInTheDocument();
+    expect(screen.getByText('85%')).toBeInTheDocument();
+
+    expect(screen.getByText('GPT-4o Mini')).toBeInTheDocument();
+    expect(screen.getByText('Contact Dermatitis')).toBeInTheDocument();
+    expect(screen.getByText('80%')).toBeInTheDocument();
   });
 
-  it('should show Gemini and OpenAI status when both are present', () => {
-    render(
-      <DiagnosisResults
-        caseData={mockCaseData}
-        onSaveCase={mockOnSaveCase}
-        onGenerateReport={mockOnGenerateReport}
-        onNewAnalysis={mockOnNewAnalysis}
-      />
-    );
+  it('should display analysis times', () => {
+    render(<DiagnosisResults caseData={mockCase} {...mockHandlers} />);
 
-    // Check for AI model names in the header
-    const geminiElements = screen.getAllByText(/Gemini 2.5 Flash/i);
-    const chatgptElements = screen.getAllByText(/ChatGPT-5/i);
-
-    expect(geminiElements.length).toBeGreaterThan(0);
-    expect(chatgptElements.length).toBeGreaterThan(0);
-  });
-
-  it('should render all diagnoses in order', () => {
-    render(
-      <DiagnosisResults
-        caseData={mockCaseData}
-        onSaveCase={mockOnSaveCase}
-        onGenerateReport={mockOnGenerateReport}
-        onNewAnalysis={mockOnNewAnalysis}
-      />
-    );
-
-    expect(screen.getByTestId('diagnosis-card-1')).toBeInTheDocument();
-    expect(screen.getByTestId('diagnosis-card-2')).toBeInTheDocument();
-  });
-
-  it('should display diagnosis name and confidence correctly', () => {
-    render(
-      <DiagnosisResults
-        caseData={mockCaseData}
-        onSaveCase={mockOnSaveCase}
-        onGenerateReport={mockOnGenerateReport}
-        onNewAnalysis={mockOnNewAnalysis}
-      />
-    );
-
-    expect(screen.getByTestId('text-diagnosis-name-1')).toHaveTextContent('Eczema');
-    expect(screen.getByTestId('text-confidence-1')).toHaveTextContent('85%');
-
-    expect(screen.getByTestId('text-diagnosis-name-2')).toHaveTextContent('Contact Dermatitis');
-    expect(screen.getByTestId('text-confidence-2')).toHaveTextContent('65%');
-  });
-
-  it('should display diagnosis description', () => {
-    render(
-      <DiagnosisResults
-        caseData={mockCaseData}
-        onSaveCase={mockOnSaveCase}
-        onGenerateReport={mockOnGenerateReport}
-        onNewAnalysis={mockOnNewAnalysis}
-      />
-    );
-
-    expect(screen.getByTestId('text-description-1')).toHaveTextContent(
-      'Inflammatory skin condition causing dry, itchy skin'
-    );
+    expect(screen.getByText('2.5s')).toBeInTheDocument();
+    expect(screen.getByText('3.2s')).toBeInTheDocument();
   });
 
   it('should display key features', () => {
-    render(
-      <DiagnosisResults
-        caseData={mockCaseData}
-        onSaveCase={mockOnSaveCase}
-        onGenerateReport={mockOnGenerateReport}
-        onNewAnalysis={mockOnNewAnalysis}
-      />
-    );
+    render(<DiagnosisResults caseData={mockCase} {...mockHandlers} />);
 
-    // Multiple diagnoses have "Key Features:" so use getAllByText
-    const keyFeaturesElements = screen.getAllByText(/Key Features:/i);
-    expect(keyFeaturesElements.length).toBeGreaterThan(0);
-
-    expect(screen.getByText(/• Dry skin/i)).toBeInTheDocument();
-    expect(screen.getByText(/• Redness/i)).toBeInTheDocument();
-    expect(screen.getByText(/• Itching/i)).toBeInTheDocument();
+    expect(screen.getByText('Dry skin')).toBeInTheDocument();
+    expect(screen.getByText('Itching')).toBeInTheDocument();
+    expect(screen.getByText('Redness')).toBeInTheDocument();
+    expect(screen.getByText('Swelling')).toBeInTheDocument();
   });
 
   it('should display recommendations', () => {
-    render(
-      <DiagnosisResults
-        caseData={mockCaseData}
-        onSaveCase={mockOnSaveCase}
-        onGenerateReport={mockOnGenerateReport}
-        onNewAnalysis={mockOnNewAnalysis}
-      />
-    );
+    render(<DiagnosisResults caseData={mockCase} {...mockHandlers} />);
 
-    // Multiple diagnoses have "Recommendations:" so use getAllByText
-    const recommendationsElements = screen.getAllByText(/Recommendations:/i);
-    expect(recommendationsElements.length).toBeGreaterThan(0);
-
-    expect(screen.getByText(/• Moisturize regularly/i)).toBeInTheDocument();
-    expect(screen.getByText(/• Avoid triggers/i)).toBeInTheDocument();
+    expect(screen.getByText('Moisturize regularly')).toBeInTheDocument();
+    expect(screen.getByText('Identify allergen')).toBeInTheDocument();
   });
 
-  it('should show urgent warning for urgent diagnoses', () => {
-    const urgentCaseData: Case = {
-      ...mockCaseData,
-      finalDiagnoses: [
-        {
-          rank: 1,
-          name: 'Melanoma',
-          confidence: 75,
-          description: 'Serious skin cancer',
-          keyFeatures: ['Dark spots', 'Irregular borders'],
-          recommendations: ['Seek immediate medical attention'],
-          isUrgent: true,
-        },
-      ],
+  it('should show action buttons', () => {
+    render(<DiagnosisResults caseData={mockCase} {...mockHandlers} />);
+
+    expect(screen.getByTestId('button-save-case')).toBeInTheDocument();
+    expect(screen.getByTestId('button-generate-report')).toBeInTheDocument();
+    expect(screen.getByTestId('button-new-analysis')).toBeInTheDocument();
+  });
+
+  it('should handle missing Gemini analysis', () => {
+    const caseWithoutGemini = { ...mockCase, geminiAnalysis: null };
+    render(<DiagnosisResults caseData={caseWithoutGemini} {...mockHandlers} />);
+
+    expect(screen.getByText('No analysis available')).toBeInTheDocument();
+    expect(screen.getByText('Contact Dermatitis')).toBeInTheDocument();
+  });
+
+  it('should handle missing OpenAI analysis', () => {
+    const caseWithoutOpenAI = { ...mockCase, openaiAnalysis: null };
+    render(<DiagnosisResults caseData={caseWithoutOpenAI} {...mockHandlers} />);
+
+    expect(screen.getByText('Eczema')).toBeInTheDocument();
+    const noAnalysisTexts = screen.getAllByText('No analysis available');
+    expect(noAnalysisTexts.length).toBeGreaterThan(0);
+  });
+
+  it('should display medical disclaimer', () => {
+    render(<DiagnosisResults caseData={mockCase} {...mockHandlers} />);
+
+    expect(screen.getByText(/Medical Disclaimer/)).toBeInTheDocument();
+  });
+
+  it('should show rank numbers for diagnoses', () => {
+    render(<DiagnosisResults caseData={mockCase} {...mockHandlers} />);
+
+    const rankBadges = screen.getAllByText('1');
+    expect(rankBadges.length).toBeGreaterThan(0);
+  });
+
+  it('should display diagnosis descriptions', () => {
+    render(<DiagnosisResults caseData={mockCase} {...mockHandlers} />);
+
+    expect(screen.getByText('Inflammatory skin condition')).toBeInTheDocument();
+    expect(screen.getByText('Allergic reaction')).toBeInTheDocument();
+  });
+
+  it('should show AI Analysis Results header', () => {
+    render(<DiagnosisResults caseData={mockCase} {...mockHandlers} />);
+
+    expect(screen.getByText('AI Analysis Results')).toBeInTheDocument();
+  });
+
+  it('should handle multiple diagnoses from each AI', () => {
+    const caseWithMultiple = {
+      ...mockCase,
+      geminiAnalysis: {
+        diagnoses: [
+          { name: 'Diagnosis 1', confidence: 90, description: '', keyFeatures: [], recommendations: [] },
+          { name: 'Diagnosis 2', confidence: 75, description: '', keyFeatures: [], recommendations: [] },
+        ],
+        analysisTime: 2.0,
+      },
     };
 
-    render(
-      <DiagnosisResults
-        caseData={urgentCaseData}
-        onSaveCase={mockOnSaveCase}
-        onGenerateReport={mockOnGenerateReport}
-        onNewAnalysis={mockOnNewAnalysis}
-      />
-    );
+    render(<DiagnosisResults caseData={caseWithMultiple} {...mockHandlers} />);
 
-    // Check for urgent warning message (confidence > 50, so should show "Immediate dermatological referral")
-    expect(screen.getByText(/Immediate dermatological referral recommended/i)).toBeInTheDocument();
+    expect(screen.getByText('Diagnosis 1')).toBeInTheDocument();
+    expect(screen.getByText('Diagnosis 2')).toBeInTheDocument();
   });
 
-  it('should call onGenerateReport when report button is clicked', () => {
-    render(
-      <DiagnosisResults
-        caseData={mockCaseData}
-        onSaveCase={mockOnSaveCase}
-        onGenerateReport={mockOnGenerateReport}
-        onNewAnalysis={mockOnNewAnalysis}
-      />
-    );
+  it('should show diagnoses in cards', () => {
+    render(<DiagnosisResults caseData={mockCase} {...mockHandlers} />);
 
-    const reportButton = screen.getByTestId('button-generate-report');
-    fireEvent.click(reportButton);
-
-    expect(mockOnGenerateReport).toHaveBeenCalledTimes(1);
-  });
-
-  it('should call onNewAnalysis when new analysis button is clicked', () => {
-    render(
-      <DiagnosisResults
-        caseData={mockCaseData}
-        onSaveCase={mockOnSaveCase}
-        onGenerateReport={mockOnGenerateReport}
-        onNewAnalysis={mockOnNewAnalysis}
-      />
-    );
-
-    const newAnalysisButton = screen.getByTestId('button-new-analysis');
-    fireEvent.click(newAnalysisButton);
-
-    expect(mockOnNewAnalysis).toHaveBeenCalledTimes(1);
-  });
-
-  it('should apply correct confidence color for high confidence (>=80)', () => {
-    render(
-      <DiagnosisResults
-        caseData={mockCaseData}
-        onSaveCase={mockOnSaveCase}
-        onGenerateReport={mockOnGenerateReport}
-        onNewAnalysis={mockOnNewAnalysis}
-      />
-    );
-
-    const confidence1 = screen.getByTestId('text-confidence-1');
-    expect(confidence1).toHaveClass('text-success');
-  });
-
-  it('should apply correct confidence color for medium confidence (60-79)', () => {
-    render(
-      <DiagnosisResults
-        caseData={mockCaseData}
-        onSaveCase={mockOnSaveCase}
-        onGenerateReport={mockOnGenerateReport}
-        onNewAnalysis={mockOnNewAnalysis}
-      />
-    );
-
-    const confidence2 = screen.getByTestId('text-confidence-2');
-    expect(confidence2).toHaveClass('text-foreground');
-  });
-
-  it('should apply correct confidence color for low confidence (<40)', () => {
-    const lowConfidenceCaseData: Case = {
-      ...mockCaseData,
-      finalDiagnoses: [
-        {
-          rank: 1,
-          name: 'Unknown Condition',
-          confidence: 25,
-          description: 'Low confidence diagnosis',
-          keyFeatures: [],
-          recommendations: [],
-          isUrgent: false,
-        },
-      ],
-    };
-
-    render(
-      <DiagnosisResults
-        caseData={lowConfidenceCaseData}
-        onSaveCase={mockOnSaveCase}
-        onGenerateReport={mockOnGenerateReport}
-        onNewAnalysis={mockOnNewAnalysis}
-      />
-    );
-
-    const confidence = screen.getByTestId('text-confidence-1');
-    expect(confidence).toHaveClass('text-destructive');
-  });
-
-  it('should display rank badges correctly', () => {
-    render(
-      <DiagnosisResults
-        caseData={mockCaseData}
-        onSaveCase={mockOnSaveCase}
-        onGenerateReport={mockOnGenerateReport}
-        onNewAnalysis={mockOnNewAnalysis}
-      />
-    );
-
-    // Rank 1 badge should have success styling
-    const rank1Badge = screen.getByText('1');
-    expect(rank1Badge).toHaveClass('bg-success');
-
-    // Rank 2 badge should have muted styling
-    const rank2Badge = screen.getByText('2');
-    expect(rank2Badge).toHaveClass('bg-muted');
+    // Both diagnoses should be displayed in the UI
+    expect(screen.getByText('Eczema')).toBeInTheDocument();
+    expect(screen.getByText('Contact Dermatitis')).toBeInTheDocument();
   });
 });

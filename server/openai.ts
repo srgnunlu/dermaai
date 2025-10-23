@@ -240,7 +240,6 @@ Respond with JSON in this exact format:
       response = await getOpenAIClient().chat.completions.create({
         model: 'gpt-4o-mini',
         ...baseRequest,
-        temperature: 0.2,
       });
       content = response.choices?.[0]?.message?.content ?? '';
     }

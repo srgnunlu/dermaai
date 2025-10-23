@@ -960,60 +960,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Table header
         const tableY = doc.y;
-        const colWidths = [30, 70, 50, 250];
-        const rowHeight = 20;
+        const colWidths = [35, 65, 80, 220];
+        const minRowHeight = 25;
         const tableLeft = 50;
+        const cellPadding = 4;
 
+        // Draw header
         doc
-          .rect(tableLeft, tableY, 500, rowHeight)
+          .rect(tableLeft, tableY, 400, minRowHeight)
           .fill('#f0f0f0');
 
         doc
-          .fontSize(9)
+          .fontSize(8)
           .font('Helvetica-Bold')
           .fillColor('#000000')
-          .text('Rank', tableLeft + 5, tableY + 3, { width: colWidths[0] - 5 })
-          .text('Confidence', tableLeft + colWidths[0] + 5, tableY + 3, {
-            width: colWidths[1] - 5,
+          .text('Rank', tableLeft + cellPadding, tableY + cellPadding, {
+            width: colWidths[0] - cellPadding * 2,
+            align: 'center',
           })
-          .text('Name', tableLeft + colWidths[0] + colWidths[1] + 5, tableY + 3, {
-            width: colWidths[2] - 5,
+          .text('Confidence', tableLeft + colWidths[0] + cellPadding, tableY + cellPadding, {
+            width: colWidths[1] - cellPadding * 2,
+            align: 'center',
           })
-          .text('Description', tableLeft + colWidths[0] + colWidths[1] + colWidths[2] + 5, tableY + 3, {
-            width: colWidths[3] - 5,
+          .text('Diagnosis', tableLeft + colWidths[0] + colWidths[1] + cellPadding, tableY + cellPadding, {
+            width: colWidths[2] - cellPadding * 2,
+            align: 'left',
+          })
+          .text('Details', tableLeft + colWidths[0] + colWidths[1] + colWidths[2] + cellPadding, tableY + cellPadding, {
+            width: colWidths[3] - cellPadding * 2,
+            align: 'left',
           });
 
-        let currentY = tableY + rowHeight;
+        let currentY = tableY + minRowHeight;
 
         caseRecord.geminiAnalysis.diagnoses.slice(0, 5).forEach((diagnosis: any, index: number) => {
           const diagY = currentY;
-          const shortDesc = diagnosis.description
-            ? sanitizeTextForPDF(diagnosis.description.substring(0, 80))
-            : '';
+          
+          // Calculate height needed for description
+          doc.fontSize(7);
+          const descHeight = doc.heightOfString(
+            sanitizeTextForPDF(diagnosis.description || 'N/A'),
+            { width: colWidths[3] - cellPadding * 2 }
+          );
+          const rowH = Math.max(minRowHeight, descHeight + cellPadding * 2);
 
+          // Draw row border
           doc
-            .rect(tableLeft, diagY, 500, rowHeight)
+            .rect(tableLeft, diagY, 400, rowH)
             .stroke('#cccccc');
 
+          // Draw cell contents
           doc
             .fontSize(8)
             .font('Helvetica')
             .fillColor('#000000')
-            .text(String(index + 1), tableLeft + 5, diagY + 5, { width: colWidths[0] - 5 })
-            .text(`${diagnosis.confidence}%`, tableLeft + colWidths[0] + 5, diagY + 5, {
-              width: colWidths[1] - 5,
+            .text(String(index + 1), tableLeft + cellPadding, diagY + cellPadding, {
+              width: colWidths[0] - cellPadding * 2,
+              align: 'center',
             })
-            .text(sanitizeTextForPDF(diagnosis.name), tableLeft + colWidths[0] + colWidths[1] + 5, diagY + 5, {
-              width: colWidths[2] - 5,
+            .text(`${diagnosis.confidence}%`, tableLeft + colWidths[0] + cellPadding, diagY + cellPadding, {
+              width: colWidths[1] - cellPadding * 2,
+              align: 'center',
+            });
+          
+          doc
+            .fontSize(7)
+            .text(sanitizeTextForPDF(diagnosis.name.substring(0, 30)), 
+              tableLeft + colWidths[0] + colWidths[1] + cellPadding, 
+              diagY + cellPadding, {
+              width: colWidths[2] - cellPadding * 2,
+              align: 'left',
+              ellipsis: true,
             })
-            .text(shortDesc, tableLeft + colWidths[0] + colWidths[1] + colWidths[2] + 5, diagY + 5, {
-              width: colWidths[3] - 5,
+            .text(sanitizeTextForPDF(diagnosis.description || 'N/A'),
+              tableLeft + colWidths[0] + colWidths[1] + colWidths[2] + cellPadding,
+              diagY + cellPadding, {
+              width: colWidths[3] - cellPadding * 2,
+              align: 'left',
             });
 
-          currentY += rowHeight;
+          currentY += rowH;
         });
 
-        doc.moveDown(4);
+        doc.moveDown(3);
       }
 
       // OpenAI Results
@@ -1030,57 +1059,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Table header
         const tableY = doc.y;
-        const colWidths = [30, 70, 50, 250];
-        const rowHeight = 20;
+        const colWidths = [35, 65, 80, 220];
+        const minRowHeight = 25;
         const tableLeft = 50;
+        const cellPadding = 4;
 
+        // Draw header
         doc
-          .rect(tableLeft, tableY, 500, rowHeight)
+          .rect(tableLeft, tableY, 400, minRowHeight)
           .fill('#f0f0f0');
 
         doc
-          .fontSize(9)
+          .fontSize(8)
           .font('Helvetica-Bold')
           .fillColor('#000000')
-          .text('Rank', tableLeft + 5, tableY + 3, { width: colWidths[0] - 5 })
-          .text('Confidence', tableLeft + colWidths[0] + 5, tableY + 3, {
-            width: colWidths[1] - 5,
+          .text('Rank', tableLeft + cellPadding, tableY + cellPadding, {
+            width: colWidths[0] - cellPadding * 2,
+            align: 'center',
           })
-          .text('Name', tableLeft + colWidths[0] + colWidths[1] + 5, tableY + 3, {
-            width: colWidths[2] - 5,
+          .text('Confidence', tableLeft + colWidths[0] + cellPadding, tableY + cellPadding, {
+            width: colWidths[1] - cellPadding * 2,
+            align: 'center',
           })
-          .text('Description', tableLeft + colWidths[0] + colWidths[1] + colWidths[2] + 5, tableY + 3, {
-            width: colWidths[3] - 5,
+          .text('Diagnosis', tableLeft + colWidths[0] + colWidths[1] + cellPadding, tableY + cellPadding, {
+            width: colWidths[2] - cellPadding * 2,
+            align: 'left',
+          })
+          .text('Details', tableLeft + colWidths[0] + colWidths[1] + colWidths[2] + cellPadding, tableY + cellPadding, {
+            width: colWidths[3] - cellPadding * 2,
+            align: 'left',
           });
 
-        let currentY = tableY + rowHeight;
+        let currentY = tableY + minRowHeight;
 
         caseRecord.openaiAnalysis.diagnoses.slice(0, 5).forEach((diagnosis: any, index: number) => {
           const diagY = currentY;
-          const shortDesc = diagnosis.description
-            ? sanitizeTextForPDF(diagnosis.description.substring(0, 80))
-            : '';
+          
+          // Calculate height needed for description
+          doc.fontSize(7);
+          const descHeight = doc.heightOfString(
+            sanitizeTextForPDF(diagnosis.description || 'N/A'),
+            { width: colWidths[3] - cellPadding * 2 }
+          );
+          const rowH = Math.max(minRowHeight, descHeight + cellPadding * 2);
 
+          // Draw row border
           doc
-            .rect(tableLeft, diagY, 500, rowHeight)
+            .rect(tableLeft, diagY, 400, rowH)
             .stroke('#cccccc');
 
+          // Draw cell contents
           doc
             .fontSize(8)
             .font('Helvetica')
             .fillColor('#000000')
-            .text(String(index + 1), tableLeft + 5, diagY + 5, { width: colWidths[0] - 5 })
-            .text(`${diagnosis.confidence}%`, tableLeft + colWidths[0] + 5, diagY + 5, {
-              width: colWidths[1] - 5,
+            .text(String(index + 1), tableLeft + cellPadding, diagY + cellPadding, {
+              width: colWidths[0] - cellPadding * 2,
+              align: 'center',
             })
-            .text(sanitizeTextForPDF(diagnosis.name), tableLeft + colWidths[0] + colWidths[1] + 5, diagY + 5, {
-              width: colWidths[2] - 5,
+            .text(`${diagnosis.confidence}%`, tableLeft + colWidths[0] + cellPadding, diagY + cellPadding, {
+              width: colWidths[1] - cellPadding * 2,
+              align: 'center',
+            });
+          
+          doc
+            .fontSize(7)
+            .text(sanitizeTextForPDF(diagnosis.name.substring(0, 30)), 
+              tableLeft + colWidths[0] + colWidths[1] + cellPadding, 
+              diagY + cellPadding, {
+              width: colWidths[2] - cellPadding * 2,
+              align: 'left',
+              ellipsis: true,
             })
-            .text(shortDesc, tableLeft + colWidths[0] + colWidths[1] + colWidths[2] + 5, diagY + 5, {
-              width: colWidths[3] - 5,
+            .text(sanitizeTextForPDF(diagnosis.description || 'N/A'),
+              tableLeft + colWidths[0] + colWidths[1] + colWidths[2] + cellPadding,
+              diagY + cellPadding, {
+              width: colWidths[3] - cellPadding * 2,
+              align: 'left',
             });
 
-          currentY += rowHeight;
+          currentY += rowH;
         });
 
         doc.moveDown(3);

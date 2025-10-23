@@ -48,6 +48,13 @@ export interface IStorage {
   getCaseByCaseId(caseId: string, userId: string): Promise<Case | undefined>;
   getCaseByCaseIdForAdmin(caseId: string): Promise<Case | undefined>;
   getCases(userId: string): Promise<Case[]>;
+  getCasesForDermatologist(): Promise<Case[]>;
+  updateCaseDermatologistDiagnosis(
+    caseId: string,
+    dermatologistId: string,
+    diagnosis: string,
+    notes?: string
+  ): Promise<Case | undefined>;
   updateCase(id: string, userId: string, updates: Partial<Case>): Promise<Case>;
   deleteCase(id: string): Promise<boolean>;
 
@@ -331,6 +338,54 @@ export class DatabaseStorage implements IStorage {
       const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
       return bTime - aTime;
     });
+  }
+
+  async getCasesForDermatologist(): Promise<Case[]> {
+    // Return all cases with status 'completed' but WITHOUT AI analysis data (blind review)
+    const allCases = await db
+      .select()
+      .from(cases)
+      .where(eq(cases.status, 'completed'));
+
+    // Remove AI analysis data for blind review
+    return allCases.map(c => ({
+      ...c,
+      geminiAnalysis: null,
+      openaiAnalysis: null,
+      finalDiagnoses: null,
+    })).sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bTime - aTime;
+    });
+  }
+
+  async updateCaseDermatologistDiagnosis(
+    caseId: string,
+    dermatologistId: string,
+    diagnosis: string,
+    notes?: string
+  ): Promise<Case | undefined> {
+    try {
+      const [updatedCase] = await db
+        .update(cases)
+        .set({
+          dermatologistDiagnosis: diagnosis,
+          dermatologistNotes: notes || null,
+          dermatologistDiagnosedBy: dermatologistId,
+          dermatologistDiagnosedAt: new Date(),
+        })
+        .where(eq(cases.id, caseId))
+        .returning();
+
+      // Invalidate admin cache
+      cache.invalidatePattern('admin:');
+
+      return updatedCase;
+    } catch (error) {
+      logger.error('Error updating dermatologist diagnosis:', error);
+      throw error;
+    }
   }
 
   async updateCase(id: string, userId: string, updates: Partial<Case>): Promise<Case> {

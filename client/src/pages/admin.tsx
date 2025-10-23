@@ -1140,6 +1140,33 @@ export default function AdminPage() {
                 </div>
               </div>
 
+              {/* Dermatologist Diagnosis */}
+              {selectedCase.dermatologistDiagnosis && (
+                <div>
+                  <h3 className="font-semibold mb-2 text-green-700">Dermatologist Diagnosis</h3>
+                  <div className="border border-green-200 rounded-lg p-4 bg-green-50">
+                    <div className="space-y-2 text-sm">
+                      <p>
+                        <span className="font-medium">Diagnosis:</span>{' '}
+                        {selectedCase.dermatologistDiagnosis}
+                      </p>
+                      {selectedCase.dermatologistNotes && (
+                        <p>
+                          <span className="font-medium">Clinical Notes:</span>{' '}
+                          {selectedCase.dermatologistNotes}
+                        </p>
+                      )}
+                      {selectedCase.dermatologistDiagnosedAt && (
+                        <p className="text-xs text-muted-foreground">
+                          Diagnosed on:{' '}
+                          {format(new Date(selectedCase.dermatologistDiagnosedAt), 'PPpp')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Case Images */}
               {(selectedCase.imageUrls?.length ?? 0) > 0 || selectedCase.imageUrl ? (
                 <div>

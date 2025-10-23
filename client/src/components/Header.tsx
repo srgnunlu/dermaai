@@ -30,6 +30,7 @@ import {
   Shield,
   Bell,
   BarChart3,
+  Stethoscope,
 } from 'lucide-react';
 import { queryClient } from '@/lib/queryClient';
 import type { Case } from '@shared/schema';
@@ -63,6 +64,7 @@ export default function Header() {
   if (user?.role === 'admin') {
     navigation.push({ name: 'Admin', href: '/admin', icon: Shield });
     navigation.push({ name: 'Analytics', href: '/analytics', icon: BarChart3 });
+    navigation.push({ name: 'Dermatologist Review', href: '/dermatologist', icon: Stethoscope });
   }
 
   if (!isAuthenticated) {

@@ -288,6 +288,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'Belirtiler',
         'Ek Belirtiler',
         'Belirti Süresi',
+        'Dermatolog Tanısı',
+        'Dermatolog Notları',
+        'Tanı Tarihi',
         'Gemini Top1 Tanı',
         'Gemini Top1 Güven',
         'Gemini Top2 Tanı',
@@ -327,6 +330,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           formatSymptomsForCSV(c.symptoms as string[]),
           sanitizeCSVFormula(c.additionalSymptoms) || 'Yok',
           mapDurationToTurkish(c.symptomDuration),
+          sanitizeCSVFormula(c.dermatologistDiagnosis) || 'Yok',
+          sanitizeCSVFormula(c.dermatologistNotes) || 'Yok',
+          c.dermatologistDiagnosedAt ? new Date(c.dermatologistDiagnosedAt).toLocaleDateString('tr-TR') : 'Yok',
         ];
 
         // Add Gemini diagnoses (top 5)
@@ -716,6 +722,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       logger.error('Error fetching case:', error);
       res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Dermatologist diagnosis endpoints
+  app.post('/api/cases/:id/dermatologist-diagnosis', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const caseId = req.params.id;
+      const { updateDermatologistDiagnosisSchema } = await import('@shared/schema');
+      const diagnosisData = updateDermatologistDiagnosisSchema.parse(req.body);
+
+      const updatedCase = await storage.updateCaseDermatologistDiagnosis(
+        caseId,
+        userId,
+        diagnosisData.dermatologistDiagnosis,
+        diagnosisData.dermatologistNotes
+      );
+
+      if (!updatedCase) {
+        return res.status(404).json({ error: 'Case not found' });
+      }
+
+      res.json(updatedCase);
+    } catch (error) {
+      logger.error('Error saving dermatologist diagnosis:', error);
+      res.status(500).json({ error: 'Failed to save diagnosis' });
+    }
+  });
+
+  app.get('/api/dermatologist/cases', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      // Get all cases without AI analysis data for blind review
+      const cases = await storage.getCasesForDermatologist();
+      res.json(cases);
+    } catch (error) {
+      logger.error('Error fetching dermatologist cases:', error);
+      res.status(500).json({ error: 'Failed to fetch cases' });
     }
   });
 

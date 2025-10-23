@@ -102,6 +102,10 @@ export const cases = pgTable(
         isUrgent: boolean;
       }>
     >(),
+    dermatologistDiagnosis: text('dermatologist_diagnosis'),
+    dermatologistNotes: text('dermatologist_notes'),
+    dermatologistDiagnosedBy: varchar('dermatologist_diagnosed_by').references(() => users.id),
+    dermatologistDiagnosedAt: timestamp('dermatologist_diagnosed_at'),
     status: text('status').default('pending'),
     createdAt: timestamp('created_at').defaultNow(),
   },
@@ -126,10 +130,16 @@ export const insertCaseSchema = createInsertSchema(cases).omit({
   status: true,
 });
 
+export const updateDermatologistDiagnosisSchema = z.object({
+  dermatologistDiagnosis: z.string().min(1, 'Diagnosis is required'),
+  dermatologistNotes: z.string().optional(),
+});
+
 export type InsertPatient = z.infer<typeof insertPatientSchema>;
 export type Patient = typeof patients.$inferSelect;
 export type InsertCase = z.infer<typeof insertCaseSchema>;
 export type Case = typeof cases.$inferSelect;
+export type UpdateDermatologistDiagnosis = z.infer<typeof updateDermatologistDiagnosisSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 
 export type UpsertUser = typeof users.$inferInsert;

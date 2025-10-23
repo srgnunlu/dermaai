@@ -98,6 +98,10 @@ jobs:
       - name: Run TypeScript check
         run: npm run check
 
+      - name: Run linter (warnings allowed)
+        run: npm run lint
+        continue-on-error: true
+
   notify:
     name: Notify Status
     runs-on: ubuntu-latest

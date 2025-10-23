@@ -12,14 +12,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { UserCheck, Brain } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { UserCheck, Brain, ChevronDown, X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface PatientData {
   patientId: string;
   age: number | null;
   gender: string;
   skinType: string;
-  lesionLocation: string;
+  lesionLocation: string[];
   symptoms: string[];
   additionalSymptoms: string;
   symptomDuration: string;
@@ -40,7 +42,7 @@ export const PatientForm = memo(function PatientForm({
     age: null,
     gender: '',
     skinType: '',
-    lesionLocation: '',
+    lesionLocation: [],
     symptoms: [],
     additionalSymptoms: '',
     symptomDuration: '',
@@ -72,6 +74,43 @@ export const PatientForm = memo(function PatientForm({
         : prev.symptoms.filter((item) => item !== symptom),
     }));
   }, []);
+
+  const handleLesionLocationChange = useCallback((location: string, checked: boolean) => {
+    setFormData((prev) => ({
+      ...prev,
+      lesionLocation: checked
+        ? [...prev.lesionLocation, location]
+        : prev.lesionLocation.filter((item) => item !== location),
+    }));
+  }, []);
+
+  const removeLesionLocation = useCallback((location: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      lesionLocation: prev.lesionLocation.filter((item) => item !== location),
+    }));
+  }, []);
+
+  const lesionLocations = [
+    'Baş (Head)',
+    'Yüz (Face)',
+    'Boyun (Neck)',
+    'Göğüs (Chest)',
+    'Karın (Abdomen)',
+    'Sırt (Back)',
+    'Omuz (Shoulder)',
+    'Kol (Arm)',
+    'Dirsek (Elbow)',
+    'Ön Kol (Forearm)',
+    'El (Hand)',
+    'Parmak (Finger)',
+    'Kalça (Hip)',
+    'Bacak (Leg)',
+    'Diz (Knee)',
+    'Baldır (Calf)',
+    'Ayak (Foot)',
+    'Ayak Parmağı (Toe)',
+  ];
 
   const dermatologicalSymptoms = [
     'Itching (Kaşıntı)',
@@ -191,39 +230,70 @@ export const PatientForm = memo(function PatientForm({
             </div>
           </div>
 
-          {/* Lesion Location */}
+          {/* Lesion Location - Multi Select */}
           <div>
-            <Label htmlFor="lesionLocation" className="text-sm font-medium text-foreground mb-2">
-              Lesion Location
+            <Label className="text-sm font-medium text-foreground mb-2 block">
+              Lesion Location (Multiple Selection)
             </Label>
-            <Select
-              value={formData.lesionLocation}
-              onValueChange={(value) => setFormData((prev) => ({ ...prev, lesionLocation: value }))}
-            >
-              <SelectTrigger className="w-full" data-testid="select-lesion-location">
-                <SelectValue placeholder="Select lesion location" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Baş (Head)">Baş (Head)</SelectItem>
-                <SelectItem value="Yüz (Face)">Yüz (Face)</SelectItem>
-                <SelectItem value="Boyun (Neck)">Boyun (Neck)</SelectItem>
-                <SelectItem value="Göğüs (Chest)">Göğüs (Chest)</SelectItem>
-                <SelectItem value="Karın (Abdomen)">Karın (Abdomen)</SelectItem>
-                <SelectItem value="Sırt (Back)">Sırt (Back)</SelectItem>
-                <SelectItem value="Omuz (Shoulder)">Omuz (Shoulder)</SelectItem>
-                <SelectItem value="Kol (Arm)">Kol (Arm)</SelectItem>
-                <SelectItem value="Dirsek (Elbow)">Dirsek (Elbow)</SelectItem>
-                <SelectItem value="Ön Kol (Forearm)">Ön Kol (Forearm)</SelectItem>
-                <SelectItem value="El (Hand)">El (Hand)</SelectItem>
-                <SelectItem value="Parmak (Finger)">Parmak (Finger)</SelectItem>
-                <SelectItem value="Kalça (Hip)">Kalça (Hip)</SelectItem>
-                <SelectItem value="Bacak (Leg)">Bacak (Leg)</SelectItem>
-                <SelectItem value="Diz (Knee)">Diz (Knee)</SelectItem>
-                <SelectItem value="Baldır (Calf)">Baldır (Calf)</SelectItem>
-                <SelectItem value="Ayak (Foot)">Ayak (Foot)</SelectItem>
-                <SelectItem value="Ayak Parmağı (Toe)">Ayak Parmağı (Toe)</SelectItem>
-              </SelectContent>
-            </Select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-between text-left font-normal"
+                  data-testid="select-lesion-location"
+                >
+                  <span className="truncate">
+                    {formData.lesionLocation.length === 0
+                      ? 'Select lesion locations'
+                      : `${formData.lesionLocation.length} location${formData.lesionLocation.length > 1 ? 's' : ''} selected`}
+                  </span>
+                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[400px] p-0" align="start">
+                <div className="max-h-[300px] overflow-y-auto p-4 space-y-2">
+                  {lesionLocations.map((location) => (
+                    <div key={location} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`location-${location}`}
+                        checked={formData.lesionLocation.includes(location)}
+                        onCheckedChange={(checked) =>
+                          handleLesionLocationChange(location, checked as boolean)
+                        }
+                      />
+                      <label
+                        htmlFor={`location-${location}`}
+                        className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        {location}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+            
+            {/* Selected Locations as Badges */}
+            {formData.lesionLocation.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {formData.lesionLocation.map((location) => (
+                  <Badge
+                    key={location}
+                    variant="secondary"
+                    className="pl-2 pr-1 py-1 text-xs"
+                  >
+                    {location}
+                    <button
+                      type="button"
+                      onClick={() => removeLesionLocation(location)}
+                      className="ml-1 rounded-full hover:bg-muted p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Structured Symptoms Collection */}

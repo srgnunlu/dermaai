@@ -14,7 +14,7 @@ interface PatientData {
   age: number | null;
   gender: string;
   skinType: string;
-  lesionLocation: string;
+  lesionLocation: string[];
   symptoms: string[];
   additionalSymptoms: string;
   symptomDuration: string;
@@ -46,7 +46,7 @@ export default function DiagnosisPage() {
       const caseData = {
         patientId: patient.id,
         imageUrls: data.imageUrls, // Support for 1-3 images
-        lesionLocation: data.patientData.lesionLocation,
+        lesionLocation: data.patientData.lesionLocation.join(', '), // Convert array to comma-separated string
         symptoms: data.patientData.symptoms,
         additionalSymptoms: data.patientData.additionalSymptoms,
         symptomDuration: data.patientData.symptomDuration,

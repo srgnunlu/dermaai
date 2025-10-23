@@ -119,11 +119,55 @@ export default function DiagnosisPage() {
     });
   };
 
-  const handleGenerateReport = () => {
-    toast({
-      title: 'Report Generated',
-      description: 'Medical report has been generated successfully.',
-    });
+  const handleGenerateReport = async () => {
+    if (!analysisResult?.id) {
+      toast({
+        title: 'Error',
+        description: 'No case data available to generate report.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      toast({
+        title: 'Generating Report',
+        description: 'Please wait while we generate your PDF report...',
+      });
+
+      const response = await fetch(`/api/cases/${analysisResult.id}/report`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Case-Report-${analysisResult.caseId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        toast({
+          title: 'Report Downloaded',
+          description: `Medical report for case ${analysisResult.caseId} has been downloaded.`,
+        });
+      } else {
+        throw new Error('Failed to generate report');
+      }
+    } catch (error) {
+      console.error('Report generation error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to generate report. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleNewAnalysis = () => {

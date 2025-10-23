@@ -778,88 +778,141 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .fillColor('#000000')
         .moveDown(3);
 
-      // Case Header Section - with border
+      // Case Information Section - Professional Grid Layout
+      const boxStartY = doc.y;
+      const boxWidth = pageWidth - 80;
+      const boxHeight = 90;
+      
+      // Draw box background
       doc
-        .rect(doc.x, doc.y, pageWidth - 80, 80)
-        .stroke('#1a5490');
-
+        .rect(40, boxStartY, boxWidth, boxHeight)
+        .fillAndStroke('#f8f9fa', '#1a5490');
+      
+      // Section title
       doc
-        .fontSize(10)
-        .font('Helvetica-Bold')
-        .text(sanitizeTextForPDF('CASE INFORMATION'), doc.x + 10, doc.y + 5, {
-          width: pageWidth - 100,
-        })
-        .font('Helvetica')
-        .fontSize(9)
-        .moveDown(0.3)
-        .text(sanitizeTextForPDF(`Case ID: ${caseRecord.caseId}`), doc.x + 10)
-        .text(sanitizeTextForPDF(`Patient ID: ${caseRecord.patientId || 'N/A'}`))
-        .text(
-          sanitizeTextForPDF(
-            `Date: ${caseRecord.createdAt ? new Date(caseRecord.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}`
-          )
-        )
-        .text(
-          sanitizeTextForPDF(
-            `Status: ${caseRecord.status === 'completed' ? 'Completed' : 'Pending'}`
-          )
-        )
-        .moveDown(1.5);
-
-      // Clinical Information Section
-      doc
-        .fontSize(12)
+        .fontSize(11)
         .font('Helvetica-Bold')
         .fillColor('#1a5490')
-        .text(sanitizeTextForPDF('CLINICAL INFORMATION'), {
-          underline: true,
-        })
-        .fillColor('#000000')
+        .text(sanitizeTextForPDF('CASE INFORMATION'), 50, boxStartY + 10);
+      
+      // Draw divider line
+      doc
+        .moveTo(50, boxStartY + 28)
+        .lineTo(pageWidth - 50, boxStartY + 28)
+        .stroke('#dee2e6');
+      
+      // Grid layout for case info (2 columns)
+      const col1X = 50;
+      const col2X = pageWidth / 2 + 20;
+      let currentInfoY = boxStartY + 38;
+      
+      doc.fillColor('#000000').fontSize(9);
+      
+      // Column 1
+      doc
+        .font('Helvetica-Bold')
+        .text('Case ID:', col1X, currentInfoY, { continued: true })
         .font('Helvetica')
-        .fontSize(10)
-        .moveDown(0.5);
+        .text(` ${sanitizeTextForPDF(caseRecord.caseId)}`);
+      
+      currentInfoY += 15;
+      doc
+        .font('Helvetica-Bold')
+        .text('Patient ID:', col1X, currentInfoY, { continued: true })
+        .font('Helvetica')
+        .text(` ${sanitizeTextForPDF(caseRecord.patientId || 'N/A')}`);
+      
+      // Column 2
+      currentInfoY = boxStartY + 38;
+      doc
+        .font('Helvetica-Bold')
+        .text('Date:', col2X, currentInfoY, { continued: true })
+        .font('Helvetica')
+        .text(` ${sanitizeTextForPDF(caseRecord.createdAt ? new Date(caseRecord.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A')}`);
+      
+      currentInfoY += 15;
+      doc
+        .font('Helvetica-Bold')
+        .text('Status:', col2X, currentInfoY, { continued: true })
+        .font('Helvetica')
+        .fillColor(caseRecord.status === 'completed' ? '#22c55e' : '#f59e0b')
+        .text(` ${sanitizeTextForPDF(caseRecord.status === 'completed' ? 'Completed' : 'Pending')}`);
+      
+      doc.fillColor('#000000');
+      doc.y = boxStartY + boxHeight + 20;
 
-      const clinicalData = [
-        [`Lesion Location:`, sanitizeTextForPDF(caseRecord.lesionLocation || 'Not specified')],
-        [
-          `Symptoms:`,
-          sanitizeTextForPDF(
-            Array.isArray(caseRecord.symptoms)
-              ? caseRecord.symptoms.join(', ')
-              : caseRecord.symptoms || 'None reported'
-          ),
-        ],
-        [
-          `Duration:`,
-          sanitizeTextForPDF(caseRecord.symptomDuration || 'Not specified'),
-        ],
-      ];
-
-      clinicalData.forEach(([label, value]) => {
-        doc
-          .font('Helvetica-Bold')
-          .text(label, { continued: true })
-          .font('Helvetica')
-          .text(` ${value}`);
-      });
-
+      // Clinical Information Section - Card Style
+      const clinicalStartY = doc.y;
+      const clinicalHeight = 110;
+      
+      // Draw card background
+      doc
+        .rect(40, clinicalStartY, boxWidth, clinicalHeight)
+        .fillAndStroke('#f8f9fa', '#1a5490');
+      
+      // Section title
+      doc
+        .fontSize(11)
+        .font('Helvetica-Bold')
+        .fillColor('#1a5490')
+        .text(sanitizeTextForPDF('CLINICAL INFORMATION'), 50, clinicalStartY + 10);
+      
+      // Draw divider line
+      doc
+        .moveTo(50, clinicalStartY + 28)
+        .lineTo(pageWidth - 50, clinicalStartY + 28)
+        .stroke('#dee2e6');
+      
+      let clinicalY = clinicalStartY + 38;
+      doc.fillColor('#000000').fontSize(9);
+      
+      // Lesion Location
+      doc
+        .font('Helvetica-Bold')
+        .text('Lesion Location:', 50, clinicalY, { continued: true })
+        .font('Helvetica')
+        .text(` ${sanitizeTextForPDF(caseRecord.lesionLocation || 'Not specified')}`);
+      
+      clinicalY += 15;
+      
+      // Symptoms
+      doc
+        .font('Helvetica-Bold')
+        .text('Symptoms:', 50, clinicalY, { continued: true })
+        .font('Helvetica')
+        .text(` ${sanitizeTextForPDF(Array.isArray(caseRecord.symptoms) ? caseRecord.symptoms.join(', ') : caseRecord.symptoms || 'None reported')}`);
+      
+      clinicalY += 15;
+      
+      // Duration
+      doc
+        .font('Helvetica-Bold')
+        .text('Duration:', 50, clinicalY, { continued: true })
+        .font('Helvetica')
+        .text(` ${sanitizeTextForPDF(caseRecord.symptomDuration || 'Not specified')}`);
+      
+      clinicalY += 15;
+      
+      // Additional Symptoms (if any)
       if (caseRecord.additionalSymptoms) {
         doc
           .font('Helvetica-Bold')
-          .text('Additional Symptoms:', { continued: true })
+          .text('Additional Symptoms:', 50, clinicalY, { continued: true })
           .font('Helvetica')
           .text(` ${sanitizeTextForPDF(caseRecord.additionalSymptoms)}`);
+        clinicalY += 15;
       }
-
+      
+      // Medical History (if any)
       if (caseRecord.medicalHistory && caseRecord.medicalHistory.length > 0) {
         doc
           .font('Helvetica-Bold')
-          .text('Medical History:', { continued: true })
+          .text('Medical History:', 50, clinicalY, { continued: true })
           .font('Helvetica')
           .text(` ${sanitizeTextForPDF(caseRecord.medicalHistory.join(', '))}`);
       }
-
-      doc.moveDown(1.5);
+      
+      doc.y = clinicalStartY + clinicalHeight + 20;
 
       // Lesion Images Section
       const imageUrls = (caseRecord as any).imageUrls && Array.isArray((caseRecord as any).imageUrls)
@@ -869,6 +922,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : [];
 
       if (imageUrls && imageUrls.length > 0) {
+        // Section divider
+        doc
+          .moveTo(40, doc.y)
+          .lineTo(pageWidth - 40, doc.y)
+          .stroke('#dee2e6');
+        
+        doc.moveDown(0.5);
+        
         doc
           .fontSize(12)
           .font('Helvetica-Bold')
@@ -933,9 +994,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         doc.addPage();
       }
 
+      // Section divider before AI Results
+      doc
+        .moveTo(40, doc.y)
+        .lineTo(pageWidth - 40, doc.y)
+        .stroke('#dee2e6');
+      
+      doc.moveDown(1);
+      
       // AI Diagnosis Results Section
       doc
-        .fontSize(12)
+        .fontSize(14)
         .font('Helvetica-Bold')
         .fillColor('#1a5490')
         .text(sanitizeTextForPDF('AI ANALYSIS RESULTS'), {
@@ -944,204 +1013,163 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .fillColor('#000000')
         .font('Helvetica')
         .fontSize(10)
-        .moveDown(0.5);
+        .moveDown(0.8);
+      
+      // Helper function to draw confidence bar
+      const drawConfidenceBar = (x: number, y: number, width: number, confidence: number, color: string) => {
+        const barWidth = (confidence / 100) * width;
+        // Background
+        doc.rect(x, y, width, 8).fillAndStroke('#e5e7eb', '#d1d5db');
+        // Confidence bar
+        doc.rect(x, y, barWidth, 8).fillAndStroke(color, color);
+      };
 
       // Gemini Results
       if (caseRecord.geminiAnalysis?.diagnoses && caseRecord.geminiAnalysis.diagnoses.length > 0) {
+        // Model header with icon box
+        const geminiHeaderY = doc.y;
+        doc
+          .rect(40, geminiHeaderY, pageWidth - 80, 25)
+          .fillAndStroke('#f0f0f0', '#9333ea');
+        
         doc
           .fontSize(11)
           .font('Helvetica-Bold')
-          .fillColor('#6b4423')
-          .text(sanitizeTextForPDF('Gemini 2.5 Flash Analysis'), { underline: true })
-          .fillColor('#000000')
-          .font('Helvetica')
-          .fontSize(9)
-          .moveDown(0.5);
+          .fillColor('#9333ea')
+          .text(sanitizeTextForPDF('Gemini 2.5 Flash Analysis'), 50, geminiHeaderY + 8);
+        
+        doc.y = geminiHeaderY + 35;
+        doc.fillColor('#000000');
 
-        // Table header
-        const tableY = doc.y;
-        const colWidths = [35, 65, 80, 220];
-        const minRowHeight = 25;
-        const tableLeft = 50;
-        const cellPadding = 4;
-
-        // Draw header
-        doc
-          .rect(tableLeft, tableY, 400, minRowHeight)
-          .fill('#f0f0f0');
-
-        doc
-          .fontSize(8)
-          .font('Helvetica-Bold')
-          .fillColor('#000000')
-          .text('Rank', tableLeft + cellPadding, tableY + cellPadding, {
-            width: colWidths[0] - cellPadding * 2,
-            align: 'center',
-          })
-          .text('Confidence', tableLeft + colWidths[0] + cellPadding, tableY + cellPadding, {
-            width: colWidths[1] - cellPadding * 2,
-            align: 'center',
-          })
-          .text('Diagnosis', tableLeft + colWidths[0] + colWidths[1] + cellPadding, tableY + cellPadding, {
-            width: colWidths[2] - cellPadding * 2,
-            align: 'left',
-          })
-          .text('Details', tableLeft + colWidths[0] + colWidths[1] + colWidths[2] + cellPadding, tableY + cellPadding, {
-            width: colWidths[3] - cellPadding * 2,
-            align: 'left',
-          });
-
-        let currentY = tableY + minRowHeight;
-
+        // Improved diagnosis cards
         caseRecord.geminiAnalysis.diagnoses.slice(0, 5).forEach((diagnosis: any, index: number) => {
-          const diagY = currentY;
+          const cardY = doc.y;
+          const cardHeight = 60;
           
-          // Calculate height needed for description
-          doc.fontSize(7);
-          const descHeight = doc.heightOfString(
-            sanitizeTextForPDF(diagnosis.description || 'N/A'),
-            { width: colWidths[3] - cellPadding * 2 }
-          );
-          const rowH = Math.max(minRowHeight, descHeight + cellPadding * 2);
-
-          // Draw row border
+          // Card background with rank indicator
           doc
-            .rect(tableLeft, diagY, 400, rowH)
-            .stroke('#cccccc');
-
-          // Draw cell contents
+            .rect(40, cardY, pageWidth - 80, cardHeight)
+            .fillAndStroke('#ffffff', '#e5e7eb');
+          
+          // Rank circle
+          doc
+            .circle(55, cardY + 15, 12)
+            .fillAndStroke('#9333ea', '#9333ea');
+          
+          doc
+            .fontSize(10)
+            .font('Helvetica-Bold')
+            .fillColor('#ffffff')
+            .text(String(index + 1), 50, cardY + 10, { width: 10, align: 'center' });
+          
+          // Diagnosis name
+          doc
+            .fontSize(10)
+            .font('Helvetica-Bold')
+            .fillColor('#000000')
+            .text(sanitizeTextForPDF(diagnosis.name), 75, cardY + 10, {
+              width: pageWidth - 180,
+            });
+          
+          // Confidence percentage
+          doc
+            .fontSize(9)
+            .font('Helvetica-Bold')
+            .fillColor('#9333ea')
+            .text(`${diagnosis.confidence}%`, pageWidth - 110, cardY + 10);
+          
+          // Confidence bar
+          drawConfidenceBar(75, cardY + 28, pageWidth - 190, diagnosis.confidence, '#9333ea');
+          
+          // Description
           doc
             .fontSize(8)
             .font('Helvetica')
-            .fillColor('#000000')
-            .text(String(index + 1), tableLeft + cellPadding, diagY + cellPadding, {
-              width: colWidths[0] - cellPadding * 2,
-              align: 'center',
-            })
-            .text(`${diagnosis.confidence}%`, tableLeft + colWidths[0] + cellPadding, diagY + cellPadding, {
-              width: colWidths[1] - cellPadding * 2,
-              align: 'center',
+            .fillColor('#6b7280')
+            .text(sanitizeTextForPDF(diagnosis.description || 'N/A'), 75, cardY + 42, {
+              width: pageWidth - 150,
+              height: 12,
+              ellipsis: true,
             });
           
-          doc
-            .fontSize(7)
-            .text(sanitizeTextForPDF(diagnosis.name.substring(0, 30)), 
-              tableLeft + colWidths[0] + colWidths[1] + cellPadding, 
-              diagY + cellPadding, {
-              width: colWidths[2] - cellPadding * 2,
-              align: 'left',
-              ellipsis: true,
-            })
-            .text(sanitizeTextForPDF(diagnosis.description || 'N/A'),
-              tableLeft + colWidths[0] + colWidths[1] + colWidths[2] + cellPadding,
-              diagY + cellPadding, {
-              width: colWidths[3] - cellPadding * 2,
-              align: 'left',
-            });
-
-          currentY += rowH;
+          doc.y = cardY + cardHeight + 6;
         });
 
-        doc.moveDown(3);
+        doc.moveDown(1);
       }
 
       // OpenAI Results
       if (caseRecord.openaiAnalysis?.diagnoses && caseRecord.openaiAnalysis.diagnoses.length > 0) {
+        // Model header with icon box
+        const openaiHeaderY = doc.y;
+        doc
+          .rect(40, openaiHeaderY, pageWidth - 80, 25)
+          .fillAndStroke('#f0f0f0', '#16a34a');
+        
         doc
           .fontSize(11)
           .font('Helvetica-Bold')
-          .fillColor('#2d5d5d')
-          .text(sanitizeTextForPDF('GPT-5 Mini Analysis'), { underline: true })
-          .fillColor('#000000')
-          .font('Helvetica')
-          .fontSize(9)
-          .moveDown(0.5);
+          .fillColor('#16a34a')
+          .text(sanitizeTextForPDF('GPT-5 Mini Analysis'), 50, openaiHeaderY + 8);
+        
+        doc.y = openaiHeaderY + 35;
+        doc.fillColor('#000000');
 
-        // Table header
-        const tableY = doc.y;
-        const colWidths = [35, 65, 80, 220];
-        const minRowHeight = 25;
-        const tableLeft = 50;
-        const cellPadding = 4;
-
-        // Draw header
-        doc
-          .rect(tableLeft, tableY, 400, minRowHeight)
-          .fill('#f0f0f0');
-
-        doc
-          .fontSize(8)
-          .font('Helvetica-Bold')
-          .fillColor('#000000')
-          .text('Rank', tableLeft + cellPadding, tableY + cellPadding, {
-            width: colWidths[0] - cellPadding * 2,
-            align: 'center',
-          })
-          .text('Confidence', tableLeft + colWidths[0] + cellPadding, tableY + cellPadding, {
-            width: colWidths[1] - cellPadding * 2,
-            align: 'center',
-          })
-          .text('Diagnosis', tableLeft + colWidths[0] + colWidths[1] + cellPadding, tableY + cellPadding, {
-            width: colWidths[2] - cellPadding * 2,
-            align: 'left',
-          })
-          .text('Details', tableLeft + colWidths[0] + colWidths[1] + colWidths[2] + cellPadding, tableY + cellPadding, {
-            width: colWidths[3] - cellPadding * 2,
-            align: 'left',
-          });
-
-        let currentY = tableY + minRowHeight;
-
+        // Improved diagnosis cards
         caseRecord.openaiAnalysis.diagnoses.slice(0, 5).forEach((diagnosis: any, index: number) => {
-          const diagY = currentY;
+          const cardY = doc.y;
+          const cardHeight = 60;
           
-          // Calculate height needed for description
-          doc.fontSize(7);
-          const descHeight = doc.heightOfString(
-            sanitizeTextForPDF(diagnosis.description || 'N/A'),
-            { width: colWidths[3] - cellPadding * 2 }
-          );
-          const rowH = Math.max(minRowHeight, descHeight + cellPadding * 2);
-
-          // Draw row border
+          // Card background with rank indicator
           doc
-            .rect(tableLeft, diagY, 400, rowH)
-            .stroke('#cccccc');
-
-          // Draw cell contents
+            .rect(40, cardY, pageWidth - 80, cardHeight)
+            .fillAndStroke('#ffffff', '#e5e7eb');
+          
+          // Rank circle
+          doc
+            .circle(55, cardY + 15, 12)
+            .fillAndStroke('#16a34a', '#16a34a');
+          
+          doc
+            .fontSize(10)
+            .font('Helvetica-Bold')
+            .fillColor('#ffffff')
+            .text(String(index + 1), 50, cardY + 10, { width: 10, align: 'center' });
+          
+          // Diagnosis name
+          doc
+            .fontSize(10)
+            .font('Helvetica-Bold')
+            .fillColor('#000000')
+            .text(sanitizeTextForPDF(diagnosis.name), 75, cardY + 10, {
+              width: pageWidth - 180,
+            });
+          
+          // Confidence percentage
+          doc
+            .fontSize(9)
+            .font('Helvetica-Bold')
+            .fillColor('#16a34a')
+            .text(`${diagnosis.confidence}%`, pageWidth - 110, cardY + 10);
+          
+          // Confidence bar
+          drawConfidenceBar(75, cardY + 28, pageWidth - 190, diagnosis.confidence, '#16a34a');
+          
+          // Description
           doc
             .fontSize(8)
             .font('Helvetica')
-            .fillColor('#000000')
-            .text(String(index + 1), tableLeft + cellPadding, diagY + cellPadding, {
-              width: colWidths[0] - cellPadding * 2,
-              align: 'center',
-            })
-            .text(`${diagnosis.confidence}%`, tableLeft + colWidths[0] + cellPadding, diagY + cellPadding, {
-              width: colWidths[1] - cellPadding * 2,
-              align: 'center',
+            .fillColor('#6b7280')
+            .text(sanitizeTextForPDF(diagnosis.description || 'N/A'), 75, cardY + 42, {
+              width: pageWidth - 150,
+              height: 12,
+              ellipsis: true,
             });
           
-          doc
-            .fontSize(7)
-            .text(sanitizeTextForPDF(diagnosis.name.substring(0, 30)), 
-              tableLeft + colWidths[0] + colWidths[1] + cellPadding, 
-              diagY + cellPadding, {
-              width: colWidths[2] - cellPadding * 2,
-              align: 'left',
-              ellipsis: true,
-            })
-            .text(sanitizeTextForPDF(diagnosis.description || 'N/A'),
-              tableLeft + colWidths[0] + colWidths[1] + colWidths[2] + cellPadding,
-              diagY + cellPadding, {
-              width: colWidths[3] - cellPadding * 2,
-              align: 'left',
-            });
-
-          currentY += rowH;
+          doc.y = cardY + cardHeight + 6;
         });
 
-        doc.moveDown(3);
+        doc.moveDown(1);
       }
 
       if (
@@ -1151,31 +1179,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         doc.text(sanitizeTextForPDF('No AI analysis results available')).moveDown(1);
       }
 
-      // Professional Footer
-      doc.moveDown(2);
-      doc
-        .rect(0, doc.page.height - 60, doc.page.width, 60)
-        .fill('#f5f5f5');
+      // Professional Footer with page numbers
+      const pages = doc.bufferedPageRange();
+      for (let i = 0; i < pages.count; i++) {
+        doc.switchToPage(i);
+        
+        // Footer background
+        doc
+          .rect(0, doc.page.height - 60, doc.page.width, 60)
+          .fill('#f5f5f5');
 
-      doc
-        .fontSize(8)
-        .font('Helvetica')
-        .fillColor('#555555')
-        .text(
-          sanitizeTextForPDF(
-            `Generated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date().toLocaleTimeString('en-US')}`
-          ),
-          50,
-          doc.page.height - 50,
-          { align: 'center', width: doc.page.width - 100 }
-        )
-        .fontSize(7)
-        .text(
-          sanitizeTextForPDF(
-            'MEDICAL DISCLAIMER: This report is generated by AI analysis and should be reviewed by a qualified medical professional. It is for informational purposes only.'
-          ),
-          { align: 'center' }
-        );
+        // Footer content
+        doc
+          .fontSize(8)
+          .font('Helvetica')
+          .fillColor('#555555')
+          .text(
+            sanitizeTextForPDF(
+              `Generated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date().toLocaleTimeString('en-US')}`
+            ),
+            50,
+            doc.page.height - 50,
+            { align: 'center', width: doc.page.width - 100 }
+          )
+          .fontSize(7)
+          .text(
+            sanitizeTextForPDF(
+              'MEDICAL DISCLAIMER: This report is generated by AI analysis and should be reviewed by a qualified medical professional. It is for informational purposes only.'
+            ),
+            50,
+            doc.page.height - 35,
+            { align: 'center', width: doc.page.width - 100 }
+          );
+        
+        // Page number
+        doc
+          .fontSize(8)
+          .fillColor('#1a5490')
+          .text(
+            `Page ${i + 1} of ${pages.count}`,
+            0,
+            doc.page.height - 50,
+            { align: 'right', width: doc.page.width - 50 }
+          );
+      }
 
       // Finalize the PDF
       doc.end();

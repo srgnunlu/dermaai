@@ -59,6 +59,15 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 
 // Helper function to get merged diagnoses from finalDiagnoses or separate AI results
@@ -105,6 +114,10 @@ export default function AdminPage() {
   const [isChangingRole, setIsChangingRole] = useState<string | null>(null);
   const [isDeletingCase, setIsDeletingCase] = useState<string | null>(null);
   const [isDeletingUser, setIsDeletingUser] = useState<string | null>(null);
+  const [casesPage, setCasesPage] = useState(1);
+  const [usersPage, setUsersPage] = useState(1);
+  const casesPerPage = 20;
+  const usersPerPage = 20;
   const { toast } = useToast();
 
   // Handle individual case view
@@ -154,10 +167,29 @@ export default function AdminPage() {
     }
   };
 
-  // Fetch all cases for admin
-  const { data: cases = [], isLoading: casesLoading } = useQuery<any[]>({
-    queryKey: ['/api/admin/cases'],
+  // Fetch all cases for admin with pagination
+  const { 
+    data: casesData, 
+    isLoading: casesLoading 
+  } = useQuery<{
+    cases: any[];
+    total: number;
+    pages: number;
+  }>({
+    queryKey: ['/api/admin/cases/paginated', casesPage, casesPerPage],
+    queryFn: async () => {
+      const response = await fetch(
+        `/api/admin/cases/paginated?page=${casesPage}&limit=${casesPerPage}`,
+        { credentials: 'include' }
+      );
+      if (!response.ok) throw new Error('Failed to fetch cases');
+      return response.json();
+    },
   });
+
+  const cases = casesData?.cases || [];
+  const totalCases = casesData?.total || 0;
+  const totalCasesPages = casesData?.pages || 1;
 
   // Fetch system statistics
   const { data: stats = {}, isLoading: statsLoading } = useQuery<{
@@ -170,10 +202,29 @@ export default function AdminPage() {
     queryKey: ['/api/admin/stats'],
   });
 
-  // Fetch all users for admin
-  const { data: users = [], isLoading: usersLoading } = useQuery<any[]>({
-    queryKey: ['/api/admin/users'],
+  // Fetch all users for admin with pagination
+  const { 
+    data: usersData, 
+    isLoading: usersLoading 
+  } = useQuery<{
+    users: any[];
+    total: number;
+    pages: number;
+  }>({
+    queryKey: ['/api/admin/users/paginated', usersPage, usersPerPage],
+    queryFn: async () => {
+      const response = await fetch(
+        `/api/admin/users/paginated?page=${usersPage}&limit=${usersPerPage}`,
+        { credentials: 'include' }
+      );
+      if (!response.ok) throw new Error('Failed to fetch users');
+      return response.json();
+    },
   });
+
+  const users = usersData?.users || [];
+  const totalUsers = usersData?.total || 0;
+  const totalUsersPages = usersData?.pages || 1;
 
   // System settings
   const { data: systemSettings, refetch: refetchSystemSettings } = useQuery<{
@@ -214,7 +265,7 @@ export default function AdminPage() {
       return apiRequest('DELETE', `/api/admin/cases/${caseId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/cases'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/cases/paginated'] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/stats'] });
       toast({
         title: 'Case deleted successfully',
@@ -806,6 +857,80 @@ export default function AdminPage() {
                     )}
                   </TableBody>
                 </Table>
+
+                {/* Pagination Controls */}
+                {!casesLoading && filteredCases.length > 0 && totalCasesPages > 1 && (
+                  <div className="mt-6 flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground">
+                      Showing {((casesPage - 1) * casesPerPage) + 1} to{' '}
+                      {Math.min(casesPage * casesPerPage, totalCases)} of {totalCases} cases
+                    </div>
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            onClick={() => {
+                              if (casesPage > 1) {
+                                setCasesPage(casesPage - 1);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }
+                            }}
+                            className={casesPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                          />
+                        </PaginationItem>
+
+                        {/* Page Numbers */}
+                        {Array.from({ length: Math.min(5, totalCasesPages) }, (_, i) => {
+                          let pageNum;
+                          if (totalCasesPages <= 5) {
+                            pageNum = i + 1;
+                          } else if (casesPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (casesPage >= totalCasesPages - 2) {
+                            pageNum = totalCasesPages - 4 + i;
+                          } else {
+                            pageNum = casesPage - 2 + i;
+                          }
+
+                          return (
+                            <PaginationItem key={pageNum}>
+                              <PaginationLink
+                                onClick={() => {
+                                  setCasesPage(pageNum);
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                                isActive={casesPage === pageNum}
+                                className="cursor-pointer"
+                              >
+                                {pageNum}
+                              </PaginationLink>
+                            </PaginationItem>
+                          );
+                        })}
+
+                        {totalCasesPages > 5 && casesPage < totalCasesPages - 2 && (
+                          <PaginationItem>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        )}
+
+                        <PaginationItem>
+                          <PaginationNext
+                            onClick={() => {
+                              if (casesPage < totalCasesPages) {
+                                setCasesPage(casesPage + 1);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }
+                            }}
+                            className={
+                              casesPage === totalCasesPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'
+                            }
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
               )}
             </CardContent>
           </Card>
@@ -1001,6 +1126,80 @@ export default function AdminPage() {
                     )}
                   </TableBody>
                 </Table>
+
+                {/* Pagination Controls */}
+                {!usersLoading && filteredUsers.length > 0 && totalUsersPages > 1 && (
+                  <div className="mt-6 flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground">
+                      Showing {((usersPage - 1) * usersPerPage) + 1} to{' '}
+                      {Math.min(usersPage * usersPerPage, totalUsers)} of {totalUsers} users
+                    </div>
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            onClick={() => {
+                              if (usersPage > 1) {
+                                setUsersPage(usersPage - 1);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }
+                            }}
+                            className={usersPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                          />
+                        </PaginationItem>
+
+                        {/* Page Numbers */}
+                        {Array.from({ length: Math.min(5, totalUsersPages) }, (_, i) => {
+                          let pageNum;
+                          if (totalUsersPages <= 5) {
+                            pageNum = i + 1;
+                          } else if (usersPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (usersPage >= totalUsersPages - 2) {
+                            pageNum = totalUsersPages - 4 + i;
+                          } else {
+                            pageNum = usersPage - 2 + i;
+                          }
+
+                          return (
+                            <PaginationItem key={pageNum}>
+                              <PaginationLink
+                                onClick={() => {
+                                  setUsersPage(pageNum);
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                                isActive={usersPage === pageNum}
+                                className="cursor-pointer"
+                              >
+                                {pageNum}
+                              </PaginationLink>
+                            </PaginationItem>
+                          );
+                        })}
+
+                        {totalUsersPages > 5 && usersPage < totalUsersPages - 2 && (
+                          <PaginationItem>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        )}
+
+                        <PaginationItem>
+                          <PaginationNext
+                            onClick={() => {
+                              if (usersPage < totalUsersPages) {
+                                setUsersPage(usersPage + 1);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }
+                            }}
+                            className={
+                              usersPage === totalUsersPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'
+                            }
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
               )}
             </CardContent>
           </Card>

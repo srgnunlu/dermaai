@@ -75,30 +75,56 @@ export async function analyzeWithOpenAI(
     let totalImageBytes = 0;
 
     for (const imageUrl of urlArray) {
-      let file;
+      try {
+        let file;
 
-      // Check if it's a Cloudinary URL
-      if (imageUrl.includes('cloudinary.com')) {
-        const { CloudinaryStorageService } = await import('./cloudinaryStorage');
-        const cloudinaryService = new CloudinaryStorageService();
-        file = await cloudinaryService.getObjectEntityFile(imageUrl);
-      } else {
-        // Use local file storage
-        const { LocalFileStorageService } = await import('./localFileStorage');
-        const fileStorageService = new LocalFileStorageService();
-        const normalizedPath = fileStorageService.normalizeObjectEntityPath(imageUrl);
-        file = await fileStorageService.getObjectEntityFile(normalizedPath);
+        // Check if it's a Cloudinary URL
+        if (imageUrl.includes('cloudinary.com')) {
+          const { CloudinaryStorageService } = await import('./cloudinaryStorage');
+          const cloudinaryService = new CloudinaryStorageService();
+          file = await cloudinaryService.getObjectEntityFile(imageUrl);
+        } else {
+          // Use local file storage
+          const { LocalFileStorageService } = await import('./localFileStorage');
+          const fileStorageService = new LocalFileStorageService();
+          const normalizedPath = fileStorageService.normalizeObjectEntityPath(imageUrl);
+          file = await fileStorageService.getObjectEntityFile(normalizedPath);
+        }
+
+        // Get image data and metadata directly from the file
+        const [imageBuffer] = await file.download();
+        const [metadata] = await file.getMetadata();
+        
+        if (!imageBuffer || imageBuffer.length === 0) {
+          console.error(`[OpenAI] Image buffer is empty for URL: ${imageUrl}`);
+          throw new Error('Image buffer is empty');
+        }
+
+        const imageBase64 = Buffer.from(imageBuffer).toString('base64');
+        const mimeType = metadata.contentType || 'image/jpeg';
+        const imageBytes = imageBuffer.length;
+
+        console.log(`[OpenAI] Image processed: ${mimeType}, size: ${imageBytes} bytes, base64 length: ${imageBase64.length}`);
+
+        imageDataArray.push({ mimeType, base64: imageBase64 });
+        totalImageBytes += imageBytes;
+      } catch (err) {
+        console.error(`[OpenAI] Failed to process image URL: ${imageUrl}`, err);
+        throw new AIAnalysisError({
+          provider: 'openai',
+          code: 'IMAGE_LOAD_FAILED',
+          message: `Failed to load image: ${imageUrl}`,
+          details: { error: String(err) },
+        });
       }
+    }
 
-      // Get image data and metadata directly from the file
-      const [imageBuffer] = await file.download();
-      const [metadata] = await file.getMetadata();
-      const imageBase64 = Buffer.from(imageBuffer).toString('base64');
-      const mimeType = metadata.contentType || 'image/jpeg';
-      const imageBytes = imageBuffer.length;
-
-      imageDataArray.push({ mimeType, base64: imageBase64 });
-      totalImageBytes += imageBytes;
+    if (imageDataArray.length === 0) {
+      throw new AIAnalysisError({
+        provider: 'openai',
+        code: 'NO_IMAGES',
+        message: 'No images could be loaded',
+      });
     }
 
     if (totalImageBytes > 18 * 1024 * 1024) {

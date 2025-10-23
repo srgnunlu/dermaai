@@ -801,6 +801,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .moveDown(1);
       }
 
+      // Lesion Images
+      const imageUrls = (caseRecord as any).imageUrls && Array.isArray((caseRecord as any).imageUrls)
+        ? (caseRecord as any).imageUrls
+        : caseRecord.imageUrl
+          ? [caseRecord.imageUrl]
+          : [];
+
+      if (imageUrls && imageUrls.length > 0) {
+        doc
+          .fontSize(16)
+          .text(sanitizeTextForPDF('Lesion Image' + (imageUrls.length > 1 ? 's' : '')), {
+            underline: true,
+          })
+          .moveDown(0.5);
+
+        for (let imgIdx = 0; imgIdx < imageUrls.length; imgIdx++) {
+          const imageUrl = imageUrls[imgIdx];
+          try {
+            let file;
+
+            // Check if it's a Cloudinary URL
+            if (imageUrl.includes('cloudinary.com')) {
+              const { CloudinaryStorageService } = await import('./cloudinaryStorage');
+              const cloudinaryService = new CloudinaryStorageService();
+              file = await cloudinaryService.getObjectEntityFile(imageUrl);
+            } else {
+              // Use local file storage
+              const { LocalFileStorageService } = await import('./localFileStorage');
+              const fileStorageService = new LocalFileStorageService();
+              const normalizedPath = fileStorageService.normalizeObjectEntityPath(imageUrl);
+              file = await fileStorageService.getObjectEntityFile(normalizedPath);
+            }
+
+            // Get image buffer
+            const [imageBuffer] = await file.download();
+            const imageBase64 = Buffer.from(imageBuffer).toString('base64');
+
+            // Add image label
+            if (imageUrls.length > 1) {
+              doc
+                .fontSize(11)
+                .text(sanitizeTextForPDF(`Image ${imgIdx + 1} of ${imageUrls.length}`), {
+                  underline: false,
+                })
+                .moveDown(0.3);
+            }
+
+            // Add image to PDF (max height 3.5 inches to fit on page)
+            try {
+              doc.image(Buffer.from(imageBase64, 'base64'), {
+                fit: [500, 250],
+                align: 'center',
+              });
+            } catch (imgErr) {
+              console.warn(`Failed to embed image ${imgIdx + 1} in PDF:`, imgErr);
+              doc
+                .fontSize(10)
+                .text(sanitizeTextForPDF(`[Image ${imgIdx + 1} - Failed to embed]`));
+            }
+
+            doc.moveDown(0.5);
+          } catch (error) {
+            console.warn(`Failed to fetch image ${imgIdx + 1}:`, error);
+            doc
+              .fontSize(10)
+              .text(sanitizeTextForPDF(`[Image ${imgIdx + 1} - Failed to load from storage]`));
+            doc.moveDown(0.5);
+          }
+        }
+
+        doc.moveDown(1);
+      }
+
       // AI Diagnosis Results
       doc
         .fontSize(16)

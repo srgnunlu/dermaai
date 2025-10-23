@@ -1140,28 +1140,52 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Case Image */}
-              {selectedCase.imageUrl && (
+              {/* Case Images */}
+              {(selectedCase.imageUrls?.length ?? 0) > 0 || selectedCase.imageUrl ? (
                 <div>
-                  <h3 className="font-semibold mb-2">Case Image</h3>
+                  <h3 className="font-semibold mb-2">
+                    Case Image{((selectedCase.imageUrls?.length ?? 0) > 1 ? 's' : '')}
+                  </h3>
                   <div className="border rounded-lg p-4 bg-gray-50">
-                    <img
-                      src={
-                        selectedCase.imageUrl.startsWith('https://storage.googleapis.com')
-                          ? `/objects/${selectedCase.imageUrl.split('/.private/')[1]}`
-                          : selectedCase.imageUrl
-                      }
-                      alt="Case image"
-                      className="max-w-full h-64 object-contain mx-auto rounded"
-                      data-testid="case-image"
-                      onError={(e) => {
-                        console.error('Failed to load image:', selectedCase.imageUrl);
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
+                    <div
+                      className={`grid gap-4 ${
+                        (selectedCase.imageUrls?.length ?? 1) === 1
+                          ? 'grid-cols-1'
+                          : (selectedCase.imageUrls?.length ?? 1) === 2
+                            ? 'grid-cols-2'
+                            : 'grid-cols-3'
+                      }`}
+                    >
+                      {(selectedCase.imageUrls && selectedCase.imageUrls.length > 0
+                        ? selectedCase.imageUrls
+                        : [selectedCase.imageUrl]
+                      ).map((imageUrl: string, index: number) => (
+                        <div key={index} className="relative">
+                          <img
+                            src={
+                              imageUrl.startsWith('https://storage.googleapis.com')
+                                ? `/objects/${imageUrl.split('/.private/')[1]}`
+                                : imageUrl
+                            }
+                            alt={`Case image ${index + 1}`}
+                            className="w-full h-48 object-contain rounded border border-gray-200"
+                            data-testid={`case-image-${index}`}
+                            onError={(e) => {
+                              console.error('Failed to load image:', imageUrl);
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                          {(selectedCase.imageUrls?.length ?? 1) > 1 && (
+                            <div className="absolute top-2 left-2 bg-black/60 text-white px-2 py-1 rounded text-xs">
+                              Image {index + 1}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              )}
+              ) : null}
 
               {/* AI Diagnosis Results */}
               {getMergedDiagnoses(selectedCase).length > 0 && (

@@ -914,7 +914,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       doc.y = clinicalStartY + clinicalHeight + 20;
 
-      // Lesion Images Section
+      // Lesion Images Section - Page 1
       const imageUrls = (caseRecord as any).imageUrls && Array.isArray((caseRecord as any).imageUrls)
         ? (caseRecord as any).imageUrls
         : caseRecord.imageUrl
@@ -940,6 +940,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .fillColor('#000000')
           .fontSize(10)
           .moveDown(0.5);
+
+        // Calculate image size based on count
+        let imageWidth: number;
+        let imageHeight: number;
+        
+        if (imageUrls.length === 1) {
+          imageWidth = 350;
+          imageHeight = 280;
+        } else if (imageUrls.length === 2) {
+          imageWidth = 240;
+          imageHeight = 200;
+        } else {
+          imageWidth = 160;
+          imageHeight = 140;
+        }
 
         for (let imgIdx = 0; imgIdx < imageUrls.length; imgIdx++) {
           const imageUrl = imageUrls[imgIdx];
@@ -971,9 +986,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
 
             try {
-              const maxWidth = imageUrls.length === 1 ? 300 : 200;
               doc.image(Buffer.from(imageBase64, 'base64'), {
-                fit: [maxWidth, 220],
+                fit: [imageWidth, imageHeight],
                 align: 'center',
               });
             } catch (imgErr) {
@@ -985,199 +999,400 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.warn(`Failed to fetch image ${imgIdx + 1}:`, error);
           }
         }
-
-        doc.moveDown(1);
       }
 
-      // Add page break for diagnoses if images are large
-      if (imageUrls.length > 0) {
-        doc.addPage();
-      }
-
-      // Section divider before AI Results
-      doc
-        .moveTo(40, doc.y)
-        .lineTo(pageWidth - 40, doc.y)
-        .stroke('#dee2e6');
-      
-      doc.moveDown(1);
-      
-      // AI Diagnosis Results Section
-      doc
-        .fontSize(14)
-        .font('Helvetica-Bold')
-        .fillColor('#1a5490')
-        .text(sanitizeTextForPDF('AI ANALYSIS RESULTS'), {
-          underline: true,
-        })
-        .fillColor('#000000')
-        .font('Helvetica')
-        .fontSize(10)
-        .moveDown(0.8);
+      // PAGE 2: Gemini Analysis (dedicated page)
+      doc.addPage();
       
       // Helper function to draw confidence bar
       const drawConfidenceBar = (x: number, y: number, width: number, confidence: number, color: string) => {
         const barWidth = (confidence / 100) * width;
-        // Background
         doc.rect(x, y, width, 8).fillAndStroke('#e5e7eb', '#d1d5db');
-        // Confidence bar
         doc.rect(x, y, barWidth, 8).fillAndStroke(color, color);
       };
 
-      // Gemini Results
+      // Gemini Analysis Page
       if (caseRecord.geminiAnalysis?.diagnoses && caseRecord.geminiAnalysis.diagnoses.length > 0) {
-        // Model header with icon box
-        const geminiHeaderY = doc.y;
+        // Page header
         doc
-          .rect(40, geminiHeaderY, pageWidth - 80, 25)
-          .fillAndStroke('#f0f0f0', '#9333ea');
+          .rect(40, 40, pageWidth - 80, 30)
+          .fillAndStroke('#9333ea', '#9333ea');
         
         doc
-          .fontSize(11)
+          .fontSize(14)
           .font('Helvetica-Bold')
-          .fillColor('#9333ea')
-          .text(sanitizeTextForPDF('Gemini 2.5 Flash Analysis'), 50, geminiHeaderY + 8);
+          .fillColor('#ffffff')
+          .text(sanitizeTextForPDF('GEMINI 2.5 FLASH ANALYSIS'), 50, 50);
         
-        doc.y = geminiHeaderY + 35;
+        doc.y = 85;
         doc.fillColor('#000000');
 
-        // Improved diagnosis cards
+        // Display each diagnosis with full details
         caseRecord.geminiAnalysis.diagnoses.slice(0, 5).forEach((diagnosis: any, index: number) => {
+          const startY = doc.y;
+          
+          // Check if we need a new page (keeping 100px margin at bottom)
+          if (startY > doc.page.height - 150) {
+            doc.addPage();
+            doc.y = 50;
+          }
+          
           const cardY = doc.y;
-          const cardHeight = 60;
           
-          // Card background with rank indicator
+          // Diagnosis header
           doc
-            .rect(40, cardY, pageWidth - 80, cardHeight)
-            .fillAndStroke('#ffffff', '#e5e7eb');
-          
-          // Rank circle
-          doc
-            .circle(55, cardY + 15, 12)
-            .fillAndStroke('#9333ea', '#9333ea');
-          
-          doc
-            .fontSize(10)
-            .font('Helvetica-Bold')
-            .fillColor('#ffffff')
-            .text(String(index + 1), 50, cardY + 10, { width: 10, align: 'center' });
-          
-          // Diagnosis name
-          doc
-            .fontSize(10)
-            .font('Helvetica-Bold')
-            .fillColor('#000000')
-            .text(sanitizeTextForPDF(diagnosis.name), 75, cardY + 10, {
-              width: pageWidth - 180,
-            });
-          
-          // Confidence percentage
-          doc
-            .fontSize(9)
+            .fontSize(11)
             .font('Helvetica-Bold')
             .fillColor('#9333ea')
-            .text(`${diagnosis.confidence}%`, pageWidth - 110, cardY + 10);
+            .text(`${index + 1}. ${sanitizeTextForPDF(diagnosis.name)}`, 50, cardY);
+          
+          doc
+            .fontSize(10)
+            .font('Helvetica-Bold')
+            .fillColor('#9333ea')
+            .text(`${diagnosis.confidence}%`, pageWidth - 80, cardY);
+          
+          doc.y = cardY + 15;
           
           // Confidence bar
-          drawConfidenceBar(75, cardY + 28, pageWidth - 190, diagnosis.confidence, '#9333ea');
+          drawConfidenceBar(50, doc.y, pageWidth - 100, diagnosis.confidence, '#9333ea');
+          doc.y += 15;
           
           // Description
-          doc
-            .fontSize(8)
-            .font('Helvetica')
-            .fillColor('#6b7280')
-            .text(sanitizeTextForPDF(diagnosis.description || 'N/A'), 75, cardY + 42, {
-              width: pageWidth - 150,
-              height: 12,
-              ellipsis: true,
-            });
-          
-          doc.y = cardY + cardHeight + 6;
-        });
-
-        doc.moveDown(1);
-      }
-
-      // OpenAI Results
-      if (caseRecord.openaiAnalysis?.diagnoses && caseRecord.openaiAnalysis.diagnoses.length > 0) {
-        // Model header with icon box
-        const openaiHeaderY = doc.y;
-        doc
-          .rect(40, openaiHeaderY, pageWidth - 80, 25)
-          .fillAndStroke('#f0f0f0', '#16a34a');
-        
-        doc
-          .fontSize(11)
-          .font('Helvetica-Bold')
-          .fillColor('#16a34a')
-          .text(sanitizeTextForPDF('GPT-5 Mini Analysis'), 50, openaiHeaderY + 8);
-        
-        doc.y = openaiHeaderY + 35;
-        doc.fillColor('#000000');
-
-        // Improved diagnosis cards
-        caseRecord.openaiAnalysis.diagnoses.slice(0, 5).forEach((diagnosis: any, index: number) => {
-          const cardY = doc.y;
-          const cardHeight = 60;
-          
-          // Card background with rank indicator
-          doc
-            .rect(40, cardY, pageWidth - 80, cardHeight)
-            .fillAndStroke('#ffffff', '#e5e7eb');
-          
-          // Rank circle
-          doc
-            .circle(55, cardY + 15, 12)
-            .fillAndStroke('#16a34a', '#16a34a');
-          
-          doc
-            .fontSize(10)
-            .font('Helvetica-Bold')
-            .fillColor('#ffffff')
-            .text(String(index + 1), 50, cardY + 10, { width: 10, align: 'center' });
-          
-          // Diagnosis name
-          doc
-            .fontSize(10)
-            .font('Helvetica-Bold')
-            .fillColor('#000000')
-            .text(sanitizeTextForPDF(diagnosis.name), 75, cardY + 10, {
-              width: pageWidth - 180,
-            });
-          
-          // Confidence percentage
           doc
             .fontSize(9)
+            .font('Helvetica')
+            .fillColor('#000000')
+            .text(sanitizeTextForPDF(diagnosis.description || 'N/A'), 50, doc.y, {
+              width: pageWidth - 100,
+            });
+          
+          doc.moveDown(0.5);
+          
+          // Key Features
+          if (diagnosis.keyFeatures && diagnosis.keyFeatures.length > 0) {
+            doc
+              .fontSize(9)
+              .font('Helvetica-Bold')
+              .fillColor('#9333ea')
+              .text('Key Features:', 50, doc.y);
+            
+            doc.moveDown(0.3);
+            
+            diagnosis.keyFeatures.forEach((feature: string) => {
+              doc
+                .fontSize(8)
+                .font('Helvetica')
+                .fillColor('#000000')
+                .text(`• ${sanitizeTextForPDF(feature)}`, 60, doc.y, {
+                  width: pageWidth - 120,
+                });
+              doc.moveDown(0.3);
+            });
+          }
+          
+          // Recommendations
+          if (diagnosis.recommendations && diagnosis.recommendations.length > 0) {
+            doc.moveDown(0.3);
+            doc
+              .fontSize(9)
+              .font('Helvetica-Bold')
+              .fillColor('#9333ea')
+              .text('Recommendations:', 50, doc.y);
+            
+            doc.moveDown(0.3);
+            
+            diagnosis.recommendations.forEach((rec: string) => {
+              doc
+                .fontSize(8)
+                .font('Helvetica')
+                .fillColor('#000000')
+                .text(`• ${sanitizeTextForPDF(rec)}`, 60, doc.y, {
+                  width: pageWidth - 120,
+                });
+              doc.moveDown(0.3);
+            });
+          }
+          
+          // Divider between diagnoses
+          if (index < 4) {
+            doc.moveDown(0.5);
+            doc
+              .moveTo(50, doc.y)
+              .lineTo(pageWidth - 50, doc.y)
+              .stroke('#e5e7eb');
+            doc.moveDown(0.5);
+          }
+        });
+      } else {
+        doc
+          .fontSize(11)
+          .font('Helvetica')
+          .fillColor('#6b7280')
+          .text('No Gemini analysis available', 50, 100);
+      }
+
+      // PAGE 3: OpenAI Analysis (dedicated page)
+      doc.addPage();
+
+      if (caseRecord.openaiAnalysis?.diagnoses && caseRecord.openaiAnalysis.diagnoses.length > 0) {
+        // Page header
+        doc
+          .rect(40, 40, pageWidth - 80, 30)
+          .fillAndStroke('#16a34a', '#16a34a');
+        
+        doc
+          .fontSize(14)
+          .font('Helvetica-Bold')
+          .fillColor('#ffffff')
+          .text(sanitizeTextForPDF('GPT-5 MINI ANALYSIS'), 50, 50);
+        
+        doc.y = 85;
+        doc.fillColor('#000000');
+
+        // Display each diagnosis with full details
+        caseRecord.openaiAnalysis.diagnoses.slice(0, 5).forEach((diagnosis: any, index: number) => {
+          const startY = doc.y;
+          
+          // Check if we need a new page (keeping 100px margin at bottom)
+          if (startY > doc.page.height - 150) {
+            doc.addPage();
+            doc.y = 50;
+          }
+          
+          const cardY = doc.y;
+          
+          // Diagnosis header
+          doc
+            .fontSize(11)
             .font('Helvetica-Bold')
             .fillColor('#16a34a')
-            .text(`${diagnosis.confidence}%`, pageWidth - 110, cardY + 10);
+            .text(`${index + 1}. ${sanitizeTextForPDF(diagnosis.name)}`, 50, cardY);
+          
+          doc
+            .fontSize(10)
+            .font('Helvetica-Bold')
+            .fillColor('#16a34a')
+            .text(`${diagnosis.confidence}%`, pageWidth - 80, cardY);
+          
+          doc.y = cardY + 15;
           
           // Confidence bar
-          drawConfidenceBar(75, cardY + 28, pageWidth - 190, diagnosis.confidence, '#16a34a');
+          drawConfidenceBar(50, doc.y, pageWidth - 100, diagnosis.confidence, '#16a34a');
+          doc.y += 15;
           
           // Description
           doc
-            .fontSize(8)
+            .fontSize(9)
             .font('Helvetica')
-            .fillColor('#6b7280')
-            .text(sanitizeTextForPDF(diagnosis.description || 'N/A'), 75, cardY + 42, {
-              width: pageWidth - 150,
-              height: 12,
-              ellipsis: true,
+            .fillColor('#000000')
+            .text(sanitizeTextForPDF(diagnosis.description || 'N/A'), 50, doc.y, {
+              width: pageWidth - 100,
             });
           
-          doc.y = cardY + cardHeight + 6;
+          doc.moveDown(0.5);
+          
+          // Key Features
+          if (diagnosis.keyFeatures && diagnosis.keyFeatures.length > 0) {
+            doc
+              .fontSize(9)
+              .font('Helvetica-Bold')
+              .fillColor('#16a34a')
+              .text('Key Features:', 50, doc.y);
+            
+            doc.moveDown(0.3);
+            
+            diagnosis.keyFeatures.forEach((feature: string) => {
+              doc
+                .fontSize(8)
+                .font('Helvetica')
+                .fillColor('#000000')
+                .text(`• ${sanitizeTextForPDF(feature)}`, 60, doc.y, {
+                  width: pageWidth - 120,
+                });
+              doc.moveDown(0.3);
+            });
+          }
+          
+          // Recommendations
+          if (diagnosis.recommendations && diagnosis.recommendations.length > 0) {
+            doc.moveDown(0.3);
+            doc
+              .fontSize(9)
+              .font('Helvetica-Bold')
+              .fillColor('#16a34a')
+              .text('Recommendations:', 50, doc.y);
+            
+            doc.moveDown(0.3);
+            
+            diagnosis.recommendations.forEach((rec: string) => {
+              doc
+                .fontSize(8)
+                .font('Helvetica')
+                .fillColor('#000000')
+                .text(`• ${sanitizeTextForPDF(rec)}`, 60, doc.y, {
+                  width: pageWidth - 120,
+                });
+              doc.moveDown(0.3);
+            });
+          }
+          
+          // Divider between diagnoses
+          if (index < 4) {
+            doc.moveDown(0.5);
+            doc
+              .moveTo(50, doc.y)
+              .lineTo(pageWidth - 50, doc.y)
+              .stroke('#e5e7eb');
+            doc.moveDown(0.5);
+          }
         });
-
-        doc.moveDown(1);
+      } else {
+        doc
+          .fontSize(11)
+          .font('Helvetica')
+          .fillColor('#6b7280')
+          .text('No OpenAI analysis available', 50, 100);
       }
 
-      if (
-        (!caseRecord.geminiAnalysis?.diagnoses || caseRecord.geminiAnalysis.diagnoses.length === 0) &&
-        (!caseRecord.openaiAnalysis?.diagnoses || caseRecord.openaiAnalysis.diagnoses.length === 0)
-      ) {
-        doc.text(sanitizeTextForPDF('No AI analysis results available')).moveDown(1);
-      }
+      // PAGE 4: Final page with disclaimers
+      doc.addPage();
+      
+      // Final page header
+      doc
+        .rect(40, 40, pageWidth - 80, 30)
+        .fillAndStroke('#1a5490', '#1a5490');
+      
+      doc
+        .fontSize(14)
+        .font('Helvetica-Bold')
+        .fillColor('#ffffff')
+        .text(sanitizeTextForPDF('IMPORTANT INFORMATION'), 50, 50);
+      
+      doc.y = 90;
+      doc.fillColor('#000000');
+      
+      // Medical Disclaimer Box
+      doc
+        .rect(40, doc.y, pageWidth - 80, 180)
+        .fillAndStroke('#fff3cd', '#ffc107');
+      
+      doc
+        .fontSize(12)
+        .font('Helvetica-Bold')
+        .fillColor('#856404')
+        .text(sanitizeTextForPDF('MEDICAL DISCLAIMER'), 50, doc.y + 15);
+      
+      doc.y += 35;
+      
+      doc
+        .fontSize(9)
+        .font('Helvetica')
+        .fillColor('#000000')
+        .text(
+          sanitizeTextForPDF(
+            'This report is generated by artificial intelligence (AI) analysis and is intended for informational and educational purposes only. It should NOT be used as a substitute for professional medical advice, diagnosis, or treatment.'
+          ),
+          50,
+          doc.y,
+          { width: pageWidth - 100 }
+        );
+      
+      doc.moveDown(1);
+      
+      doc.text(
+        sanitizeTextForPDF(
+          'Always seek the advice of your physician or other qualified healthcare provider with any questions you may have regarding a medical condition. Never disregard professional medical advice or delay seeking it because of information provided in this AI-generated report.'
+        ),
+        50,
+        doc.y,
+        { width: pageWidth - 100 }
+      );
+      
+      doc.moveDown(1);
+      
+      doc.text(
+        sanitizeTextForPDF(
+          'The AI models used in this analysis are trained on medical literature and images, but they are not infallible and should be used only as a supplementary tool in clinical decision-making.'
+        ),
+        50,
+        doc.y,
+        { width: pageWidth - 100 }
+      );
+      
+      doc.y += 50;
+      
+      // About the Models
+      doc
+        .fontSize(11)
+        .font('Helvetica-Bold')
+        .fillColor('#1a5490')
+        .text(sanitizeTextForPDF('About the AI Models'), 50, doc.y);
+      
+      doc.moveDown(0.5);
+      
+      doc
+        .fontSize(9)
+        .font('Helvetica')
+        .fillColor('#000000')
+        .text(
+          sanitizeTextForPDF(
+            '• Gemini 2.5 Flash: Google\'s advanced vision-language model specialized in image analysis'
+          ),
+          50,
+          doc.y,
+          { width: pageWidth - 100 }
+        );
+      
+      doc.moveDown(0.5);
+      
+      doc.text(
+        sanitizeTextForPDF(
+          '• GPT-5 Mini: OpenAI\'s efficient multimodal model with dermatological knowledge'
+        ),
+        50,
+        doc.y,
+        { width: pageWidth - 100 }
+      );
+      
+      doc.moveDown(1.5);
+      
+      // Report Information
+      doc
+        .fontSize(11)
+        .font('Helvetica-Bold')
+        .fillColor('#1a5490')
+        .text(sanitizeTextForPDF('Report Information'), 50, doc.y);
+      
+      doc.moveDown(0.5);
+      
+      doc
+        .fontSize(9)
+        .font('Helvetica')
+        .fillColor('#000000')
+        .text(
+          sanitizeTextForPDF(
+            `Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date().toLocaleTimeString('en-US')}`
+          ),
+          50,
+          doc.y
+        );
+      
+      doc.moveDown(0.3);
+      
+      doc.text(
+        sanitizeTextForPDF(`Case ID: ${caseRecord.caseId}`),
+        50,
+        doc.y
+      );
+      
+      doc.moveDown(0.3);
+      
+      doc.text(
+        sanitizeTextForPDF('System: DermaAI - AI-Powered Dermatological Analysis Platform'),
+        50,
+        doc.y
+      );
 
       // Professional Footer with page numbers
       const pages = doc.bufferedPageRange();

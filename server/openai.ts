@@ -169,8 +169,16 @@ Respond with JSON in this exact format:
         {
           role: 'system' as const,
           content: isGpt5
-            ? systemPrompt +
-              '\nReturn compact JSON only (no prose). Keep description <= 12 words; keyFeatures up to 3; recommendations up to 2.'
+            ? `You are an expert dermatologist AI assistant. CRITICAL: You MUST ALWAYS respond with ONLY valid JSON output, no other text.
+${systemPrompt}
+
+STRICT REQUIREMENTS:
+- Your response MUST be valid JSON only
+- Do NOT include any prose, explanations, or markdown
+- Do NOT wrap JSON in code blocks
+- Response must start with { and end with }
+- If image is invalid, respond with: {"error":true,"message":"Invalid image"}
+- If image is valid, respond with: {"diagnoses":[...]} format`
             : systemPrompt,
         },
         {
@@ -178,7 +186,8 @@ Respond with JSON in this exact format:
           content: userContent,
         },
       ],
-      max_completion_tokens: isGpt5 ? 800 : 2000,
+      max_completion_tokens: isGpt5 ? 1000 : 2000,
+      ...(isGpt5 ? { temperature: 0.1 } : {}), // Lower temperature for more deterministic JSON
     };
 
     // Attempt 1: strict JSON output (skip response_format for gpt-5)
@@ -199,11 +208,9 @@ Respond with JSON in this exact format:
       });
 
       // Attempt 2: relax response_format (some models e.g. gpt-5 only allow default temperature)
-      const supportsTemp = !isGpt5;
       response = await getOpenAIClient().chat.completions.create({
         model,
         ...baseRequest,
-        ...(supportsTemp ? { temperature: 0.2 } : {}),
       });
       content = response.choices?.[0]?.message?.content ?? '';
       refusal = (response.choices?.[0] as any)?.message?.refusal;

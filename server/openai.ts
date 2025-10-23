@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import logger from './logger';
 
 // Structured diagnostic error info
 export type AnalysisErrorInfo = {
@@ -26,9 +27,20 @@ let openai: OpenAI;
 
 const getOpenAIClient = () => {
   if (!openai) {
-    openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || '',
-    });
+    const apiKey = process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || '';
+    
+    if (!apiKey) {
+      logger.error('[OpenAI] API key is missing');
+      throw new AIAnalysisError({
+        provider: 'openai',
+        code: 'MISSING_API_KEY',
+        message: 'OpenAI API key is not configured',
+        hint: 'Set OPENAI_API_KEY environment variable',
+      });
+    }
+    
+    logger.info('[OpenAI] Initializing OpenAI client');
+    openai = new OpenAI({ apiKey });
   }
   return openai;
 };
@@ -96,7 +108,7 @@ export async function analyzeWithOpenAI(
         const [metadata] = await file.getMetadata();
         
         if (!imageBuffer || imageBuffer.length === 0) {
-          console.error(`[OpenAI] Image buffer is empty for URL: ${imageUrl}`);
+          logger.error(`[OpenAI] Image buffer is empty for URL: ${imageUrl}`);
           throw new Error('Image buffer is empty');
         }
 
@@ -104,12 +116,12 @@ export async function analyzeWithOpenAI(
         const mimeType = metadata.contentType || 'image/jpeg';
         const imageBytes = imageBuffer.length;
 
-        console.log(`[OpenAI] Image processed: ${mimeType}, size: ${imageBytes} bytes, base64 length: ${imageBase64.length}`);
+        logger.info(`[OpenAI] Image processed: ${mimeType}, size: ${imageBytes} bytes, base64 length: ${imageBase64.length}`);
 
         imageDataArray.push({ mimeType, base64: imageBase64 });
         totalImageBytes += imageBytes;
       } catch (err) {
-        console.error(`[OpenAI] Failed to process image URL: ${imageUrl}`, err);
+        logger.error(`[OpenAI] Failed to process image URL: ${imageUrl}`, err);
         throw new AIAnalysisError({
           provider: 'openai',
           code: 'IMAGE_LOAD_FAILED',
@@ -128,7 +140,7 @@ export async function analyzeWithOpenAI(
     }
 
     if (totalImageBytes > 18 * 1024 * 1024) {
-      console.warn(
+      logger.warn(
         `[OpenAI] Large images detected (${(totalImageBytes / 1024 / 1024).toFixed(
           1
         )} MB total). Consider uploading smaller images (<18MB total).`
@@ -173,7 +185,7 @@ Respond with JSON in this exact format:
 }`;
 
     const model = options.model || process.env.OPENAI_MODEL || 'gpt-5-mini';
-    const isGpt5 = model.includes('gpt-5');
+    logger.info(`[OpenAI] Starting analysis with model: ${model}, images: ${urlArray.length}`);
 
     // Build message content with all images
     const userContent: any[] = [
@@ -194,8 +206,7 @@ Respond with JSON in this exact format:
       messages: [
         {
           role: 'system' as const,
-          content: isGpt5
-            ? `You are an expert dermatologist AI assistant. CRITICAL: You MUST ALWAYS respond with ONLY valid JSON output, no other text.
+          content: `You are an expert dermatologist AI assistant. CRITICAL: You MUST ALWAYS respond with ONLY valid JSON output, no other text.
 ${systemPrompt}
 
 STRICT REQUIREMENTS:
@@ -204,38 +215,106 @@ STRICT REQUIREMENTS:
 - Do NOT wrap JSON in code blocks
 - Response must start with { and end with }
 - If image is invalid, respond with: {"error":true,"message":"Invalid image"}
-- If image is valid, respond with: {"diagnoses":[...]} format`
-            : systemPrompt,
+- If image is valid, respond with: {"diagnoses":[...]} format`,
         },
         {
           role: 'user' as const,
           content: userContent,
         },
       ],
-      max_completion_tokens: isGpt5 ? 1000 : 2000,
+      max_completion_tokens: 2000,
+      response_format: { type: 'json_object' as const },
     };
 
-    // Attempt 1: strict JSON output (skip response_format for gpt-5)
-    let response = await getOpenAIClient().chat.completions.create({
-      model,
-      ...baseRequest,
-      ...(isGpt5 ? {} : { response_format: { type: 'json_object' as const } }),
-    });
+    // Retry configuration
+    const maxRetries = Number(process.env.OPENAI_MAX_RETRIES ?? 2);
+    const baseDelayMs = Number(process.env.OPENAI_RETRY_DELAY_MS ?? 1500);
+    let response;
+    let lastError;
+
+    // Attempt with retries for transient errors
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        logger.info(`[OpenAI] API call attempt ${attempt + 1}/${maxRetries + 1}`);
+        response = await getOpenAIClient().chat.completions.create({
+          model,
+          ...baseRequest,
+        });
+        logger.info(`[OpenAI] API call successful on attempt ${attempt + 1}`);
+        break;
+      } catch (err: any) {
+        lastError = err;
+        const status = err?.status ?? err?.error?.status ?? err?.response?.status;
+        const code = err?.error?.code ?? err?.code;
+        const message = err?.message || err?.error?.message || 'OpenAI request failed';
+        const retryableStatuses = [429, 500, 503];
+        
+        if (retryableStatuses.includes(status) && attempt < maxRetries) {
+          const delay = baseDelayMs * Math.pow(2, attempt);
+          logger.warn(
+            `[OpenAI] ${status || ''} ${code || ''} – retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`
+          );
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          continue;
+        }
+        
+        logger.error(`[OpenAI] Request failed after ${attempt + 1} attempts:`, {
+          status,
+          code,
+          message,
+        });
+        
+        // Don't throw yet, let it fall through to handle the error below
+        break;
+      }
+    }
+
+    if (!response && lastError) {
+      // Handle the error from retry loop
+      const status = lastError?.status ?? lastError?.error?.status ?? lastError?.response?.status;
+      const code = lastError?.error?.code ?? lastError?.code;
+      const message = lastError?.message || lastError?.error?.message || 'OpenAI request failed';
+      
+      throw new AIAnalysisError({
+        provider: 'openai',
+        code: status === 503 ? 'MODEL_OVERLOADED' : status === 429 ? 'RATE_LIMIT' : code || 'UNKNOWN',
+        message,
+        httpStatus: status,
+        hint:
+          status === 503
+            ? 'OpenAI is temporarily overloaded. Please retry shortly.'
+            : status === 429
+              ? 'Reduce request frequency or check quota.'
+              : undefined,
+        details: { status, code },
+      });
+    }
+
+    if (!response) {
+      throw new AIAnalysisError({
+        provider: 'openai',
+        code: 'NO_RESPONSE',
+        message: 'OpenAI returned no response',
+      });
+    }
 
     const analysisTime = (Date.now() - startTime) / 1000;
     let content = response.choices?.[0]?.message?.content ?? '';
     let refusal = (response.choices?.[0] as any)?.message?.refusal;
     let finishReason = (response.choices?.[0] as any)?.finish_reason;
+    
+    logger.info(`[OpenAI] Response received - content length: ${content?.length || 0}, finish_reason: ${finishReason}`);
+    
     if (!content) {
-      console.warn('[OpenAI] Empty content on first attempt', {
+      logger.warn('[OpenAI] Empty content received', {
         refusal,
         finishReason,
         model,
       });
 
-      // Attempt 2: For multi-image with GPT-5, try with first image only
-      if (isGpt5 && urlArray.length > 1) {
-        console.warn(`[OpenAI] GPT-5 multi-image failed, retrying with single image`);
+      // Attempt fallback: if empty content and multi-image, try with first image only
+      if (urlArray.length > 1) {
+        logger.warn(`[OpenAI] Multi-image failed, retrying with single image`);
         const singleImageContent: any[] = [
           {
             type: 'text',
@@ -262,16 +341,8 @@ STRICT REQUIREMENTS:
               content: singleImageContent,
             },
           ],
-          max_completion_tokens: 1000,
-        });
-        content = response.choices?.[0]?.message?.content ?? '';
-        refusal = (response.choices?.[0] as any)?.message?.refusal;
-        finishReason = (response.choices?.[0] as any)?.finish_reason;
-      } else {
-        // Attempt 2b: regular retry
-        response = await getOpenAIClient().chat.completions.create({
-          model,
-          ...baseRequest,
+          max_completion_tokens: 2000,
+          response_format: { type: 'json_object' as const },
         });
         content = response.choices?.[0]?.message?.content ?? '';
         refusal = (response.choices?.[0] as any)?.message?.refusal;
@@ -279,8 +350,9 @@ STRICT REQUIREMENTS:
       }
     }
 
-    // Attempt 2b: if still empty because of 'length', try compact JSON without strict response_format
+    // Attempt fallback: if still empty because of 'length', try compact JSON
     if (!content && finishReason === 'length') {
+      logger.warn('[OpenAI] Response truncated due to length, trying compact JSON');
       const compactBase = {
         messages: [
           {
@@ -291,21 +363,21 @@ STRICT REQUIREMENTS:
           },
           ...(baseRequest as any).messages.slice(1),
         ],
-        max_completion_tokens: (baseRequest as any).max_completion_tokens + 200,
+        max_completion_tokens: (baseRequest as any).max_completion_tokens + 500,
+        response_format: { type: 'json_object' as const },
       };
       const resp2b = await getOpenAIClient().chat.completions.create({
         model,
         ...(compactBase as any),
-        ...(isGpt5 ? {} : { response_format: { type: 'json_object' as const } }),
       });
       content = resp2b.choices?.[0]?.message?.content ?? '';
       refusal = (resp2b.choices?.[0] as any)?.message?.refusal;
       finishReason = (resp2b.choices?.[0] as any)?.finish_reason;
     }
 
-    // Attempt 3: fallback model
+    // Attempt fallback: try fallback model
     if (!content && !model.includes('gpt-4o-mini') && (options.allowFallback ?? true)) {
-      console.warn('[OpenAI] Retrying with fallback model gpt-4o-mini');
+      logger.warn('[OpenAI] Retrying with fallback model gpt-4o-mini');
       
       // For multi-image, use only first image with fallback
       const fallbackContent = urlArray.length > 1 ? [
@@ -324,7 +396,7 @@ STRICT REQUIREMENTS:
         messages: [
           {
             role: 'system' as const,
-            content: systemPrompt,
+            content: systemPrompt + '\nRespond with ONLY valid JSON, no other text.',
           },
           {
             role: 'user' as const,
@@ -338,6 +410,13 @@ STRICT REQUIREMENTS:
     }
 
     if (!content) {
+      logger.error('[OpenAI] All attempts failed - no content received', {
+        refusal,
+        finishReason,
+        model,
+        imageCount: urlArray.length,
+        totalImageBytes,
+      });
       throw new AIAnalysisError({
         provider: 'openai',
         code: 'EMPTY_CONTENT',
@@ -353,9 +432,14 @@ STRICT REQUIREMENTS:
     let result: any;
     try {
       result = JSON.parse(content);
-    } catch {
+      logger.info('[OpenAI] Successfully parsed JSON response');
+    } catch (parseError) {
+      logger.warn('[OpenAI] Failed to parse JSON, attempting to extract JSON from content');
       const match = content.match(/\{[\s\S]*\}/);
-      if (!match)
+      if (!match) {
+        logger.error('[OpenAI] No JSON found in response', {
+          preview: content.slice(0, 120),
+        });
         throw new AIAnalysisError({
           provider: 'openai',
           code: 'NON_JSON_OUTPUT',
@@ -363,11 +447,15 @@ STRICT REQUIREMENTS:
           hint: 'Remove strict JSON requirement or relax formatting.',
           details: { preview: content.slice(0, 120) },
         });
+      }
       result = JSON.parse(match[0]);
+      logger.info('[OpenAI] Successfully extracted and parsed JSON from content');
     }
 
     // Ensure we have exactly 5 diagnoses
     const diagnoses = (result.diagnoses || []).slice(0, 5);
+    
+    logger.info(`[OpenAI] Analysis completed successfully with ${diagnoses.length} diagnoses`);
 
     return {
       diagnoses,
@@ -376,7 +464,7 @@ STRICT REQUIREMENTS:
   } catch (error: any) {
     // Convert generic errors to structured diagnostics
     if (error instanceof AIAnalysisError) {
-      console.error('OpenAI analysis failed:', error.info);
+      logger.error('[OpenAI] Analysis failed with AIAnalysisError:', error.info);
       throw error;
     }
 
@@ -435,7 +523,7 @@ STRICT REQUIREMENTS:
       };
     }
 
-    console.error('OpenAI analysis failed:', mapped);
+    logger.error('[OpenAI] Analysis failed with error:', mapped);
     throw new AIAnalysisError(mapped);
   }
 }

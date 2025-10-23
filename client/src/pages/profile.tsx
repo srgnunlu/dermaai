@@ -27,6 +27,27 @@ const profileFormSchema = z.object({
 
 type ProfileFormData = z.infer<typeof profileFormSchema>;
 
+// Profile response type
+interface ProfileData {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  medicalLicenseNumber?: string;
+  specialization?: string;
+  hospital?: string;
+  yearsOfExperience?: number;
+  profileImageUrl?: string;
+  role?: string;
+  createdAt?: string;
+  statistics?: {
+    totalCases?: number;
+    thisMonthCases?: number;
+    accuracyRate?: number;
+  };
+}
+
 export default function ProfilePage() {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
@@ -36,7 +57,7 @@ export default function ProfilePage() {
     data: profile,
     isLoading,
     error,
-  } = useQuery({
+  } = useQuery<ProfileData>({
     queryKey: ['/api/profile'],
   });
 

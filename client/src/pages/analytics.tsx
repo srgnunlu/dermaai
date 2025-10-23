@@ -40,16 +40,51 @@ const COLORS = [
   '#f97316',
 ];
 
+// TypeScript interfaces for API responses
+interface DiagnosisDataItem {
+  diagnosis: string;
+  count: number;
+  percentage: number;
+}
+
+interface TimeseriesDataItem {
+  date: string;
+  total: number;
+  completed: number;
+  pending: number;
+}
+
+interface AIPerformanceData {
+  gemini: {
+    total: number;
+    avgConfidence: number;
+    avgTime: number;
+  };
+  openai: {
+    total: number;
+    avgConfidence: number;
+    avgTime: number;
+  };
+  consensus: number;
+}
+
+interface UserActivityItem {
+  userId: string;
+  email: string;
+  casesCount: number;
+  lastActive: string | null;
+}
+
 export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState('30');
 
   // Fetch diagnosis distribution
-  const { data: diagnosisData, isLoading: diagnosisLoading } = useQuery({
+  const { data: diagnosisData, isLoading: diagnosisLoading } = useQuery<DiagnosisDataItem[]>({
     queryKey: ['/api/admin/analytics/diagnosis-distribution'],
   });
 
   // Fetch timeseries data
-  const { data: timeseriesData, isLoading: timeseriesLoading } = useQuery({
+  const { data: timeseriesData, isLoading: timeseriesLoading } = useQuery<TimeseriesDataItem[]>({
     queryKey: ['/api/admin/analytics/timeseries', { days: timeRange }],
     queryFn: async () => {
       const res = await fetch(`/api/admin/analytics/timeseries?days=${timeRange}`, {
@@ -61,12 +96,12 @@ export default function AnalyticsPage() {
   });
 
   // Fetch AI performance
-  const { data: aiPerformance, isLoading: aiLoading } = useQuery({
+  const { data: aiPerformance, isLoading: aiLoading } = useQuery<AIPerformanceData>({
     queryKey: ['/api/admin/analytics/ai-performance'],
   });
 
   // Fetch user activity
-  const { data: userActivity, isLoading: activityLoading } = useQuery({
+  const { data: userActivity, isLoading: activityLoading } = useQuery<UserActivityItem[]>({
     queryKey: ['/api/admin/analytics/user-activity'],
   });
 

@@ -650,7 +650,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if user is admin
       const user = await storage.getUser(userId);
-      const isAdmin = user && user.role === 'admin';
+      const isAdmin = Boolean(user && user.role === 'admin');
 
       // Lookup case with proper authorization
       const caseRecord = await lookupCaseWithAuth(parameter, userId, isAdmin);
@@ -928,7 +928,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (format === 'csv') {
-        const { generateCSV } = await import('./utils/csv');
+        const { generateCSV, escapeCSVCell } = await import('./utils/csv');
 
         // Get unique patient IDs
         const patientIds = Array.from(
@@ -952,7 +952,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
 
-        const csv = generateCSV(selectedCases, patientMap);
+        // Build CSV data
+        const headers = [
+          'Case ID',
+          'Patient ID',
+          'Status',
+          'Created At',
+          'Lesion Location',
+          'Symptoms',
+        ];
+        const rows = selectedCases.map((c) => [
+          c.caseId,
+          c.patientId || '',
+          c.status || '',
+          c.createdAt ? new Date(c.createdAt).toISOString() : '',
+          c.lesionLocation || '',
+          Array.isArray(c.symptoms) ? c.symptoms.join(', ') : '',
+        ]);
+
+        const csv = generateCSV(headers, rows);
         const filename = `bulk_export_${Date.now()}.csv`;
 
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');

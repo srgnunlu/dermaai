@@ -14,6 +14,9 @@ describe('DiagnosisResults', () => {
     createdAt: new Date(),
     lesionLocation: 'arm',
     symptoms: ['redness', 'itching'],
+    additionalSymptoms: null,
+    symptomDuration: null,
+    medicalHistory: null,
     geminiAnalysis: {
       diagnoses: [
         {

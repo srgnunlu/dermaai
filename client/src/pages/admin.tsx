@@ -123,22 +123,33 @@ export default function AdminPage() {
   };
 
   // Fetch all cases for admin
-  const { data: cases = [], isLoading: casesLoading } = useQuery({
+  const { data: cases = [], isLoading: casesLoading } = useQuery<any[]>({
     queryKey: ['/api/admin/cases'],
   });
 
   // Fetch system statistics
-  const { data: stats = {}, isLoading: statsLoading } = useQuery({
+  const { data: stats = {}, isLoading: statsLoading } = useQuery<{
+    totalCases?: number;
+    pendingCases?: number;
+    activeUsers?: number;
+    totalUsers?: number;
+    avgDiagnosisTime?: number;
+  }>({
     queryKey: ['/api/admin/stats'],
   });
 
   // Fetch all users for admin
-  const { data: users = [], isLoading: usersLoading } = useQuery({
+  const { data: users = [], isLoading: usersLoading } = useQuery<any[]>({
     queryKey: ['/api/admin/users'],
   });
 
   // System settings
-  const { data: systemSettings, refetch: refetchSystemSettings } = useQuery({
+  const { data: systemSettings, refetch: refetchSystemSettings } = useQuery<{
+    enableGemini?: boolean;
+    enableOpenAI?: boolean;
+    openaiModel?: string;
+    openaiAllowFallback?: boolean;
+  }>({
     queryKey: ['/api/admin/system-settings'],
   });
 
@@ -168,9 +179,7 @@ export default function AdminPage() {
   // Delete case mutation
   const deleteCaseMutation = useMutation({
     mutationFn: async (caseId: string) => {
-      return apiRequest(`/api/admin/cases/${caseId}`, {
-        method: 'DELETE',
-      });
+      return apiRequest('DELETE', `/api/admin/cases/${caseId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/cases'] });
@@ -193,9 +202,7 @@ export default function AdminPage() {
   // Delete user mutation
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return apiRequest(`/api/admin/users/${userId}`, {
-        method: 'DELETE',
-      });
+      return apiRequest('DELETE', `/api/admin/users/${userId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });

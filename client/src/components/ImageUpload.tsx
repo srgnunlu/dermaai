@@ -47,25 +47,46 @@ export function ImageUpload({ onImagesUploaded, uploadedImages = [] }: ImageUplo
   };
 
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
+    const files = event.target.files;
+    if (!files) return;
+
+    // Convert FileList to Array and process all files
+    const fileArray = Array.from(files);
+    
+    // Check total images limit (1-3 total)
+    const totalImages = previewUrls.length + fileArray.length;
+    if (totalImages > 3) {
+      alert(`Maksimum 3 görsel yükleyebilirsiniz. Şu an ${previewUrls.length} görseliniz var, ${fileArray.length} görsel seçtiniz.`);
+      event.target.value = '';
+      return;
+    }
+
+    // Process each file
+    let processedCount = 0;
+    let errorCount = 0;
+
+    fileArray.forEach((file) => {
       // Check file type
       if (!file.type.startsWith('image/')) {
-        alert('Lütfen sadece resim dosyası seçin.');
+        alert(`"${file.name}" görsel dosyası değil. Lütfen sadece resim dosyası seçin.`);
+        errorCount++;
         return;
       }
 
       // Check file size (10MB max)
       if (file.size > 10 * 1024 * 1024) {
-        alert("Dosya boyutu 10MB'dan küçük olmalıdır.");
+        alert(`"${file.name}" 10MB'dan büyük. Lütfen daha küçük dosya seçin.`);
+        errorCount++;
         return;
       }
 
       handleFileUpload(file);
-    }
-    // Reset input so same file can be selected again
+      processedCount++;
+    });
+
+    // Reset input so same files can be selected again
     event.target.value = '';
-  }, []);
+  }, [previewUrls]);
 
   const handleRemoveImage = (index: number) => {
     const newUrls = previewUrls.filter((_, i) => i !== index);
@@ -75,7 +96,6 @@ export function ImageUpload({ onImagesUploaded, uploadedImages = [] }: ImageUplo
 
   const handleAddMore = () => {
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
       fileInputRef.current.click();
     }
   };
@@ -100,6 +120,7 @@ export function ImageUpload({ onImagesUploaded, uploadedImages = [] }: ImageUplo
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
+                multiple
                 onChange={handleFileSelect}
                 className="hidden"
               />

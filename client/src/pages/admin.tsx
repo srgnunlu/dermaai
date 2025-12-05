@@ -931,7 +931,6 @@ export default function AdminPage() {
                   </Pagination>
                 </div>
               )}
-              )}
             </CardContent>
           </Card>
         </TabsContent>

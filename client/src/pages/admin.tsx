@@ -1126,8 +1126,9 @@ export default function AdminPage() {
                     )}
                   </TableBody>
                 </Table>
+              )}
 
-                {/* Pagination Controls */}
+              {/* Pagination Controls */}
               {!usersLoading && filteredUsers.length > 0 && totalUsersPages > 1 && (
                 <div className="mt-6 flex items-center justify-between">
                   <div className="text-sm text-muted-foreground">

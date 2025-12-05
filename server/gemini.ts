@@ -21,7 +21,7 @@ class GeminiAnalysisError extends Error {
   }
 }
 
-// the newest Gemini model is "gemini-2.5-flash" - do not change this unless explicitly requested by the user
+// the newest Gemini model is "gemini-3-pro-preview" - do not change this unless explicitly requested by the user
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '',
 });
@@ -170,7 +170,7 @@ QUALITY CHECKLIST (verify before responding):
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3-pro-preview',
           config: {
             responseMimeType: 'application/json',
             responseSchema: {

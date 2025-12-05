@@ -231,7 +231,7 @@ export const systemSettings = pgTable('system_settings', {
 export const updateSystemSettingsSchema = z.object({
   enableGemini: z.boolean().optional(),
   enableOpenAI: z.boolean().optional(),
-  openaiModel: z.enum(['gpt-5-mini', 'gpt-5', 'gpt-4o-mini']).optional(),
+  openaiModel: z.enum(['gpt-5.1']).optional(),
   openaiAllowFallback: z.boolean().optional(),
 });
 

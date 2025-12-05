@@ -28,7 +28,7 @@ let openai: OpenAI;
 const getOpenAIClient = () => {
   if (!openai) {
     const apiKey = process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || '';
-    
+
     if (!apiKey) {
       logger.error('[OpenAI] API key is missing');
       throw new AIAnalysisError({
@@ -38,7 +38,7 @@ const getOpenAIClient = () => {
         hint: 'Set OPENAI_API_KEY environment variable',
       });
     }
-    
+
     logger.info('[OpenAI] Initializing OpenAI client');
     openai = new OpenAI({ apiKey });
   }
@@ -106,7 +106,7 @@ export async function analyzeWithOpenAI(
         // Get image data and metadata directly from the file
         const [imageBuffer] = await file.download();
         const [metadata] = await file.getMetadata();
-        
+
         if (!imageBuffer || imageBuffer.length === 0) {
           logger.error(`[OpenAI] Image buffer is empty for URL: ${imageUrl}`);
           throw new Error('Image buffer is empty');
@@ -206,7 +206,7 @@ QUALITY CHECKLIST (verify before responding):
 ✓ Each diagnosis justified by visible features
 ✓ No absurd or unrelated conditions`;
 
-    const model = options.model || process.env.OPENAI_MODEL || 'gpt-5-mini';
+    const model = options.model || process.env.OPENAI_MODEL || 'gpt-5.1';
     logger.info(`[OpenAI] Starting analysis with model: ${model}, images: ${urlArray.length}`);
 
     // Build message content with all images
@@ -270,7 +270,7 @@ STRICT REQUIREMENTS:
         const code = err?.error?.code ?? err?.code;
         const message = err?.message || err?.error?.message || 'OpenAI request failed';
         const retryableStatuses = [429, 500, 503];
-        
+
         if (retryableStatuses.includes(status) && attempt < maxRetries) {
           const delay = baseDelayMs * Math.pow(2, attempt);
           logger.warn(
@@ -279,13 +279,13 @@ STRICT REQUIREMENTS:
           await new Promise((resolve) => setTimeout(resolve, delay));
           continue;
         }
-        
+
         logger.error(`[OpenAI] Request failed after ${attempt + 1} attempts:`, {
           status,
           code,
           message,
         });
-        
+
         // Don't throw yet, let it fall through to handle the error below
         break;
       }
@@ -296,7 +296,7 @@ STRICT REQUIREMENTS:
       const status = lastError?.status ?? lastError?.error?.status ?? lastError?.response?.status;
       const code = lastError?.error?.code ?? lastError?.code;
       const message = lastError?.message || lastError?.error?.message || 'OpenAI request failed';
-      
+
       throw new AIAnalysisError({
         provider: 'openai',
         code: status === 503 ? 'MODEL_OVERLOADED' : status === 429 ? 'RATE_LIMIT' : code || 'UNKNOWN',
@@ -324,9 +324,9 @@ STRICT REQUIREMENTS:
     let content = response.choices?.[0]?.message?.content ?? '';
     let refusal = (response.choices?.[0] as any)?.message?.refusal;
     let finishReason = (response.choices?.[0] as any)?.finish_reason;
-    
+
     logger.info(`[OpenAI] Response received - content length: ${content?.length || 0}, finish_reason: ${finishReason}`);
-    
+
     if (!content) {
       logger.warn('[OpenAI] Empty content received', {
         refusal,
@@ -343,7 +343,7 @@ STRICT REQUIREMENTS:
             text: `Please analyze this dermatological image and provide differential diagnoses based on the clinical information provided. (Note: using first image of ${urlArray.length} images)`,
           },
         ];
-        
+
         if (imageDataArray.length > 0) {
           singleImageContent.push({
             type: 'image_url',
@@ -400,7 +400,7 @@ STRICT REQUIREMENTS:
     // Attempt fallback: try fallback model
     if (!content && !model.includes('gpt-4o-mini') && (options.allowFallback ?? true)) {
       logger.warn('[OpenAI] Retrying with fallback model gpt-4o-mini');
-      
+
       // For multi-image, use only first image with fallback
       const fallbackContent = urlArray.length > 1 ? [
         {
@@ -476,7 +476,7 @@ STRICT REQUIREMENTS:
 
     // Ensure we have exactly 5 diagnoses
     const diagnoses = (result.diagnoses || []).slice(0, 5);
-    
+
     logger.info(`[OpenAI] Analysis completed successfully with ${diagnoses.length} diagnoses`);
 
     return {

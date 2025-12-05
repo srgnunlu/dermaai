@@ -859,7 +859,7 @@ export default function AdminPage() {
                 </Table>
 
                 {/* Pagination Controls */}
-              {!casesLoading && filteredCases.length > 0 && totalCasesPages > 1 && (
+                {!casesLoading && filteredCases.length > 0 && totalCasesPages > 1 && (
                 <div className="mt-6 flex items-center justify-between">
                   <div className="text-sm text-muted-foreground">
                     Showing {((casesPage - 1) * casesPerPage) + 1} to{' '}

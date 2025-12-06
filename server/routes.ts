@@ -529,7 +529,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           finalFilename
         );
         // Return full URL for AI analysis
-        const baseUrl = process.env.RENDER_EXTERNAL_URL || process.env.BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
+        // Construct base URL from env vars or request headers
+        let baseUrl = process.env.RENDER_EXTERNAL_URL || process.env.BASE_URL;
+        if (!baseUrl) {
+          // Fallback: construct from request headers
+          const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+          const host = req.headers['x-forwarded-host'] || req.headers.host || 'dermaai-1d9i.onrender.com';
+          baseUrl = `${protocol}://${host}`;
+        }
         const fileUrl = `${baseUrl}/files/${filePath}`;
         res.json({ url: fileUrl, filePath });
       }

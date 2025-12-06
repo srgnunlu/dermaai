@@ -12,6 +12,7 @@ import {
   updateUserProfileSchema,
 } from '@shared/schema';
 import { setupAuth, isAuthenticated } from './replitAuth';
+import { setupMobileAuth } from './mobileAuth';
 import { requireAdmin } from './middleware';
 import multer from 'multer';
 import PDFDocument from 'pdfkit';
@@ -32,6 +33,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Auth middleware - setup Local Auth
   await setupAuth(app);
+
+  // Setup mobile authentication endpoints
+  setupMobileAuth(app);
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
@@ -550,7 +554,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create case record with authenticated user
       const userId = req.user.id;
-      
+
       // Handle both single imageUrl (backward compatibility) and multiple imageUrls
       let imageUrls: string[] = [];
       if (caseData.imageUrls && Array.isArray(caseData.imageUrls) && caseData.imageUrls.length > 0) {
@@ -829,46 +833,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const boxStartY = doc.y;
       const boxWidth = pageWidth - 80;
       const boxHeight = 90;
-      
+
       // Draw box background
       doc
         .rect(40, boxStartY, boxWidth, boxHeight)
         .fillAndStroke('#f8f9fa', '#1a5490');
-      
+
       // Section title
       doc
         .fontSize(11)
         .font('Helvetica-Bold')
         .fillColor('#1a5490')
         .text(sanitizeTextForPDF('CASE INFORMATION'), 50, boxStartY + 10);
-      
+
       // Draw divider line
       doc
         .moveTo(50, boxStartY + 28)
         .lineTo(pageWidth - 50, boxStartY + 28)
         .stroke('#dee2e6');
-      
+
       // Grid layout for case info (2 columns)
       const col1X = 50;
       const col2X = pageWidth / 2 + 20;
       let currentInfoY = boxStartY + 38;
-      
+
       doc.fillColor('#000000').fontSize(9);
-      
+
       // Column 1
       doc
         .font('Helvetica-Bold')
         .text('Case ID:', col1X, currentInfoY, { continued: true })
         .font('Helvetica')
         .text(` ${sanitizeTextForPDF(caseRecord.caseId)}`);
-      
+
       currentInfoY += 15;
       doc
         .font('Helvetica-Bold')
         .text('Patient ID:', col1X, currentInfoY, { continued: true })
         .font('Helvetica')
         .text(` ${sanitizeTextForPDF(caseRecord.patientId || 'N/A')}`);
-      
+
       // Column 2
       currentInfoY = boxStartY + 38;
       doc
@@ -876,7 +880,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .text('Date:', col2X, currentInfoY, { continued: true })
         .font('Helvetica')
         .text(` ${sanitizeTextForPDF(caseRecord.createdAt ? new Date(caseRecord.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A')}`);
-      
+
       currentInfoY += 15;
       doc
         .font('Helvetica-Bold')
@@ -884,62 +888,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .font('Helvetica')
         .fillColor(caseRecord.status === 'completed' ? '#22c55e' : '#f59e0b')
         .text(` ${sanitizeTextForPDF(caseRecord.status === 'completed' ? 'Completed' : 'Pending')}`);
-      
+
       doc.fillColor('#000000');
       doc.y = boxStartY + boxHeight + 20;
 
       // Clinical Information Section - Card Style
       const clinicalStartY = doc.y;
       const clinicalHeight = 110;
-      
+
       // Draw card background
       doc
         .rect(40, clinicalStartY, boxWidth, clinicalHeight)
         .fillAndStroke('#f8f9fa', '#1a5490');
-      
+
       // Section title
       doc
         .fontSize(11)
         .font('Helvetica-Bold')
         .fillColor('#1a5490')
         .text(sanitizeTextForPDF('CLINICAL INFORMATION'), 50, clinicalStartY + 10);
-      
+
       // Draw divider line
       doc
         .moveTo(50, clinicalStartY + 28)
         .lineTo(pageWidth - 50, clinicalStartY + 28)
         .stroke('#dee2e6');
-      
+
       let clinicalY = clinicalStartY + 38;
       doc.fillColor('#000000').fontSize(9);
-      
+
       // Lesion Location
       doc
         .font('Helvetica-Bold')
         .text('Lesion Location:', 50, clinicalY, { continued: true })
         .font('Helvetica')
         .text(` ${sanitizeTextForPDF(caseRecord.lesionLocation || 'Not specified')}`);
-      
+
       clinicalY += 15;
-      
+
       // Symptoms
       doc
         .font('Helvetica-Bold')
         .text('Symptoms:', 50, clinicalY, { continued: true })
         .font('Helvetica')
         .text(` ${sanitizeTextForPDF(Array.isArray(caseRecord.symptoms) ? caseRecord.symptoms.join(', ') : caseRecord.symptoms || 'None reported')}`);
-      
+
       clinicalY += 15;
-      
+
       // Duration
       doc
         .font('Helvetica-Bold')
         .text('Duration:', 50, clinicalY, { continued: true })
         .font('Helvetica')
         .text(` ${sanitizeTextForPDF(caseRecord.symptomDuration || 'Not specified')}`);
-      
+
       clinicalY += 15;
-      
+
       // Additional Symptoms (if any)
       if (caseRecord.additionalSymptoms) {
         doc
@@ -949,7 +953,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .text(` ${sanitizeTextForPDF(caseRecord.additionalSymptoms)}`);
         clinicalY += 15;
       }
-      
+
       // Medical History (if any)
       if (caseRecord.medicalHistory && caseRecord.medicalHistory.length > 0) {
         doc
@@ -958,7 +962,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .font('Helvetica')
           .text(` ${sanitizeTextForPDF(caseRecord.medicalHistory.join(', '))}`);
       }
-      
+
       doc.y = clinicalStartY + clinicalHeight + 20;
 
       // Lesion Images Section - Page 1
@@ -974,9 +978,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .moveTo(40, doc.y)
           .lineTo(pageWidth - 40, doc.y)
           .stroke('#dee2e6');
-        
+
         doc.moveDown(0.5);
-        
+
         doc
           .fontSize(12)
           .font('Helvetica-Bold')
@@ -991,7 +995,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Calculate image size based on count
         let imageWidth: number;
         let imageHeight: number;
-        
+
         if (imageUrls.length === 1) {
           imageWidth = 350;
           imageHeight = 280;
@@ -1050,7 +1054,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // PAGE 2: Gemini Analysis (dedicated page)
       doc.addPage();
-      
+
       // Helper function to draw confidence bar
       const drawConfidenceBar = (x: number, y: number, width: number, confidence: number, color: string) => {
         const barWidth = (confidence / 100) * width;
@@ -1064,47 +1068,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         doc
           .rect(40, 40, pageWidth - 80, 30)
           .fillAndStroke('#9333ea', '#9333ea');
-        
+
         doc
           .fontSize(14)
           .font('Helvetica-Bold')
           .fillColor('#ffffff')
           .text(sanitizeTextForPDF('GEMINI 2.5 FLASH ANALYSIS'), 50, 50);
-        
+
         doc.y = 85;
         doc.fillColor('#000000');
 
         // Display each diagnosis with full details
         caseRecord.geminiAnalysis.diagnoses.slice(0, 5).forEach((diagnosis: any, index: number) => {
           const startY = doc.y;
-          
+
           // Check if we need a new page (keeping 100px margin at bottom)
           if (startY > doc.page.height - 150) {
             doc.addPage();
             doc.y = 50;
           }
-          
+
           const cardY = doc.y;
-          
+
           // Diagnosis header
           doc
             .fontSize(11)
             .font('Helvetica-Bold')
             .fillColor('#9333ea')
             .text(`${index + 1}. ${sanitizeTextForPDF(diagnosis.name)}`, 50, cardY);
-          
+
           doc
             .fontSize(10)
             .font('Helvetica-Bold')
             .fillColor('#9333ea')
             .text(`${diagnosis.confidence}%`, pageWidth - 80, cardY);
-          
+
           doc.y = cardY + 15;
-          
+
           // Confidence bar
           drawConfidenceBar(50, doc.y, pageWidth - 100, diagnosis.confidence, '#9333ea');
           doc.y += 15;
-          
+
           // Description
           doc
             .fontSize(9)
@@ -1113,9 +1117,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .text(sanitizeTextForPDF(diagnosis.description || 'N/A'), 50, doc.y, {
               width: pageWidth - 100,
             });
-          
+
           doc.moveDown(0.5);
-          
+
           // Key Features
           if (diagnosis.keyFeatures && diagnosis.keyFeatures.length > 0) {
             doc
@@ -1123,9 +1127,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               .font('Helvetica-Bold')
               .fillColor('#9333ea')
               .text('Key Features:', 50, doc.y);
-            
+
             doc.moveDown(0.3);
-            
+
             diagnosis.keyFeatures.forEach((feature: string) => {
               doc
                 .fontSize(8)
@@ -1137,7 +1141,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               doc.moveDown(0.3);
             });
           }
-          
+
           // Recommendations
           if (diagnosis.recommendations && diagnosis.recommendations.length > 0) {
             doc.moveDown(0.3);
@@ -1146,9 +1150,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               .font('Helvetica-Bold')
               .fillColor('#9333ea')
               .text('Recommendations:', 50, doc.y);
-            
+
             doc.moveDown(0.3);
-            
+
             diagnosis.recommendations.forEach((rec: string) => {
               doc
                 .fontSize(8)
@@ -1160,7 +1164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               doc.moveDown(0.3);
             });
           }
-          
+
           // Divider between diagnoses
           if (index < 4) {
             doc.moveDown(0.5);
@@ -1187,47 +1191,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         doc
           .rect(40, 40, pageWidth - 80, 30)
           .fillAndStroke('#16a34a', '#16a34a');
-        
+
         doc
           .fontSize(14)
           .font('Helvetica-Bold')
           .fillColor('#ffffff')
           .text(sanitizeTextForPDF('GPT-5 MINI ANALYSIS'), 50, 50);
-        
+
         doc.y = 85;
         doc.fillColor('#000000');
 
         // Display each diagnosis with full details
         caseRecord.openaiAnalysis.diagnoses.slice(0, 5).forEach((diagnosis: any, index: number) => {
           const startY = doc.y;
-          
+
           // Check if we need a new page (keeping 100px margin at bottom)
           if (startY > doc.page.height - 150) {
             doc.addPage();
             doc.y = 50;
           }
-          
+
           const cardY = doc.y;
-          
+
           // Diagnosis header
           doc
             .fontSize(11)
             .font('Helvetica-Bold')
             .fillColor('#16a34a')
             .text(`${index + 1}. ${sanitizeTextForPDF(diagnosis.name)}`, 50, cardY);
-          
+
           doc
             .fontSize(10)
             .font('Helvetica-Bold')
             .fillColor('#16a34a')
             .text(`${diagnosis.confidence}%`, pageWidth - 80, cardY);
-          
+
           doc.y = cardY + 15;
-          
+
           // Confidence bar
           drawConfidenceBar(50, doc.y, pageWidth - 100, diagnosis.confidence, '#16a34a');
           doc.y += 15;
-          
+
           // Description
           doc
             .fontSize(9)
@@ -1236,9 +1240,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .text(sanitizeTextForPDF(diagnosis.description || 'N/A'), 50, doc.y, {
               width: pageWidth - 100,
             });
-          
+
           doc.moveDown(0.5);
-          
+
           // Key Features
           if (diagnosis.keyFeatures && diagnosis.keyFeatures.length > 0) {
             doc
@@ -1246,9 +1250,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               .font('Helvetica-Bold')
               .fillColor('#16a34a')
               .text('Key Features:', 50, doc.y);
-            
+
             doc.moveDown(0.3);
-            
+
             diagnosis.keyFeatures.forEach((feature: string) => {
               doc
                 .fontSize(8)
@@ -1260,7 +1264,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               doc.moveDown(0.3);
             });
           }
-          
+
           // Recommendations
           if (diagnosis.recommendations && diagnosis.recommendations.length > 0) {
             doc.moveDown(0.3);
@@ -1269,9 +1273,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               .font('Helvetica-Bold')
               .fillColor('#16a34a')
               .text('Recommendations:', 50, doc.y);
-            
+
             doc.moveDown(0.3);
-            
+
             diagnosis.recommendations.forEach((rec: string) => {
               doc
                 .fontSize(8)
@@ -1283,7 +1287,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               doc.moveDown(0.3);
             });
           }
-          
+
           // Divider between diagnoses
           if (index < 4) {
             doc.moveDown(0.5);
@@ -1304,34 +1308,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // PAGE 4: Final page with disclaimers
       doc.addPage();
-      
+
       // Final page header
       doc
         .rect(40, 40, pageWidth - 80, 30)
         .fillAndStroke('#1a5490', '#1a5490');
-      
+
       doc
         .fontSize(14)
         .font('Helvetica-Bold')
         .fillColor('#ffffff')
         .text(sanitizeTextForPDF('IMPORTANT INFORMATION'), 50, 50);
-      
+
       doc.y = 90;
       doc.fillColor('#000000');
-      
+
       // Medical Disclaimer Box
       doc
         .rect(40, doc.y, pageWidth - 80, 180)
         .fillAndStroke('#fff3cd', '#ffc107');
-      
+
       doc
         .fontSize(12)
         .font('Helvetica-Bold')
         .fillColor('#856404')
         .text(sanitizeTextForPDF('MEDICAL DISCLAIMER'), 50, doc.y + 15);
-      
+
       doc.y += 35;
-      
+
       doc
         .fontSize(9)
         .font('Helvetica')
@@ -1344,9 +1348,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           doc.y,
           { width: pageWidth - 100 }
         );
-      
+
       doc.moveDown(1);
-      
+
       doc.text(
         sanitizeTextForPDF(
           'Always seek the advice of your physician or other qualified healthcare provider with any questions you may have regarding a medical condition. Never disregard professional medical advice or delay seeking it because of information provided in this AI-generated report.'
@@ -1355,9 +1359,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         doc.y,
         { width: pageWidth - 100 }
       );
-      
+
       doc.moveDown(1);
-      
+
       doc.text(
         sanitizeTextForPDF(
           'The AI models used in this analysis are trained on medical literature and images, but they are not infallible and should be used only as a supplementary tool in clinical decision-making.'
@@ -1366,18 +1370,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         doc.y,
         { width: pageWidth - 100 }
       );
-      
+
       doc.y += 50;
-      
+
       // About the Models
       doc
         .fontSize(11)
         .font('Helvetica-Bold')
         .fillColor('#1a5490')
         .text(sanitizeTextForPDF('About the AI Models'), 50, doc.y);
-      
+
       doc.moveDown(0.5);
-      
+
       doc
         .fontSize(9)
         .font('Helvetica')
@@ -1390,9 +1394,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           doc.y,
           { width: pageWidth - 100 }
         );
-      
+
       doc.moveDown(0.5);
-      
+
       doc.text(
         sanitizeTextForPDF(
           '• GPT-5 Mini: OpenAI\'s efficient multimodal model with dermatological knowledge'
@@ -1401,18 +1405,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         doc.y,
         { width: pageWidth - 100 }
       );
-      
+
       doc.moveDown(1.5);
-      
+
       // Report Information
       doc
         .fontSize(11)
         .font('Helvetica-Bold')
         .fillColor('#1a5490')
         .text(sanitizeTextForPDF('Report Information'), 50, doc.y);
-      
+
       doc.moveDown(0.5);
-      
+
       doc
         .fontSize(9)
         .font('Helvetica')
@@ -1424,17 +1428,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           50,
           doc.y
         );
-      
+
       doc.moveDown(0.3);
-      
+
       doc.text(
         sanitizeTextForPDF(`Case ID: ${caseRecord.caseId}`),
         50,
         doc.y
       );
-      
+
       doc.moveDown(0.3);
-      
+
       doc.text(
         sanitizeTextForPDF('System: DermaAI - AI-Powered Dermatological Analysis Platform'),
         50,
@@ -1445,7 +1449,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pages = doc.bufferedPageRange();
       for (let i = 0; i < pages.count; i++) {
         doc.switchToPage(i);
-        
+
         // Footer background
         doc
           .rect(0, doc.page.height - 60, doc.page.width, 60)
@@ -1473,7 +1477,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             doc.page.height - 35,
             { align: 'center', width: doc.page.width - 100 }
           );
-        
+
         // Page number
         doc
           .fontSize(8)

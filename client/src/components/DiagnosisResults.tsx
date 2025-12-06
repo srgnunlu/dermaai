@@ -77,9 +77,8 @@ const AIAnalysisCard = memo(function AIAnalysisCard({
         {diagnoses.map((diagnosis: any, index: number) => (
           <div
             key={index}
-            className={`p-4 rounded-lg border ${
-              index === 0 ? 'border-primary/40 bg-primary/5' : 'border-border bg-muted/30'
-            }`}
+            className={`p-4 rounded-lg border ${index === 0 ? 'border-primary/40 bg-primary/5' : 'border-border bg-muted/30'
+              }`}
           >
             {/* Rank and Confidence */}
             <div className="flex items-start justify-between mb-3">
@@ -223,7 +222,7 @@ export const DiagnosisResults = memo(function DiagnosisResults({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Gemini Analysis */}
         <AIAnalysisCard
-          title="Gemini 2.5 Flash"
+          title="Gemini 3"
           icon={<Sparkles className="h-5 w-5 text-purple-600" />}
           analysis={geminiAnalysis}
           color="border-purple-500/30"
@@ -231,7 +230,7 @@ export const DiagnosisResults = memo(function DiagnosisResults({
 
         {/* OpenAI Analysis */}
         <AIAnalysisCard
-          title="GPT-5 Mini"
+          title="GPT-5.1"
           icon={<Zap className="h-5 w-5 text-green-600" />}
           analysis={openaiAnalysis}
           color="border-green-500/30"

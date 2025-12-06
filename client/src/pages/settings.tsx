@@ -138,7 +138,7 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="use-gemini">Use Gemini 2.5 Flash</Label>
+                  <Label htmlFor="use-gemini">Use Gemini 3</Label>
                   <Switch
                     id="use-gemini"
                     checked={formData.useGemini ?? false}
@@ -147,7 +147,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="use-openai">Use ChatGPT-5</Label>
+                  <Label htmlFor="use-openai">Use GPT-5.1</Label>
                   <Switch
                     id="use-openai"
                     checked={formData.useOpenAI ?? false}

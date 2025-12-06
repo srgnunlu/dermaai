@@ -223,13 +223,41 @@ export async function setupAuth(app: Express) {
 
   // Google OAuth endpoints
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-    app.get('/api/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+    // Store mobile flag in session before OAuth
+    app.get('/api/auth/google', (req, res, next) => {
+      // Check if request is from mobile app
+      if (req.query.mobile === 'true') {
+        (req.session as any).isMobileAuth = true;
+      }
+      passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+    });
 
     app.get(
       '/api/auth/google/callback',
       passport.authenticate('google', { failureRedirect: '/login' }),
-      (req, res) => {
-        // Successful authentication, redirect to dashboard
+      async (req, res) => {
+        const user = req.user as any;
+        const isMobile = (req.session as any).isMobileAuth;
+
+        // Clear mobile flag
+        delete (req.session as any).isMobileAuth;
+
+        if (isMobile && user) {
+          // Generate JWT for mobile
+          const { generateTokens } = await import('./mobileAuth');
+          const tokens = generateTokens({
+            id: user.id,
+            email: user.email,
+            role: user.role || 'user',
+          });
+
+          // Redirect to mobile app with token
+          const mobileRedirectUrl = `dermaai://oauth?access_token=${tokens.accessToken}&refresh_token=${tokens.refreshToken}`;
+          logger.debug(`[AUTH] Mobile redirect to: ${mobileRedirectUrl}`);
+          return res.redirect(mobileRedirectUrl);
+        }
+
+        // Web: redirect to dashboard
         res.redirect('/');
       }
     );

@@ -1421,7 +1421,7 @@ export default function AdminPage() {
                     <div className="mb-6">
                       <div className="flex items-center gap-2 mb-4 pb-3 border-b-2 border-purple-300">
                         <div className="w-4 h-4 rounded bg-purple-600"></div>
-                        <h4 className="text-base font-bold text-purple-900">Gemini 2.5 Flash Analysis</h4>
+                        <h4 className="text-base font-bold text-purple-900">Gemini 3 Analysis</h4>
                       </div>
                       <div className="space-y-3">
                         {selectedCase.geminiAnalysis.diagnoses.slice(0, 5).map((diagnosis: any, index: number) => (
@@ -1488,7 +1488,7 @@ export default function AdminPage() {
                     <div className="mb-6">
                       <div className="flex items-center gap-2 mb-4 pb-3 border-b-2 border-green-300">
                         <div className="w-4 h-4 rounded bg-green-600"></div>
-                        <h4 className="text-base font-bold text-green-900">GPT-5 Mini Analysis</h4>
+                        <h4 className="text-base font-bold text-green-900">GPT-5.1 Analysis</h4>
                       </div>
                       <div className="space-y-3">
                         {selectedCase.openaiAnalysis.diagnoses.slice(0, 5).map((diagnosis: any, index: number) => (

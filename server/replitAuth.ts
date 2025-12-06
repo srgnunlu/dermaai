@@ -7,6 +7,7 @@ import connectPg from 'connect-pg-simple';
 import { storage } from './storage';
 import crypto from 'crypto';
 import logger from './logger';
+import { verifyAccessToken } from './mobileAuth';
 
 // Simple password hashing utility
 function hashPassword(password: string): string {
@@ -329,12 +330,35 @@ export async function setupAuth(app: Express) {
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
-  if (!req.isAuthenticated() || !req.user) {
-    logger.debug('[AUTH] User not authenticated - needs to login');
-    return res.status(401).json({ message: 'Unauthorized - Please login first' });
+  // 1. Check existing Passport session
+  if (req.isAuthenticated() && req.user) {
+    logger.debug('[AUTH] User authenticated via Session:', (req.user as any).email);
+    return next();
   }
 
-  // Simple authentication check - user exists in session
-  logger.debug('[AUTH] User authenticated:', (req.user as any).email);
-  return next();
+  // 2. Check for Mobile JWT Token
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    const payload = verifyAccessToken(token);
+
+    if (payload) {
+      // Map payload to req.user structure expected by the app
+      req.user = {
+        id: payload.userId,
+        email: payload.email,
+        role: payload.role
+      } as any;
+
+      logger.debug('[AUTH] User authenticated via JWT:', payload.email);
+      return next();
+    } else {
+      // Token provided but invalid
+      logger.debug('[AUTH] Invalid JWT token provided');
+    }
+  }
+
+  // 3. No valid auth found
+  logger.debug('[AUTH] User not authenticated - needs to login');
+  return res.status(401).json({ message: 'Unauthorized - Please login first' });
 };

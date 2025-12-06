@@ -7,6 +7,7 @@ import {
     ActivityIndicator,
     Alert,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { useAuth } from '@/hooks/useAuth';
@@ -26,14 +27,13 @@ export default function LoginScreen() {
     const colors = Colors[colorScheme];
     const [loading, setLoading] = useState(false);
     const queryClient = useQueryClient();
+    const router = useRouter();
 
     // Handle deep link when app is opened with oauth callback
     useEffect(() => {
         const handleDeepLink = async (event: { url: string }) => {
             const url = event.url;
             console.log('Deep link received:', url);
-            // DEBUG: Alert to confirm deep link
-            // Alert.alert('Deep Link', url);
 
             if (url.includes('oauth')) {
                 const params = Linking.parse(url);
@@ -44,17 +44,12 @@ export default function LoginScreen() {
                     console.log('Tokens received, saving...');
                     try {
                         await saveTokens(accessToken, refreshToken);
-                        Alert.alert('Giriş Başarılı', 'Giriş yapılıyor...');
-                        // Refresh auth state
                         await refetch();
                         queryClient.invalidateQueries({ queryKey: ['auth'] });
+                        router.replace('/(tabs)');
                     } catch (error) {
                         console.error('Error saving tokens:', error);
-                        Alert.alert('Hata', 'Token kaydedilemedi');
                     }
-                } else {
-                    console.error('Missing tokens in URL');
-                    Alert.alert('Hata', 'Giriş bilgileri alınamadı');
                 }
             }
         };
@@ -77,14 +72,14 @@ export default function LoginScreen() {
     const handleGooglePress = async () => {
         setLoading(true);
 
-        // Generate dynamic redirect URI for the current environment
-        const redirectUrl = Linking.createURL('oauth');
-        console.log('Generated redirect URL:', redirectUrl);
-
-        // Pass this URL to the backend so it knows where to redirect back
-        const authUrl = `${BACKEND_URL}/api/auth/google?mobile=true&redirect_uri=${encodeURIComponent(redirectUrl)}`;
-
         try {
+            // Generate dynamic redirect URI for the current environment
+            const redirectUrl = Linking.createURL('oauth');
+            console.log('Generated redirect URL:', redirectUrl);
+
+            // Pass this URL to the backend so it knows where to redirect back
+            const authUrl = `${BACKEND_URL}/api/auth/google?mobile=true&redirect_uri=${encodeURIComponent(redirectUrl)}`;
+
             const result = await WebBrowser.openAuthSessionAsync(
                 authUrl,
                 redirectUrl
@@ -99,14 +94,24 @@ export default function LoginScreen() {
                 const refreshToken = params.queryParams?.refresh_token as string;
 
                 if (accessToken && refreshToken) {
-                    await saveTokens(accessToken, refreshToken);
-                    await refetch();
-                    queryClient.invalidateQueries({ queryKey: ['auth'] });
+                    try {
+                        await saveTokens(accessToken, refreshToken);
+
+                        // Force update auth state
+                        await refetch();
+                        queryClient.invalidateQueries({ queryKey: ['auth'] });
+
+                        // Explicitly navigate to tabs to ensure user doesn't get stuck
+                        router.replace('/(tabs)');
+                    } catch (error) {
+                        console.error('Login error:', error);
+                        Alert.alert('Hata', 'Giriş işlemi tamamlanamadı');
+                    }
                 }
             }
         } catch (error) {
             console.error('Auth error:', error);
-            Alert.alert('Hata', 'Giriş yapılamadı');
+            Alert.alert('Hata', 'Giriş yapılamadı: ' + (error as any).message);
         } finally {
             setLoading(false);
         }

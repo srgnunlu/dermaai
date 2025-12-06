@@ -7,6 +7,7 @@ import {
     Image,
     Alert,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/components/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,6 +16,21 @@ export default function ProfileScreen() {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
     const { user, logout, isLoggingOut } = useAuth();
+    const router = useRouter();
+
+    if (!user) {
+        return (
+            <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', padding: 24 }]}>
+                <Text style={{ color: colors.text, fontSize: 18, marginBottom: 20 }}>Oturum açmadınız</Text>
+                <TouchableOpacity
+                    style={[styles.logoutButton, { backgroundColor: '#4285F4', width: '100%', marginTop: 0 }]}
+                    onPress={() => router.replace('/(auth)/login')}
+                >
+                    <Text style={[styles.logoutText, { color: '#ffffff' }]}>Giriş Yap</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
 
     const handleLogout = async () => {
         Alert.alert(

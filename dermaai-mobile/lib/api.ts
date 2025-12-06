@@ -6,6 +6,7 @@
 import { API_BASE_URL, API_TIMEOUT } from '@/constants/Config';
 import { getAccessToken, getRefreshToken, saveTokens, clearTokens } from './storage';
 import type { AuthResponse, ApiError } from '@/types/schema';
+import { Alert } from 'react-native';
 
 class ApiClient {
     private baseUrl: string;
@@ -127,6 +128,11 @@ class ApiClient {
             return JSON.parse(text) as T;
         } catch (error) {
             clearTimeout(timeoutId);
+            console.error('[API Debug]', endpoint, error);
+            if (endpoint.includes('/user')) {
+                Alert.alert('API Debug', `User Fetch Failed: ${(error as any).message}`);
+            }
+
             if (error instanceof Error && error.name === 'AbortError') {
                 throw new Error('Request timed out');
             }

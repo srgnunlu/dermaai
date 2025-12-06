@@ -4,6 +4,7 @@ import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { Alert } from 'react-native';
 import 'react-native-reanimated';
 import { QueryClientProvider } from '@tanstack/react-query';
 
@@ -60,17 +61,26 @@ function RootLayoutNav() {
 
   // Handle authentication routing
   useEffect(() => {
+    // Debug: Visible logs for user
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
 
+    console.log('[AuthDebug]', { isAuthenticated, inAuthGroup, path: segments.join('/') });
+
+    // TEMPORARILY DISABLED REDIRECT FOR DEBUGGING
+    /*
     if (!isAuthenticated && !inAuthGroup) {
       // Redirect to login if not authenticated
       router.replace('/(auth)/login');
     } else if (isAuthenticated && inAuthGroup) {
+      // Alert to confirm we detected the login
+      Alert.alert('Debug', 'Login detected! Redirecting to tabs...');
+      
       // Redirect to main app if authenticated
       router.replace('/(tabs)');
     }
+    */
   }, [isAuthenticated, isLoading, segments]);
 
   return (

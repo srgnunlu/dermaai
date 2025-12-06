@@ -1,7 +1,9 @@
 // API Configuration
-export const API_BASE_URL = __DEV__
-    ? 'http://localhost:5000'
-    : 'https://dermaai-1d9i.onrender.com'; // Production URL
+// API Configuration
+export const API_BASE_URL = 'https://dermaai-1d9i.onrender.com';
+// export const API_BASE_URL = __DEV__
+//     ? 'http://localhost:5000'
+//     : 'https://dermaai-1d9i.onrender.com'; // Production URL
 
 export const API_TIMEOUT = 30000; // 30 seconds
 

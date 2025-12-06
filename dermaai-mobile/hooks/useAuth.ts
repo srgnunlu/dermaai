@@ -8,6 +8,7 @@ import { api } from '@/lib/api';
 import { getAccessToken, clearTokens, saveUserData, getUserData, saveTokens } from '@/lib/storage';
 import type { User, AuthResponse } from '@/types/schema';
 import { useEffect, useState } from 'react';
+import { Alert } from 'react-native';
 import { API_BASE_URL } from '@/constants/Config';
 
 export function useAuth() {
@@ -34,14 +35,23 @@ export function useAuth() {
     } = useQuery<User | null>({
         queryKey: ['auth', 'user'],
         queryFn: async () => {
+            console.log('[AuthDebug] Fetching user...');
             const token = await getAccessToken();
+            console.log('[AuthDebug] Token available:', !!token);
+
             if (!token) return null;
 
             try {
                 const userData = await api.get<User>('/api/auth/mobile/user');
+                console.log('[AuthDebug] User fetched:', userData?.email);
+                Alert.alert('Debug', `User fetched: ${userData?.email}`);
+
                 await saveUserData(userData);
                 return userData;
             } catch (err) {
+                console.error('[AuthDebug] User fetch error:', err);
+                Alert.alert('Debug Error', `Fetch failed: ${(err as any).message}`);
+
                 // If auth fails, try to get cached user data
                 const cachedUser = await getUserData<User>();
                 if (cachedUser) return cachedUser;

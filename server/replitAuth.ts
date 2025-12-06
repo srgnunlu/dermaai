@@ -223,13 +223,15 @@ export async function setupAuth(app: Express) {
 
   // Google OAuth endpoints
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-    // Store mobile flag in session before OAuth
+    // Google OAuth login
     app.get('/api/auth/google', (req, res, next) => {
-      // Check if request is from mobile app
-      if (req.query.mobile === 'true') {
-        (req.session as any).isMobileAuth = true;
-      }
-      passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+      // Pass mobile flag in state parameter to persist through redirect
+      const state = req.query.mobile === 'true' ? 'mobile' : 'web';
+
+      passport.authenticate('google', {
+        scope: ['profile', 'email'],
+        state: state
+      })(req, res, next);
     });
 
     app.get(
@@ -237,10 +239,8 @@ export async function setupAuth(app: Express) {
       passport.authenticate('google', { failureRedirect: '/login' }),
       async (req, res) => {
         const user = req.user as any;
-        const isMobile = (req.session as any).isMobileAuth;
-
-        // Clear mobile flag
-        delete (req.session as any).isMobileAuth;
+        // Check state parameter for mobile flag
+        const isMobile = req.query.state === 'mobile';
 
         if (isMobile && user) {
           // Generate JWT for mobile

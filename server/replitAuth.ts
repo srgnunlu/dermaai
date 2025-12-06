@@ -225,8 +225,12 @@ export async function setupAuth(app: Express) {
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     // Google OAuth login
     app.get('/api/auth/google', (req, res, next) => {
-      // Pass mobile flag in state parameter to persist through redirect
-      const state = req.query.mobile === 'true' ? 'mobile' : 'web';
+      // Pass mobile flag and redirect URI in state to persist through redirect
+      const stateObj = {
+        mobile: req.query.mobile === 'true',
+        redirectUri: req.query.redirect_uri as string
+      };
+      const state = Buffer.from(JSON.stringify(stateObj)).toString('base64');
 
       passport.authenticate('google', {
         scope: ['profile', 'email'],
@@ -239,22 +243,35 @@ export async function setupAuth(app: Express) {
       passport.authenticate('google', { failureRedirect: '/login' }),
       async (req, res) => {
         const user = req.user as any;
-        // Check state parameter for mobile flag
-        const isMobile = req.query.state === 'mobile';
 
-        if (isMobile && user) {
-          // Generate JWT for mobile
-          const { generateTokens } = await import('./mobileAuth');
-          const tokens = generateTokens({
-            id: user.id,
-            email: user.email,
-            role: user.role || 'user',
-          });
+        try {
+          // Decode state parameter
+          const stateStr = req.query.state ? Buffer.from(req.query.state as string, 'base64').toString() : '{}';
+          const state = JSON.parse(stateStr);
+          const isMobile = state.mobile;
+          const redirectUri = state.redirectUri;
 
-          // Redirect to mobile app with token
-          const mobileRedirectUrl = `dermaai://oauth?access_token=${tokens.accessToken}&refresh_token=${tokens.refreshToken}`;
-          logger.debug(`[AUTH] Mobile redirect to: ${mobileRedirectUrl}`);
-          return res.redirect(mobileRedirectUrl);
+          if (isMobile && user) {
+            // Generate JWT for mobile
+            const { generateTokens } = await import('./mobileAuth');
+            const tokens = generateTokens({
+              id: user.id,
+              email: user.email,
+              role: user.role || 'user',
+            });
+
+            // Redirect to mobile app with token, using the provided dynamic URI or fallback
+            // Determine connector: if redirectUri already has params, use &, else ?
+            const targetUri = redirectUri || 'dermaai://oauth';
+            const connector = targetUri.includes('?') ? '&' : '?';
+
+            const mobileRedirectUrl = `${targetUri}${connector}access_token=${tokens.accessToken}&refresh_token=${tokens.refreshToken}`;
+
+            logger.debug(`[AUTH] Mobile redirect to: ${mobileRedirectUrl}`);
+            return res.redirect(mobileRedirectUrl);
+          }
+        } catch (e) {
+          logger.error('[AUTH] Error parsing state:', e);
         }
 
         // Web: redirect to dashboard

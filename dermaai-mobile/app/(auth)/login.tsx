@@ -32,6 +32,8 @@ export default function LoginScreen() {
         const handleDeepLink = async (event: { url: string }) => {
             const url = event.url;
             console.log('Deep link received:', url);
+            // DEBUG: Alert to confirm deep link
+            // Alert.alert('Deep Link', url);
 
             if (url.includes('oauth')) {
                 const params = Linking.parse(url);
@@ -40,10 +42,19 @@ export default function LoginScreen() {
 
                 if (accessToken && refreshToken) {
                     console.log('Tokens received, saving...');
-                    await saveTokens(accessToken, refreshToken);
-                    // Refresh auth state
-                    await refetch();
-                    queryClient.invalidateQueries({ queryKey: ['auth'] });
+                    try {
+                        await saveTokens(accessToken, refreshToken);
+                        Alert.alert('Giriş Başarılı', 'Giriş yapılıyor...');
+                        // Refresh auth state
+                        await refetch();
+                        queryClient.invalidateQueries({ queryKey: ['auth'] });
+                    } catch (error) {
+                        console.error('Error saving tokens:', error);
+                        Alert.alert('Hata', 'Token kaydedilemedi');
+                    }
+                } else {
+                    console.error('Missing tokens in URL');
+                    Alert.alert('Hata', 'Giriş bilgileri alınamadı');
                 }
             }
         };
@@ -66,13 +77,17 @@ export default function LoginScreen() {
     const handleGooglePress = async () => {
         setLoading(true);
 
-        // Add mobile=true to trigger mobile redirect
-        const authUrl = `${BACKEND_URL}/api/auth/google?mobile=true`;
+        // Generate dynamic redirect URI for the current environment
+        const redirectUrl = Linking.createURL('oauth');
+        console.log('Generated redirect URL:', redirectUrl);
+
+        // Pass this URL to the backend so it knows where to redirect back
+        const authUrl = `${BACKEND_URL}/api/auth/google?mobile=true&redirect_uri=${encodeURIComponent(redirectUrl)}`;
 
         try {
             const result = await WebBrowser.openAuthSessionAsync(
                 authUrl,
-                'dermaai://oauth'
+                redirectUrl
             );
 
             console.log('Auth result:', result);

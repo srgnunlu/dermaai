@@ -56,10 +56,47 @@ export function useAnalyzeCase() {
             // First create patient
             const patient = await api.post<Patient>('/api/patients', patientData);
 
-            // Then analyze the case
+            // Upload images to server and get server URLs
+            // Local file URIs cannot be accessed by AI models
+            const uploadedUrls: string[] = [];
+
+            for (let i = 0; i < imageUrls.length; i++) {
+                const localUri = imageUrls[i];
+
+                try {
+                    // Read the local file as base64
+                    const response = await fetch(localUri);
+                    const blob = await response.blob();
+
+                    // Convert blob to base64
+                    const base64 = await new Promise<string>((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                            const result = reader.result as string;
+                            resolve(result);
+                        };
+                        reader.onerror = reject;
+                        reader.readAsDataURL(blob);
+                    });
+
+                    // Upload to server
+                    const filename = `lesion-${Date.now()}-${i + 1}.jpg`;
+                    const uploadResult = await api.uploadImage(base64, filename);
+                    uploadedUrls.push(uploadResult.url);
+                } catch (uploadError) {
+                    console.error(`Failed to upload image ${i + 1}:`, uploadError);
+                    throw new Error(`Görsel ${i + 1} yüklenemedi. Lütfen tekrar deneyin.`);
+                }
+            }
+
+            if (uploadedUrls.length === 0) {
+                throw new Error('Hiçbir görsel yüklenemedi.');
+            }
+
+            // Then analyze the case with uploaded server URLs
             const caseData = {
                 patientId: patient.id,
-                imageUrls,
+                imageUrls: uploadedUrls,
                 lesionLocation: patientData.lesionLocation.join(', '),
                 symptoms: patientData.symptoms,
                 additionalSymptoms: patientData.additionalSymptoms,

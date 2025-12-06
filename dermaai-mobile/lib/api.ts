@@ -178,7 +178,7 @@ class ApiClient {
      * Upload image as base64
      */
     async uploadImage(base64Data: string, filename: string): Promise<{ url: string }> {
-        return this.post<{ url: string }>('/api/upload', {
+        return this.post<{ url: string }>('/api/upload/base64', {
             base64: base64Data,
             filename,
         });

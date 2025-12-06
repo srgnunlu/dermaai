@@ -501,6 +501,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Base64 image upload endpoint for mobile apps
+  app.post('/api/upload/base64', async (req, res) => {
+    try {
+      const { base64, filename, mimeType } = req.body;
+
+      if (!base64) {
+        return res.status(400).json({ error: 'No base64 data provided' });
+      }
+
+      // Remove data URL prefix if present
+      const base64Data = base64.replace(/^data:image\/\w+;base64,/, '');
+      const buffer = Buffer.from(base64Data, 'base64');
+
+      const finalFilename = filename || `image-${Date.now()}.jpg`;
+
+      // Use Cloudinary if configured, fallback to local storage
+      if (process.env.CLOUDINARY_CLOUD_NAME) {
+        const cloudinaryService = new CloudinaryStorageService();
+        const imageUrl = await cloudinaryService.uploadImage(buffer, finalFilename);
+        res.json({ url: imageUrl, filePath: imageUrl });
+      } else {
+        const fileStorageService = new LocalFileStorageService();
+        const filePath = await fileStorageService.saveUploadedFile(
+          crypto.randomUUID(),
+          buffer,
+          finalFilename
+        );
+        // Return full URL for AI analysis
+        const baseUrl = process.env.RENDER_EXTERNAL_URL || process.env.BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
+        const fileUrl = `${baseUrl}/files/${filePath}`;
+        res.json({ url: fileUrl, filePath });
+      }
+    } catch (error) {
+      logger.error('Error uploading base64 file:', error);
+      res.status(500).json({ error: 'Failed to upload file' });
+    }
+  });
+
   app.post('/api/upload/:fileId', upload.single('file'), async (req, res) => {
     try {
       if (!req.file) {

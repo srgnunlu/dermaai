@@ -35,7 +35,9 @@ import {
 import { Colors, Gradients } from '@/constants/Colors';
 import { Spacing, Shadows } from '@/constants/Spacing';
 import { Duration } from '@/constants/Animations';
+import { Translations } from '@/constants/Translations';
 import { useColorScheme } from '@/components/useColorScheme';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -48,17 +50,17 @@ interface LesionLocationStepProps {
 }
 
 // Body location options with professional lucide icons
-const LOCATION_OPTIONS = [
-    { id: 'face', label: 'Yüz', IconComponent: Smile },
-    { id: 'scalp', label: 'Saçlı Deri', IconComponent: CircleUser },
-    { id: 'neck', label: 'Boyun', IconComponent: Circle },
-    { id: 'chest', label: 'Göğüs', IconComponent: Shirt },
-    { id: 'back', label: 'Sırt', IconComponent: FlipVertical2 },
-    { id: 'abdomen', label: 'Karın', IconComponent: CircleDot },
-    { id: 'arms', label: 'Kollar', IconComponent: Dumbbell },
-    { id: 'hands', label: 'Eller', IconComponent: Hand },
-    { id: 'legs', label: 'Bacaklar', IconComponent: ArrowDownUp },
-    { id: 'feet', label: 'Ayaklar', IconComponent: Footprints },
+const getLocationOptions = (language: 'tr' | 'en') => [
+    { id: 'face', label: Translations.face[language], IconComponent: Smile },
+    { id: 'scalp', label: language === 'tr' ? 'Saçlı Deri' : 'Scalp', IconComponent: CircleUser },
+    { id: 'neck', label: Translations.neck[language], IconComponent: Circle },
+    { id: 'chest', label: Translations.chest[language], IconComponent: Shirt },
+    { id: 'back', label: Translations.bodyBack[language], IconComponent: FlipVertical2 },
+    { id: 'abdomen', label: Translations.abdomen[language], IconComponent: CircleDot },
+    { id: 'arms', label: Translations.arms[language], IconComponent: Dumbbell },
+    { id: 'hands', label: Translations.hands[language], IconComponent: Hand },
+    { id: 'legs', label: Translations.legs[language], IconComponent: ArrowDownUp },
+    { id: 'feet', label: Translations.feet[language], IconComponent: Footprints },
 ];
 
 // Calculate card dimensions for 2-column grid that fits the screen
@@ -76,7 +78,7 @@ const LocationCard = ({
     colors,
     gradients,
 }: {
-    location: typeof LOCATION_OPTIONS[0];
+    location: { id: string; label: string; IconComponent: any };
     selected: boolean;
     onPress: () => void;
     index: number;
@@ -177,6 +179,8 @@ export function LesionLocationStep({
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
     const gradients = Gradients[colorScheme];
+    const { language } = useLanguage();
+    const LOCATION_OPTIONS = getLocationOptions(language);
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const buttonScaleAnim = useRef(new Animated.Value(1)).current;
@@ -228,10 +232,10 @@ export function LesionLocationStep({
                 {/* Title */}
                 <View style={styles.titleSection}>
                     <Text style={[styles.title, { color: colors.text }]}>
-                        Lezyon Konumu
+                        {Translations.selectLocation[language]}
                     </Text>
                     <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                        Lezyonun bulunduğu bölgeyi seçin
+                        {Translations.tapToSelect[language]}
                     </Text>
                 </View>
 
@@ -255,7 +259,9 @@ export function LesionLocationStep({
                     <View style={[styles.selectedBadge, { backgroundColor: `${colors.success}20` }]}>
                         <Check size={14} color={colors.success} strokeWidth={2.5} />
                         <Text style={[styles.selectedText, { color: colors.success }]}>
-                            {selectedLocations.length} bölge seçildi
+                            {language === 'tr'
+                                ? `${selectedLocations.length} bölge seçildi`
+                                : `${selectedLocations.length} area(s) selected`}
                         </Text>
                     </View>
                 )}
@@ -278,7 +284,7 @@ export function LesionLocationStep({
                             style={styles.continueButton}
                         >
                             <Text style={[styles.continueButtonText, { opacity: canProceed ? 1 : 0.5 }]}>
-                                Devam
+                                {Translations.next[language]}
                             </Text>
                             <ArrowRight size={20} color="#FFFFFF" style={{ opacity: canProceed ? 1 : 0.5 }} />
                         </LinearGradient>

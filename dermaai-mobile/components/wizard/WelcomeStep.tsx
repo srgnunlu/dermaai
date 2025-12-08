@@ -28,8 +28,10 @@ import { Colors, Gradients } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
 import { Spacing, Shadows } from '@/constants/Spacing';
 import { Duration } from '@/constants/Animations';
+import { Translations } from '@/constants/Translations';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useRouter } from 'expo-router';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -44,11 +46,11 @@ interface WelcomeStepProps {
     onScanPress?: (caseId: string) => void;
 }
 
-// Daily tips
-const DAILY_TIPS = [
-    { icon: Droplets, title: 'Günlük Cilt Bakımı', text: 'Sağlıklı bir cilt için günde en az 2 litre su için.' },
-    { icon: Sparkles, title: 'Güneş Koruması', text: 'Her gün SPF 30+ güneş kremi kullanın.' },
-    { icon: Droplets, title: 'Nemlendir', text: 'Duş sonrası 3 dakika içinde nemlendirici sürün.' },
+// Daily tips - will be localized based on language
+const getDailyTips = (language: 'tr' | 'en') => [
+    { icon: Droplets, title: Translations.dailySkinCare[language], text: Translations.dailySkinCareText[language] },
+    { icon: Sparkles, title: Translations.sunProtection[language], text: Translations.sunProtectionText[language] },
+    { icon: Droplets, title: Translations.moisturize[language], text: Translations.moisturizeText[language] },
 ];
 
 // Recent scan card with press animation
@@ -163,7 +165,7 @@ const TipCard = ({
     colors,
     gradients,
 }: {
-    tip: typeof DAILY_TIPS[0];
+    tip: { icon: any; title: string; text: string };
     colors: typeof Colors.light;
     gradients: typeof Gradients.light | typeof Gradients.dark;
 }) => {
@@ -211,7 +213,10 @@ export function WelcomeStep({
     const glowAnim = useRef(new Animated.Value(0.3)).current;
     const iconBounceAnim = useRef(new Animated.Value(0)).current;
 
-    const [currentTipIndex] = useState(() => Math.floor(Math.random() * DAILY_TIPS.length));
+    const { language, toggleLanguage } = useLanguage();
+    const DAILY_TIPS = getDailyTips(language);
+
+    const [currentTipIndex] = useState(() => Math.floor(Math.random() * 3));
 
     useEffect(() => {
         Animated.sequence([
@@ -319,11 +324,28 @@ export function WelcomeStep({
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                {/* Header */}
+                {/* Header with Language Toggle */}
                 <View style={styles.header}>
                     <Text style={[styles.appName, { color: colors.textSecondary }]}>
                         DermaAssist<Text style={{ color: colors.primary }}>AI</Text>
                     </Text>
+                    {/* Language Toggle Button - Glassmorphism Style */}
+                    <TouchableOpacity
+                        onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            toggleLanguage();
+                        }}
+                        style={styles.languageToggleWrapper}
+                        activeOpacity={0.7}
+                    >
+                        <BlurView intensity={60} tint="light" style={styles.languageToggleBlur}>
+                            <View style={styles.languageToggleInner}>
+                                <Text style={styles.languageToggleText}>
+                                    {language === 'tr' ? 'EN' : 'TR'}
+                                </Text>
+                            </View>
+                        </BlurView>
+                    </TouchableOpacity>
                 </View>
 
                 {/* Greeting */}
@@ -344,7 +366,7 @@ export function WelcomeStep({
                     <View style={styles.greetingRow}>
                         <View style={styles.greetingTextContainer}>
                             <Text style={[styles.greetingHello, { color: colors.text }]}>
-                                Merhaba,
+                                {Translations.greeting[language]}
                             </Text>
                             <Text style={[styles.greetingName, { color: colors.text }]}>
                                 {userName}
@@ -423,7 +445,7 @@ export function WelcomeStep({
                                     <Camera size={28} color="#FFFFFF" strokeWidth={2.5} />
                                 </View>
 
-                                <Text style={styles.startButtonText}>Tanı Başlat</Text>
+                                <Text style={styles.startButtonText}>{Translations.startDiagnosis[language]}</Text>
                             </LinearGradient>
                         </BlurView>
                     </TouchableOpacity>
@@ -432,7 +454,7 @@ export function WelcomeStep({
                 {/* Recent Scans Section */}
                 <View style={styles.section}>
                     <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                        Son Taramalar
+                        {Translations.recentScans[language]}
                     </Text>
                     <ScrollView
                         horizontal
@@ -480,12 +502,43 @@ const styles = StyleSheet.create({
         paddingBottom: Spacing['4xl'],
     },
     header: {
+        flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
         marginBottom: Spacing['2xl'],
+        position: 'relative',
     },
     appName: {
         fontSize: 16,
         fontWeight: '500',
+        letterSpacing: 0.5,
+    },
+    languageToggleWrapper: {
+        position: 'absolute',
+        right: 0,
+        borderRadius: 12,
+        overflow: 'hidden',
+        shadowColor: '#0891B2',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 6,
+        elevation: 4,
+    },
+    languageToggleBlur: {
+        borderRadius: 12,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.5)',
+    },
+    languageToggleInner: {
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    },
+    languageToggleText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#0891B2',
         letterSpacing: 0.5,
     },
     greetingContainer: {

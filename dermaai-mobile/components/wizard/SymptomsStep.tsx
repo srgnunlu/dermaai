@@ -44,7 +44,9 @@ import { Colors, Gradients } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
 import { Spacing, Shadows } from '@/constants/Spacing';
 import { Duration } from '@/constants/Animations';
+import { Translations } from '@/constants/Translations';
 import { useColorScheme } from '@/components/useColorScheme';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -62,27 +64,27 @@ interface SymptomsStepProps {
 }
 
 // Comprehensive symptom options with professional icons
-const SYMPTOM_OPTIONS = [
-    { id: 'itching', label: 'Kaşıntı', IconComponent: Fingerprint },
-    { id: 'pain', label: 'Ağrı', IconComponent: Zap },
-    { id: 'burning', label: 'Yanma', IconComponent: Flame },
-    { id: 'redness', label: 'Kızarıklık', IconComponent: CircleDot },
-    { id: 'swelling', label: 'Şişlik', IconComponent: Expand },
-    { id: 'crusting', label: 'Kabuklanma', IconComponent: Layers },
-    { id: 'scaling', label: 'Pullanma', IconComponent: Snowflake },
-    { id: 'dryness', label: 'Kuruluk', IconComponent: Wind },
-    { id: 'sensitivity', label: 'Hassasiyet', IconComponent: ShieldAlert },
-    { id: 'numbness', label: 'Uyuşma', IconComponent: MinusCircle },
-    { id: 'hardness', label: 'Sertlik', IconComponent: Gem },
-    { id: 'bleeding', label: 'Kanama', IconComponent: Droplet },
+const getSymptomOptions = (language: 'tr' | 'en') => [
+    { id: 'itching', label: Translations.itching[language], IconComponent: Fingerprint },
+    { id: 'pain', label: Translations.pain[language], IconComponent: Zap },
+    { id: 'burning', label: Translations.burning[language], IconComponent: Flame },
+    { id: 'redness', label: language === 'tr' ? 'Kızarıklık' : 'Redness', IconComponent: CircleDot },
+    { id: 'swelling', label: Translations.swelling[language], IconComponent: Expand },
+    { id: 'crusting', label: language === 'tr' ? 'Kabuklanma' : 'Crusting', IconComponent: Layers },
+    { id: 'scaling', label: Translations.scaling[language], IconComponent: Snowflake },
+    { id: 'dryness', label: language === 'tr' ? 'Kuruluk' : 'Dryness', IconComponent: Wind },
+    { id: 'sensitivity', label: language === 'tr' ? 'Hassasiyet' : 'Sensitivity', IconComponent: ShieldAlert },
+    { id: 'numbness', label: language === 'tr' ? 'Uyuşma' : 'Numbness', IconComponent: MinusCircle },
+    { id: 'hardness', label: language === 'tr' ? 'Sertlik' : 'Hardness', IconComponent: Gem },
+    { id: 'bleeding', label: Translations.bleeding[language], IconComponent: Droplet },
 ];
 
 // Duration options
-const DURATION_OPTIONS = [
-    { id: 'days', label: 'Günler' },
-    { id: 'weeks', label: 'Haftalar' },
-    { id: 'months', label: 'Aylar' },
-    { id: 'years', label: 'Yıllar' },
+const getDurationOptions = (language: 'tr' | 'en') => [
+    { id: 'days', label: language === 'tr' ? 'Günler' : 'Days' },
+    { id: 'weeks', label: language === 'tr' ? 'Haftalar' : 'Weeks' },
+    { id: 'months', label: language === 'tr' ? 'Aylar' : 'Months' },
+    { id: 'years', label: language === 'tr' ? 'Yıllar' : 'Years' },
 ];
 
 // Calculate dimensions for 3-column grid
@@ -100,7 +102,7 @@ const SymptomCard = ({
     colors,
     gradients,
 }: {
-    option: typeof SYMPTOM_OPTIONS[0];
+    option: { id: string; label: string; IconComponent: any };
     selected: boolean;
     onPress: () => void;
     index: number;
@@ -240,6 +242,9 @@ export function SymptomsStep({
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
     const gradients = Gradients[colorScheme];
+    const { language } = useLanguage();
+    const SYMPTOM_OPTIONS = getSymptomOptions(language);
+    const DURATION_OPTIONS = getDurationOptions(language);
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const buttonScaleAnim = useRef(new Animated.Value(1)).current;
@@ -298,10 +303,10 @@ export function SymptomsStep({
                 >
                     {/* Title */}
                     <Text style={[styles.title, { color: colors.text }]}>
-                        Belirtiler
+                        {Translations.selectSymptoms[language]}
                     </Text>
                     <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                        Mevcut belirtileri seçin
+                        {language === 'tr' ? 'Mevcut belirtileri seçin' : 'Select current symptoms'}
                     </Text>
 
                     {/* Symptoms Grid - 3 columns */}
@@ -322,7 +327,7 @@ export function SymptomsStep({
                     {/* Duration */}
                     <View style={styles.section}>
                         <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                            Süre <Text style={[styles.optionalLabel, { color: colors.textSecondary }]}>(opsiyonel)</Text>
+                            {Translations.howLong[language]} <Text style={[styles.optionalLabel, { color: colors.textSecondary }]}>({language === 'tr' ? 'opsiyonel' : 'optional'})</Text>
                         </Text>
                         <View style={styles.durationRow}>
                             {DURATION_OPTIONS.map((option) => (
@@ -341,13 +346,13 @@ export function SymptomsStep({
                     {/* Additional Notes with glassmorphism */}
                     <View style={styles.section}>
                         <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                            Ek Notlar <Text style={[styles.optionalLabel, { color: colors.textSecondary }]}>(opsiyonel)</Text>
+                            {Translations.additionalSymptoms[language]} <Text style={[styles.optionalLabel, { color: colors.textSecondary }]}>({language === 'tr' ? 'opsiyonel' : 'optional'})</Text>
                         </Text>
                         <View style={styles.textAreaContainer}>
                             <BlurView intensity={50} tint="light" style={styles.textAreaBlur}>
                                 <TextInput
                                     style={styles.textArea}
-                                    placeholder="Eklemek istediğiniz bilgiler..."
+                                    placeholder={language === 'tr' ? 'Eklemek istediğiniz bilgiler...' : 'Additional information...'}
                                     placeholderTextColor="#64748B"
                                     value={additionalSymptoms}
                                     onChangeText={onAdditionalSymptomsChange}
@@ -376,7 +381,7 @@ export function SymptomsStep({
                             end={{ x: 1, y: 0 }}
                             style={styles.continueButton}
                         >
-                            <Text style={styles.continueButtonText}>Devam</Text>
+                            <Text style={styles.continueButtonText}>{Translations.next[language]}</Text>
                             <ArrowRight size={20} color="#FFFFFF" />
                         </LinearGradient>
                     </TouchableOpacity>

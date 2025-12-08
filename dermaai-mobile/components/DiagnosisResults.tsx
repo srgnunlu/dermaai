@@ -14,6 +14,8 @@ import {
     Animated,
     Platform,
     Easing,
+    ImageBackground,
+    ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -29,13 +31,21 @@ import {
 import { Colors, getConfidenceColor } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
 import { Spacing, Shadows } from '@/constants/Spacing';
+import { Translations } from '@/constants/Translations';
 import { useColorScheme } from '@/components/useColorScheme';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui';
 import type { AnalysisResponse, DiagnosisResult } from '@/types/schema';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - Spacing.xl * 2;
 const CARD_MARGIN = Spacing.sm;
+// Card yüksekliğini ekrana göre dinamik hesapla (header, disclaimer, buttons için alan bırak)
+const CARD_HEIGHT = SCREEN_HEIGHT - 280;
+// Card + margin toplam genişlik
+const ITEM_WIDTH = CARD_WIDTH + CARD_MARGIN * 2;
+// Ortalama için kenar boşluğu
+const SIDE_SPACING = (SCREEN_WIDTH - CARD_WIDTH) / 2 - CARD_MARGIN;
 
 // Pulsing Arrow Component for swipe hint
 function PulsingArrow() {
@@ -99,6 +109,7 @@ export function DiagnosisResults({
 }: DiagnosisResultsProps) {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
+    const { language } = useLanguage();
 
     const [activeIndex, setActiveIndex] = useState(0);
     const flatListRef = useRef<FlatList>(null);
@@ -111,7 +122,7 @@ export function DiagnosisResults({
     // Handle scroll with haptic feedback
     const handleScroll = useCallback((event: any) => {
         const offsetX = event.nativeEvent.contentOffset.x;
-        const index = Math.round(offsetX / (CARD_WIDTH + CARD_MARGIN * 2));
+        const index = Math.round(offsetX / ITEM_WIDTH);
 
         if (index !== activeIndex && index >= 0 && index < diagnoses.length) {
             setActiveIndex(index);
@@ -146,22 +157,19 @@ export function DiagnosisResults({
             rank={index + 1}
             isFirst={index === 0}
             isLast={index === diagnoses.length - 1}
-            showArrow={diagnoses.length > 1 && index < diagnoses.length - 1 && index < 4}
+            showArrow={activeIndex === index && index < diagnoses.length - 1}
             colors={colors}
             colorScheme={colorScheme}
+            language={language}
         />
     );
 
     return (
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
-            {/* Background Gradient */}
-            <LinearGradient
-                colors={['#E0F7FA', '#B2EBF2', '#E0F7FA']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.backgroundGradient}
-            />
-
+        <ImageBackground
+            source={require('@/assets/images/home-bg.png')}
+            style={styles.container}
+            resizeMode="cover"
+        >
             {/* DermAssistAI Header */}
             <View style={styles.brandHeader}>
                 <Text style={styles.brandTitle}>DermAssistAI</Text>
@@ -172,7 +180,9 @@ export function DiagnosisResults({
                 <View style={[styles.errorBanner, { backgroundColor: colors.warningLight }]}>
                     <AlertTriangle size={18} color={colors.warning} />
                     <Text style={[styles.errorText, { color: colors.warning }]}>
-                        Analiz sırasında bazı sorunlar oluştu.
+                        {language === 'tr'
+                            ? 'Analiz sırasında bazı sorunlar oluştu.'
+                            : 'Some issues occurred during analysis.'}
                     </Text>
                 </View>
             )}
@@ -186,13 +196,22 @@ export function DiagnosisResults({
                         renderItem={renderDiagnosisCard}
                         keyExtractor={(_, index) => `diagnosis-${index}`}
                         horizontal
-                        pagingEnabled
+                        pagingEnabled={false}
                         showsHorizontalScrollIndicator={false}
-                        snapToInterval={CARD_WIDTH + CARD_MARGIN * 2}
+                        snapToOffsets={diagnoses.map((_, index) => index * ITEM_WIDTH)}
                         decelerationRate="fast"
-                        contentContainerStyle={styles.cardsContainer}
+                        contentContainerStyle={[
+                            styles.cardsContainer,
+                            { paddingHorizontal: SIDE_SPACING }
+                        ]}
                         onScroll={handleScroll}
                         scrollEventThrottle={16}
+                        getItemLayout={(_, index) => ({
+                            length: ITEM_WIDTH,
+                            offset: ITEM_WIDTH * index,
+                            index,
+                        })}
+                        extraData={activeIndex}
                     />
 
                     {/* Pagination Dots Only */}
@@ -208,7 +227,9 @@ export function DiagnosisResults({
                         <View style={styles.noResults}>
                             <Stethoscope size={48} color={colors.textMuted} />
                             <Text style={[styles.noResultsText, { color: colors.textSecondary }]}>
-                                Analiz sonucu bulunamadı.{'\n'}Lütfen tekrar deneyin.
+                                {language === 'tr'
+                                    ? 'Analiz sonucu bulunamadı.\nLütfen tekrar deneyin.'
+                                    : 'No analysis results found.\nPlease try again.'}
                             </Text>
                         </View>
                     </BlurView>
@@ -219,7 +240,9 @@ export function DiagnosisResults({
             <View style={styles.disclaimer}>
                 <AlertTriangle size={14} color="#D97706" />
                 <Text style={styles.disclaimerText}>
-                    Bu analiz sadece bilgi amaçlıdır. Dermatolog kontrolü önerilir.
+                    {language === 'tr'
+                        ? 'Bilgi amaçlıdır, dermatolog kontrolü önerilir.'
+                        : 'For informational purposes only, consult a dermatologist.'}
                 </Text>
             </View>
 
@@ -237,7 +260,9 @@ export function DiagnosisResults({
                         style={styles.primaryButtonGradient}
                     >
                         <RefreshCw size={16} color="#FFFFFF" />
-                        <Text style={styles.primaryButtonText}>Yeni Analiz</Text>
+                        <Text style={styles.primaryButtonText}>
+                            {Translations.newAnalysis[language]}
+                        </Text>
                     </LinearGradient>
                 </TouchableOpacity>
 
@@ -249,7 +274,7 @@ export function DiagnosisResults({
                     <Sparkles size={20} color="#0891B2" />
                 </TouchableOpacity>
             </View>
-        </View>
+        </ImageBackground>
     );
 }
 
@@ -262,6 +287,7 @@ function DiagnosisCard({
     showArrow,
     colors,
     colorScheme,
+    language = 'tr',
 }: {
     diagnosis: DiagnosisResult;
     rank: number;
@@ -270,101 +296,111 @@ function DiagnosisCard({
     showArrow: boolean;
     colors: typeof Colors.light;
     colorScheme: 'light' | 'dark';
+    language?: 'tr' | 'en';
 }) {
     const confidenceColor = getConfidenceColor(diagnosis.confidence, colorScheme);
 
     return (
         <View style={styles.cardWrapper}>
-            <BlurView intensity={80} tint="light" style={styles.cardBlur}>
+            <BlurView intensity={95} tint="light" style={styles.cardBlur}>
                 <View style={styles.card}>
-                    {/* Glass highlight effect */}
-                    <LinearGradient
-                        colors={['rgba(255,255,255,0.4)', 'rgba(255,255,255,0.1)', 'transparent']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 0, y: 0.3 }}
-                        style={styles.glassHighlight}
-                    />
+                    {/* Subtle top glass highlight */}
+                    <View style={styles.glassHighlightBar} />
 
-                    {/* Card Header */}
-                    <View style={styles.cardHeader}>
-                        <View style={styles.rankContainer}>
-                            <LinearGradient
-                                colors={isFirst ? ['#0E7490', '#0891B2', '#06B6D4'] : ['rgba(8,145,178,0.2)', 'rgba(8,145,178,0.1)']}
-                                style={styles.rankBadge}
-                            >
-                                <Text style={[styles.rankText, { color: isFirst ? '#FFFFFF' : colors.primary }]}>
-                                    #{rank}
+                    {/* Fixed Header Section - Stays at top */}
+                    <View style={styles.cardFixedHeader}>
+                        {/* Card Header */}
+                        <View style={styles.cardHeader}>
+                            <View style={styles.rankContainer}>
+                                <LinearGradient
+                                    colors={isFirst ? ['#0E7490', '#0891B2', '#06B6D4'] : ['rgba(8,145,178,0.2)', 'rgba(8,145,178,0.1)']}
+                                    style={styles.rankBadge}
+                                >
+                                    <Text style={[styles.rankText, { color: isFirst ? '#FFFFFF' : colors.primary }]}>
+                                        #{rank}
+                                    </Text>
+                                </LinearGradient>
+                                {isFirst && (
+                                    <Text style={[styles.primaryLabel, { color: colors.primary }]}>
+                                        {language === 'tr' ? 'Ana Tanı' : 'Primary'}
+                                    </Text>
+                                )}
+                            </View>
+
+                            {/* Confidence Badge */}
+                            <View style={[styles.confidenceBadge, { backgroundColor: confidenceColor + '20' }]}>
+                                <Text style={[styles.confidenceText, { color: confidenceColor }]}>
+                                    %{diagnosis.confidence}
                                 </Text>
-                            </LinearGradient>
-                            {isFirst && (
-                                <Text style={[styles.primaryLabel, { color: colors.primary }]}>
-                                    Ana Tanı
-                                </Text>
+                            </View>
+                        </View>
+
+                        {/* Diagnosis Name */}
+                        <Text style={[styles.diagnosisName, { color: colors.text }]} numberOfLines={2}>
+                            {diagnosis.name}
+                        </Text>
+
+                        {/* Confidence Progress Bar */}
+                        <View style={styles.progressContainer}>
+                            <View style={[styles.progressBg, { backgroundColor: 'rgba(8,145,178,0.15)' }]}>
+                                <LinearGradient
+                                    colors={[confidenceColor, confidenceColor + 'CC']}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                    style={[styles.progressFill, { width: `${diagnosis.confidence}%` }]}
+                                />
+                            </View>
+                        </View>
+                    </View>
+
+                    {/* Scrollable Content Area */}
+                    <ScrollView
+                        style={styles.cardScrollView}
+                        contentContainerStyle={styles.cardScrollContent}
+                        showsVerticalScrollIndicator={false}
+                        bounces={false}
+                    >
+                        {/* Description */}
+                        {diagnosis.description && (
+                            <Text style={[styles.description, { color: colors.textSecondary }]}>
+                                {diagnosis.description}
+                            </Text>
+                        )}
+
+                        {/* Lower Section - Features & Recommendations */}
+                        <View style={styles.cardLowerSection}>
+                            {/* Key Features */}
+                            {diagnosis.keyFeatures && diagnosis.keyFeatures.length > 0 && (
+                                <View style={styles.featuresSection}>
+                                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                                        📋 {language === 'tr' ? 'Temel Özellikler' : 'Key Features'}
+                                    </Text>
+                                    {diagnosis.keyFeatures.slice(0, 3).map((feature, idx) => (
+                                        <View key={idx} style={styles.featureRow}>
+                                            <View style={[styles.featureDot, { backgroundColor: colors.primary }]} />
+                                            <Text style={[styles.featureText, { color: colors.textSecondary }]}>
+                                                {feature}
+                                            </Text>
+                                        </View>
+                                    ))}
+                                </View>
+                            )}
+
+                            {/* Recommendations */}
+                            {diagnosis.recommendations && diagnosis.recommendations.length > 0 && (
+                                <View style={styles.recommendationsSection}>
+                                    <Text style={[styles.sectionTitle, { color: '#0E7490' }]}>
+                                        💡 {Translations.recommendations[language]}
+                                    </Text>
+                                    {diagnosis.recommendations.slice(0, 3).map((rec, idx) => (
+                                        <Text key={idx} style={styles.recommendationText}>
+                                            → {rec}
+                                        </Text>
+                                    ))}
+                                </View>
                             )}
                         </View>
-
-                        {/* Confidence Badge */}
-                        <View style={[styles.confidenceBadge, { backgroundColor: confidenceColor + '20' }]}>
-                            <Text style={[styles.confidenceText, { color: confidenceColor }]}>
-                                %{diagnosis.confidence}
-                            </Text>
-                        </View>
-                    </View>
-
-                    {/* Diagnosis Name */}
-                    <Text style={[styles.diagnosisName, { color: colors.text }]} numberOfLines={2}>
-                        {diagnosis.name}
-                    </Text>
-
-                    {/* Confidence Progress Bar */}
-                    <View style={styles.progressContainer}>
-                        <View style={[styles.progressBg, { backgroundColor: 'rgba(8,145,178,0.15)' }]}>
-                            <LinearGradient
-                                colors={[confidenceColor, confidenceColor + 'CC']}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                                style={[styles.progressFill, { width: `${diagnosis.confidence}%` }]}
-                            />
-                        </View>
-                    </View>
-
-                    {/* Description */}
-                    {diagnosis.description && (
-                        <Text style={[styles.description, { color: colors.textSecondary }]}>
-                            {diagnosis.description}
-                        </Text>
-                    )}
-
-                    {/* Key Features */}
-                    {diagnosis.keyFeatures && diagnosis.keyFeatures.length > 0 && (
-                        <View style={styles.featuresSection}>
-                            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                                📋 Temel Özellikler
-                            </Text>
-                            {diagnosis.keyFeatures.slice(0, 3).map((feature, idx) => (
-                                <View key={idx} style={styles.featureRow}>
-                                    <View style={[styles.featureDot, { backgroundColor: colors.primary }]} />
-                                    <Text style={[styles.featureText, { color: colors.textSecondary }]} numberOfLines={2}>
-                                        {feature}
-                                    </Text>
-                                </View>
-                            ))}
-                        </View>
-                    )}
-
-                    {/* Recommendations */}
-                    {diagnosis.recommendations && diagnosis.recommendations.length > 0 && (
-                        <View style={[styles.recommendationsSection, { backgroundColor: 'rgba(8,145,178,0.08)' }]}>
-                            <Text style={[styles.sectionTitle, { color: colors.info }]}>
-                                💡 Öneriler
-                            </Text>
-                            {diagnosis.recommendations.slice(0, 2).map((rec, idx) => (
-                                <Text key={idx} style={[styles.recommendationText, { color: colors.textSecondary }]} numberOfLines={2}>
-                                    → {rec}
-                                </Text>
-                            ))}
-                        </View>
-                    )}
+                    </ScrollView>
                 </View>
             </BlurView>
 
@@ -436,7 +472,7 @@ const styles = StyleSheet.create({
     },
     brandHeader: {
         alignItems: 'center',
-        paddingTop: Spacing['2xl'],
+        paddingTop: Spacing['2xl'] + 16,
         paddingBottom: Spacing.sm,
     },
     brandTitle: {
@@ -465,12 +501,12 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     cardsContainer: {
-        paddingHorizontal: Spacing.lg - CARD_MARGIN,
         paddingVertical: Spacing.sm,
-        flex: 1,
+        alignItems: 'center',
     },
     cardWrapper: {
         width: CARD_WIDTH,
+        height: CARD_HEIGHT,
         marginHorizontal: CARD_MARGIN,
         position: 'relative',
     },
@@ -482,25 +518,52 @@ const styles = StyleSheet.create({
         zIndex: 10,
     },
     cardBlur: {
-        borderRadius: 20,
+        borderRadius: 24,
         overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.6)',
-        height: 480,
-        ...Shadows.md,
+        borderWidth: 1.5,
+        borderColor: 'rgba(255,255,255,0.4)',
+        flex: 1,
+        shadowColor: '#0E7490',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.15,
+        shadowRadius: 24,
+        elevation: 10,
     },
     card: {
-        padding: Spacing.md,
-        paddingTop: Spacing.lg,
-        backgroundColor: 'rgba(255,255,255,0.35)',
-        height: '100%',
+        padding: Spacing.lg,
+        paddingTop: Spacing.lg + 4,
+        paddingBottom: Spacing.lg,
+        backgroundColor: 'rgba(255,255,255,0.25)',
+        flex: 1,
+        justifyContent: 'space-between',
     },
-    glassHighlight: {
+    glassHighlightBar: {
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
-        height: 80,
+        height: 1,
+        backgroundColor: 'rgba(255,255,255,0.6)',
+    },
+    cardUpperSection: {
+        flex: 0,
+    },
+    cardFixedHeader: {
+        paddingBottom: Spacing.sm,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(14, 116, 144, 0.08)',
+        marginBottom: Spacing.xs,
+    },
+    cardScrollView: {
+        flex: 1,
+        marginTop: 4,
+    },
+    cardScrollContent: {
+        flexGrow: 1,
+        paddingBottom: Spacing.md,
+    },
+    cardLowerSection: {
+        marginTop: Spacing.sm,
     },
     cardHeader: {
         flexDirection: 'row',
@@ -546,7 +609,7 @@ const styles = StyleSheet.create({
         lineHeight: 22,
     },
     progressContainer: {
-        marginBottom: Spacing.sm,
+        marginBottom: Spacing.md,
     },
     progressBg: {
         height: 6,
@@ -558,22 +621,22 @@ const styles = StyleSheet.create({
         borderRadius: 3,
     },
     description: {
-        fontSize: 12,
-        lineHeight: 16,
-        marginBottom: Spacing.sm,
+        fontSize: 13,
+        lineHeight: 20,
+        marginBottom: Spacing.md,
     },
     featuresSection: {
-        marginBottom: Spacing.sm,
+        marginBottom: Spacing.md,
     },
     sectionTitle: {
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: '600',
-        marginBottom: 4,
+        marginBottom: Spacing.xs,
     },
     featureRow: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        marginBottom: 3,
+        marginBottom: Spacing.xs,
     },
     featureDot: {
         width: 5,
@@ -584,17 +647,22 @@ const styles = StyleSheet.create({
     },
     featureText: {
         flex: 1,
-        fontSize: 11,
-        lineHeight: 15,
+        fontSize: 13,
+        lineHeight: 18,
     },
     recommendationsSection: {
-        padding: Spacing.sm,
-        borderRadius: 10,
+        padding: Spacing.md,
+        borderRadius: 14,
+        marginTop: Spacing.md,
+        backgroundColor: 'rgba(14, 116, 144, 0.06)',
+        borderWidth: 1,
+        borderColor: 'rgba(14, 116, 144, 0.1)',
     },
     recommendationText: {
-        fontSize: 11,
-        lineHeight: 15,
-        marginBottom: 2,
+        fontSize: 13,
+        lineHeight: 18,
+        marginBottom: Spacing.xs,
+        color: '#475569',
     },
     paginationContainer: {
         flexDirection: 'row',
@@ -655,31 +723,41 @@ const styles = StyleSheet.create({
     },
     primaryButton: {
         flex: 1,
-        borderRadius: 14,
+        borderRadius: 16,
         overflow: 'hidden',
-        ...Shadows.md,
+        shadowColor: '#0E7490',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 12,
+        elevation: 8,
     },
     primaryButtonGradient: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 14,
+        paddingVertical: 16,
         paddingHorizontal: Spacing.lg,
         gap: Spacing.sm,
     },
     primaryButtonText: {
         color: '#FFFFFF',
-        fontSize: 15,
+        fontSize: 16,
         fontWeight: '600',
+        letterSpacing: 0.3,
     },
     secondaryIconButton: {
-        width: 48,
-        height: 48,
-        borderRadius: 14,
-        backgroundColor: 'rgba(8, 145, 178, 0.12)',
+        width: 52,
+        height: 52,
+        borderRadius: 16,
+        backgroundColor: 'rgba(255, 255, 255, 0.6)',
         alignItems: 'center',
         justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(8, 145, 178, 0.2)',
+        borderWidth: 1.5,
+        borderColor: 'rgba(8, 145, 178, 0.15)',
+        shadowColor: '#0E7490',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        elevation: 3,
     },
 });

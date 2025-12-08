@@ -624,6 +624,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? caseData.symptoms.join(', ')
         : caseData.symptoms || '';
 
+      // Extract language preference from request (default: 'en' for web, mobile can send 'tr')
+      const language = (req.body.language === 'tr' ? 'tr' : 'en') as 'tr' | 'en';
+
       // Read system settings to decide which models to run
       const sys = await storage.getSystemSettings();
       const runGemini = sys.enableGemini !== false;
@@ -639,6 +642,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           analyzeWithGemini(imageUrls, symptomsString, {
             lesionLocation: caseData.lesionLocation || undefined,
             medicalHistory: (caseData.medicalHistory as string[]) || undefined,
+            language,
           })
         );
       }
@@ -650,6 +654,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             {
               lesionLocation: caseData.lesionLocation || undefined,
               medicalHistory: (caseData.medicalHistory as string[]) || undefined,
+              language,
             },
             {
               model: sys.openaiModel || undefined,

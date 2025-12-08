@@ -12,6 +12,7 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { queryClient } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
 import { TabBarVisibilityProvider } from '@/contexts/TabBarVisibilityContext';
+import { LanguageProvider } from '@/contexts/LanguageContext';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -49,9 +50,11 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TabBarVisibilityProvider>
-        <RootLayoutNav />
-      </TabBarVisibilityProvider>
+      <LanguageProvider>
+        <TabBarVisibilityProvider>
+          <RootLayoutNav />
+        </TabBarVisibilityProvider>
+      </LanguageProvider>
     </QueryClientProvider>
   );
 }

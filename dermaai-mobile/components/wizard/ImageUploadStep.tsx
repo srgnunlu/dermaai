@@ -34,9 +34,11 @@ import { Colors, Gradients } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
 import { Spacing, Shadows } from '@/constants/Spacing';
 import { Duration } from '@/constants/Animations';
+import { Translations } from '@/constants/Translations';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MAX_IMAGES, IMAGE_QUALITY } from '@/constants/Config';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -134,6 +136,7 @@ export function ImageUploadStep({
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
     const gradients = Gradients[colorScheme];
+    const { language } = useLanguage();
 
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -151,7 +154,10 @@ export function ImageUploadStep({
     const requestCameraPermission = async () => {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert('İzin Gerekli', 'Kamera kullanmak için izin vermeniz gerekmektedir.');
+            Alert.alert(
+                Translations.cameraPermissionRequired[language],
+                language === 'tr' ? 'Kamera kullanmak için izin vermeniz gerekmektedir.' : 'Permission is required to use the camera.'
+            );
             return false;
         }
         return true;
@@ -274,10 +280,12 @@ export function ImageUploadStep({
             >
                 {/* Title */}
                 <Text style={[styles.title, { color: colors.text }]}>
-                    Lezyon Fotoğrafı
+                    {language === 'tr' ? 'Lezyon Fotoğrafı' : 'Lesion Photo'}
                 </Text>
                 <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                    Net bir görsel çekin veya galeriden seçin
+                    {language === 'tr'
+                        ? 'Net bir görsel çekin veya galeriden seçin'
+                        : 'Take a clear photo or select from gallery'}
                 </Text>
 
                 {/* Capture Buttons */}
@@ -297,7 +305,7 @@ export function ImageUploadStep({
                             <View style={styles.cameraIconBg}>
                                 <Camera size={28} color="#FFFFFF" />
                             </View>
-                            <Text style={styles.cameraButtonText}>Fotoğraf Çek</Text>
+                            <Text style={styles.cameraButtonText}>{Translations.takePhoto[language]}</Text>
                         </LinearGradient>
                     </TouchableOpacity>
 
@@ -311,7 +319,7 @@ export function ImageUploadStep({
                         >
                             <ImageIcon size={22} color="#334155" />
                             <Text style={styles.galleryButtonText}>
-                                Galeriden Seç
+                                {Translations.chooseFromGallery[language]}
                             </Text>
                         </TouchableOpacity>
                     </BlurView>
@@ -322,7 +330,7 @@ export function ImageUploadStep({
                     <View style={styles.imagesSection}>
                         <View style={styles.imagesSectionHeader}>
                             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                                Yüklenen Görseller
+                                {language === 'tr' ? 'Yüklenen Görseller' : 'Uploaded Images'}
                             </Text>
                             <Text style={[styles.imageCount, { color: colors.primary }]}>
                                 {images.length}/{MAX_IMAGES}
@@ -358,10 +366,12 @@ export function ImageUploadStep({
                             </View>
                             <View style={styles.tipsContent}>
                                 <Text style={styles.tipsTitle}>
-                                    İpucu
+                                    {language === 'tr' ? 'İpucu' : 'Tip'}
                                 </Text>
                                 <Text style={styles.tipsText}>
-                                    İyi ışıkta, 10-15 cm mesafeden net bir fotoğraf çekin.
+                                    {language === 'tr'
+                                        ? 'İyi ışıkta, 10-15 cm mesafeden net bir fotoğraf çekin.'
+                                        : 'Take a clear photo in good lighting from 10-15 cm distance.'}
                                 </Text>
                             </View>
                         </View>
@@ -386,7 +396,7 @@ export function ImageUploadStep({
                             style={styles.continueButton}
                         >
                             <Text style={[styles.continueButtonText, { opacity: canProceed ? 1 : 0.5 }]}>
-                                Devam
+                                {Translations.next[language]}
                             </Text>
                             <ArrowRight size={20} color="#FFFFFF" style={{ opacity: canProceed ? 1 : 0.5 }} />
                         </LinearGradient>

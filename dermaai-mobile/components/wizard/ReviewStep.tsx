@@ -31,7 +31,9 @@ import { Colors, Gradients } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
 import { Spacing, Shadows } from '@/constants/Spacing';
 import { Duration } from '@/constants/Animations';
+import { Translations } from '@/constants/Translations';
 import { useColorScheme } from '@/components/useColorScheme';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Import wizard state type
@@ -57,16 +59,29 @@ interface ReviewStepProps {
 }
 
 // Label mappings
-const LOCATION_LABELS: Record<string, string> = {
-    face: 'Yüz', scalp: 'Saçlı Deri', neck: 'Boyun', chest: 'Göğüs',
-    back: 'Sırt', abdomen: 'Karın', arms: 'Kollar', hands: 'Eller',
-    legs: 'Bacaklar', feet: 'Ayaklar',
-};
+const getLocationLabels = (language: 'tr' | 'en'): Record<string, string> => ({
+    face: Translations.face[language],
+    scalp: language === 'tr' ? 'Saçlı Deri' : 'Scalp',
+    neck: Translations.neck[language],
+    chest: Translations.chest[language],
+    back: Translations.bodyBack[language],
+    abdomen: Translations.abdomen[language],
+    arms: Translations.arms[language],
+    hands: Translations.hands[language],
+    legs: Translations.legs[language],
+    feet: Translations.feet[language],
+});
 
-const SYMPTOM_LABELS: Record<string, string> = {
-    itching: 'Kaşıntı', pain: 'Ağrı', burning: 'Yanma', bleeding: 'Kanama',
-    swelling: 'Şişlik', scaling: 'Pullanma', color_change: 'Renk Değişimi', none: 'Yok',
-};
+const getSymptomLabels = (language: 'tr' | 'en'): Record<string, string> => ({
+    itching: Translations.itching[language],
+    pain: Translations.pain[language],
+    burning: Translations.burning[language],
+    bleeding: Translations.bleeding[language],
+    swelling: Translations.swelling[language],
+    scaling: Translations.scaling[language],
+    color_change: Translations.colorChange[language],
+    none: language === 'tr' ? 'Yok' : 'None',
+});
 
 // Review section
 const ReviewSection = ({
@@ -107,6 +122,9 @@ export function ReviewStep({
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
     const gradients = Gradients[colorScheme];
+    const { language } = useLanguage();
+    const LOCATION_LABELS = getLocationLabels(language);
+    const SYMPTOM_LABELS = getSymptomLabels(language);
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const buttonScaleAnim = useRef(new Animated.Value(1)).current;
@@ -173,16 +191,18 @@ export function ReviewStep({
             >
                 {/* Title */}
                 <Text style={[styles.title, { color: colors.text }]}>
-                    Özet
+                    {Translations.reviewSummary[language]}
                 </Text>
                 <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                    Bilgileri kontrol edin ve analizi başlatın
+                    {language === 'tr'
+                        ? 'Bilgileri kontrol edin ve analizi başlatın'
+                        : 'Review information and start analysis'}
                 </Text>
 
                 {/* Images Section */}
                 <ReviewSection
                     icon={Camera}
-                    title="Görseller"
+                    title={language === 'tr' ? 'Görseller' : 'Images'}
                     onEdit={() => onEdit(1, 'back')}
                     colors={colors}
                 >
@@ -202,30 +222,44 @@ export function ReviewStep({
                 {hasPatientInfo && (
                     <ReviewSection
                         icon={User}
-                        title="Hasta Bilgileri"
+                        title={Translations.patientInfo[language]}
                         onEdit={() => onEdit(2, 'back')}
                         colors={colors}
                     >
                         <View style={styles.infoRow}>
                             {state.age && (
                                 <View style={styles.infoItem}>
-                                    <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Yaş</Text>
+                                    <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>
+                                        {Translations.age[language]}
+                                    </Text>
                                     <Text style={[styles.infoValue, { color: colors.text }]}>{state.age}</Text>
                                 </View>
                             )}
                             {state.gender && (
                                 <View style={styles.infoItem}>
-                                    <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Cinsiyet</Text>
+                                    <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>
+                                        {Translations.gender[language]}
+                                    </Text>
                                     <Text style={[styles.infoValue, { color: colors.text }]}>
-                                        {state.gender === 'male' ? 'Erkek' : state.gender === 'female' ? 'Kadın' : 'Diğer'}
+                                        {state.gender === 'male'
+                                            ? (language === 'tr' ? 'Erkek' : 'Male')
+                                            : state.gender === 'female'
+                                                ? (language === 'tr' ? 'Kadın' : 'Female')
+                                                : (language === 'tr' ? 'Diğer' : 'Other')}
                                     </Text>
                                 </View>
                             )}
                             {state.skinType && (
                                 <View style={styles.infoItem}>
-                                    <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Cilt Tonu</Text>
+                                    <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>
+                                        {Translations.skinType[language]}
+                                    </Text>
                                     <Text style={[styles.infoValue, { color: colors.text }]}>
-                                        {state.skinType === 'light' ? 'Açık' : state.skinType === 'medium' ? 'Orta' : 'Koyu'}
+                                        {state.skinType === 'light'
+                                            ? (language === 'tr' ? 'Açık' : 'Light')
+                                            : state.skinType === 'medium'
+                                                ? (language === 'tr' ? 'Orta' : 'Medium')
+                                                : (language === 'tr' ? 'Koyu' : 'Dark')}
                                     </Text>
                                 </View>
                             )}
@@ -236,7 +270,7 @@ export function ReviewStep({
                 {/* Location Section */}
                 <ReviewSection
                     icon={MapPin}
-                    title="Konum"
+                    title={Translations.location[language]}
                     onEdit={() => onEdit(3, 'back')}
                     colors={colors}
                 >
@@ -255,7 +289,7 @@ export function ReviewStep({
                 {state.symptoms.length > 0 && (
                     <ReviewSection
                         icon={Stethoscope}
-                        title="Belirtiler"
+                        title={Translations.selectSymptoms[language]}
                         onEdit={() => onEdit(4, 'back')}
                         colors={colors}
                     >
@@ -280,7 +314,7 @@ export function ReviewStep({
                 >
                     <AlertTriangle size={18} color={colors.warning} />
                     <Text style={[styles.disclaimerText, { color: colors.warning }]}>
-                        Bu sistem destekleyici amaçlıdır. Kesin tanı için dermatoloğa başvurun.
+                        {Translations.medicalDisclaimer[language]}
                     </Text>
                 </LinearGradient>
             </ScrollView>
@@ -301,12 +335,14 @@ export function ReviewStep({
                             style={styles.analyzeButton}
                         >
                             <Brain size={22} color="#FFFFFF" />
-                            <Text style={styles.analyzeButtonText}>AI Analizi Başlat</Text>
+                            <Text style={styles.analyzeButtonText}>
+                                {Translations.startAnalysis[language]}
+                            </Text>
                         </LinearGradient>
                     </TouchableOpacity>
                 </Animated.View>
             </View>
-        </Animated.View>
+        </Animated.View >
     );
 }
 

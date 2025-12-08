@@ -28,9 +28,11 @@ import {
 import { Colors } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
 import { Spacing } from '@/constants/Spacing';
+import { Translations } from '@/constants/Translations';
 import { useColorScheme } from '@/components/useColorScheme';
 import { Card, CardHeader, CardContent } from '@/components/ui';
 import { APP_VERSION } from '@/constants/Config';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface SettingsState {
     // AI Preferences
@@ -55,6 +57,7 @@ export default function SettingsScreen() {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
     const router = useRouter();
+    const { language } = useLanguage();
 
     const [settings, setSettings] = useState<SettingsState>({
         useGemini: true,
@@ -103,15 +106,15 @@ export default function SettingsScreen() {
                 <View style={styles.sectionHeader}>
                     <Brain size={20} color={colors.primary} />
                     <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                        AI Tercihleri
+                        {language === 'tr' ? 'AI Tercihleri' : 'AI Preferences'}
                     </Text>
                 </View>
 
                 <Card>
                     <CardContent>
                         <SettingRow
-                            title="DermAI Analizi"
-                            subtitle="Yapay zeka destekli tanı analizi"
+                            title={language === 'tr' ? 'DermAI Analizi' : 'DermAI Analysis'}
+                            subtitle={language === 'tr' ? 'Yapay zeka destekli tanı analizi' : 'AI-powered diagnosis analysis'}
                             colors={colors}
                             right={renderSwitch(
                                 settings.useGemini,
@@ -119,13 +122,17 @@ export default function SettingsScreen() {
                             )}
                         />
                         <SettingRow
-                            title="Güven Eşiği"
-                            subtitle={`Minimum %${settings.confidenceThreshold} güven`}
+                            title={language === 'tr' ? 'Güven Eşiği' : 'Confidence Threshold'}
+                            subtitle={language === 'tr'
+                                ? `Minimum %${settings.confidenceThreshold} güven`
+                                : `Minimum ${settings.confidenceThreshold}% confidence`}
                             colors={colors}
                             right={renderChevron()}
                             onPress={() => {
-                                // TODO: Show confidence threshold picker
-                                Alert.alert('Güven Eşiği', 'Bu özellik yakında eklenecek.');
+                                Alert.alert(
+                                    language === 'tr' ? 'Güven Eşiği' : 'Confidence Threshold',
+                                    language === 'tr' ? 'Bu özellik yakında eklenecek.' : 'This feature is coming soon.'
+                                );
                             }}
                             isLast
                         />
@@ -138,15 +145,15 @@ export default function SettingsScreen() {
                 <View style={styles.sectionHeader}>
                     <Bell size={20} color={colors.primary} />
                     <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                        Bildirimler
+                        {Translations.notifications[language]}
                     </Text>
                 </View>
 
                 <Card>
                     <CardContent>
                         <SettingRow
-                            title="Analiz Bildirimleri"
-                            subtitle="Analiz tamamlandığında bildirim al"
+                            title={language === 'tr' ? 'Analiz Bildirimleri' : 'Analysis Notifications'}
+                            subtitle={language === 'tr' ? 'Analiz tamamlandığında bildirim al' : 'Get notified when analysis is complete'}
                             colors={colors}
                             right={renderSwitch(
                                 settings.analysisNotifications,
@@ -154,8 +161,8 @@ export default function SettingsScreen() {
                             )}
                         />
                         <SettingRow
-                            title="Acil Uyarılar"
-                            subtitle="Acil durumlar için anlık bildirim"
+                            title={language === 'tr' ? 'Acil Uyarılar' : 'Urgent Alerts'}
+                            subtitle={language === 'tr' ? 'Acil durumlar için anlık bildirim' : 'Instant notifications for urgent cases'}
                             colors={colors}
                             right={renderSwitch(
                                 settings.urgentAlerts,
@@ -163,8 +170,8 @@ export default function SettingsScreen() {
                             )}
                         />
                         <SettingRow
-                            title="Ses"
-                            subtitle="Bildirim sesi aç"
+                            title={language === 'tr' ? 'Ses' : 'Sound'}
+                            subtitle={language === 'tr' ? 'Bildirim sesi aç' : 'Enable notification sound'}
                             colors={colors}
                             right={renderSwitch(
                                 settings.soundEnabled,
@@ -181,7 +188,7 @@ export default function SettingsScreen() {
                 <View style={styles.sectionHeader}>
                     <Palette size={20} color={colors.primary} />
                     <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                        Görünüm
+                        {language === 'tr' ? 'Görünüm' : 'Appearance'}
                     </Text>
                 </View>
 
@@ -201,15 +208,15 @@ export default function SettingsScreen() {
                 <View style={styles.sectionHeader}>
                     <Shield size={20} color={colors.primary} />
                     <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                        Gizlilik
+                        {language === 'tr' ? 'Gizlilik' : 'Privacy'}
                     </Text>
                 </View>
 
                 <Card>
                     <CardContent>
                         <SettingRow
-                            title="Veri Anonimleştirme"
-                            subtitle="Hasta verilerini anonimleştir"
+                            title={language === 'tr' ? 'Veri Anonimleştirme' : 'Data Anonymization'}
+                            subtitle={language === 'tr' ? 'Hasta verilerini anonimleştir' : 'Anonymize patient data'}
                             colors={colors}
                             right={renderSwitch(
                                 settings.anonymizeData,
@@ -217,8 +224,8 @@ export default function SettingsScreen() {
                             )}
                         />
                         <SettingRow
-                            title="Otomatik Kaydetme"
-                            subtitle="Vakaları otomatik kaydet"
+                            title={language === 'tr' ? 'Otomatik Kaydetme' : 'Auto-Save'}
+                            subtitle={language === 'tr' ? 'Vakaları otomatik kaydet' : 'Auto-save cases'}
                             colors={colors}
                             right={renderSwitch(
                                 settings.autoSaveCases,
@@ -235,31 +242,31 @@ export default function SettingsScreen() {
                 <View style={styles.sectionHeader}>
                     <Info size={20} color={colors.primary} />
                     <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                        Hakkında
+                        {Translations.about[language]}
                     </Text>
                 </View>
 
                 <Card>
                     <CardContent>
                         <SettingRow
-                            title="Uygulama Versiyonu"
+                            title={language === 'tr' ? 'Uygulama Versiyonu' : 'App Version'}
                             subtitle={`v${APP_VERSION}`}
                             colors={colors}
                         />
                         <SettingRow
-                            title="Tıbbi Uyarı"
+                            title={language === 'tr' ? 'Tıbbi Uyarı' : 'Medical Disclaimer'}
                             colors={colors}
                             right={renderChevron()}
                             onPress={() => router.push('/medical-disclaimer')}
                         />
                         <SettingRow
-                            title="Gizlilik Politikası"
+                            title={Translations.privacyPolicy[language]}
                             colors={colors}
                             right={renderChevron()}
                             onPress={() => router.push('/privacy-policy')}
                         />
                         <SettingRow
-                            title="Kullanım Şartları"
+                            title={Translations.termsOfService[language]}
                             colors={colors}
                             right={renderChevron()}
                             onPress={() => router.push('/terms-of-service')}
@@ -275,7 +282,9 @@ export default function SettingsScreen() {
                     DermaAssistAI © 2024
                 </Text>
                 <Text style={[styles.footerSubtext, { color: colors.textMuted }]}>
-                    Sağlık profesyonelleri için tasarlanmıştır
+                    {language === 'tr'
+                        ? 'Sağlık profesyonelleri için tasarlanmıştır'
+                        : 'Designed for healthcare professionals'}
                 </Text>
             </View>
         </ScrollView>

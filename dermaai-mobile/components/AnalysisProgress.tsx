@@ -18,7 +18,9 @@ import { BlurView } from 'expo-blur';
 import { Brain, Sparkles, Search, FileCheck, CheckCircle, Target, Crosshair } from 'lucide-react-native';
 import { Colors, Gradients } from '@/constants/Colors';
 import { Spacing } from '@/constants/Spacing';
+import { Translations } from '@/constants/Translations';
 import { useColorScheme } from '@/components/useColorScheme';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -29,13 +31,13 @@ interface AnalysisProgressProps {
     imageUri?: string;
 }
 
-const ANALYSIS_STAGES = [
-    { id: 1, label: 'Görsel işleniyor...', Icon: Search },
-    { id: 2, label: 'Lezyonlar tespit ediliyor...', Icon: Target },
-    { id: 3, label: 'AI modelleri analiz ediyor...', Icon: Brain },
-    { id: 4, label: 'Detaylı analiz yapılıyor...', Icon: Sparkles },
-    { id: 5, label: 'Sonuçlar birleştiriliyor...', Icon: FileCheck },
-    { id: 6, label: 'Tamamlandı!', Icon: CheckCircle },
+const getAnalysisStages = (language: 'tr' | 'en') => [
+    { id: 1, label: Translations.imageProcessing[language], Icon: Search },
+    { id: 2, label: Translations.detectingLesions[language], Icon: Target },
+    { id: 3, label: Translations.aiModelsAnalyzing[language], Icon: Brain },
+    { id: 4, label: Translations.detailedAnalysis[language], Icon: Sparkles },
+    { id: 5, label: Translations.combiningResults[language], Icon: FileCheck },
+    { id: 6, label: Translations.completed[language], Icon: CheckCircle },
 ];
 
 // Simulated lesion detection points (random positions within the image)
@@ -209,7 +211,8 @@ const DetectionMarker = ({
     delay,
     imageSize,
     isActive,
-    index
+    index,
+    language = 'tr'
 }: {
     x: number;
     y: number;
@@ -217,6 +220,7 @@ const DetectionMarker = ({
     imageSize: number;
     isActive: boolean;
     index: number;
+    language?: 'tr' | 'en';
 }) => {
     const [isVisible, setIsVisible] = useState(false);
     const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -268,7 +272,7 @@ const DetectionMarker = ({
                 end={{ x: 1, y: 0 }}
                 style={styles.markerGradient}
             >
-                <Text style={styles.markerText}>Bölge {index + 1}</Text>
+                <Text style={styles.markerText}>{language === 'tr' ? 'Bölge' : 'Area'} {index + 1}</Text>
             </LinearGradient>
         </Animated.View>
     );
@@ -283,6 +287,8 @@ export function AnalysisProgress({
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
     const gradients = Gradients[colorScheme];
+    const { language } = useLanguage();
+    const ANALYSIS_STAGES = getAnalysisStages(language);
 
     const [progress, setProgress] = useState(0);
     const [currentStage, setCurrentStage] = useState(0);
@@ -509,7 +515,9 @@ export function AnalysisProgress({
                                 <CurrentIcon size={24} color="#0891B2" strokeWidth={1.8} />
                             </Animated.View>
                             <View style={styles.titleContainer}>
-                                <Text style={styles.title}>AI Analizi Yapılıyor</Text>
+                                <Text style={styles.title}>
+                                    {language === 'tr' ? 'AI Analizi Yapılıyor' : 'AI Analysis in Progress'}
+                                </Text>
                                 <Text style={styles.stageLabel}>{currentLabel}</Text>
                             </View>
                         </View>
@@ -532,7 +540,11 @@ export function AnalysisProgress({
                             </View>
                             <View style={styles.progressInfo}>
                                 <Text style={styles.progressText}>%{Math.round(progress)}</Text>
-                                <Text style={styles.timeText}>~{timeRemaining}s kaldı</Text>
+                                <Text style={styles.timeText}>
+                                    {language === 'tr'
+                                        ? `~${timeRemaining}s kaldı`
+                                        : `~${timeRemaining}s remaining`}
+                                </Text>
                             </View>
                         </View>
 
@@ -554,8 +566,9 @@ export function AnalysisProgress({
 
                         {/* Disclaimer */}
                         <Text style={styles.disclaimer}>
-                            DermAI yapay zeka sistemi analiz ediyor...{'\n'}
-                            Bu işlem 30-60 saniye sürebilir.
+                            {language === 'tr'
+                                ? 'DermAI yapay zeka sistemi analiz ediyor...\nBu işlem 30-60 saniye sürebilir.'
+                                : 'DermAI system is analyzing...\nThis may take 30-60 seconds.'}
                         </Text>
                     </View>
                 </BlurView>

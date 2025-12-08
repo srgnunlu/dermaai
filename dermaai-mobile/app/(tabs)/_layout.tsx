@@ -7,8 +7,10 @@ import { Stethoscope, History, User, Settings, Home, Camera } from 'lucide-react
 
 import { Colors } from '@/constants/Colors';
 import { Spacing } from '@/constants/Spacing';
+import { Translations } from '@/constants/Translations';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useTabBarVisibility } from '@/contexts/TabBarVisibilityContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // Custom tab bar icon component with circular background for active state
 function TabBarIcon({
@@ -36,6 +38,7 @@ export default function TabLayout() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const { translateY, isVisible, showTabBarTemporarily } = useTabBarVisibility();
+  const { language } = useLanguage();
 
   // Define explicit colors for better control
   const activeColor = '#0891B2'; // Teal/turkuaz
@@ -111,52 +114,52 @@ export default function TabLayout() {
         <Tabs.Screen
           name="index"
           options={{
-            title: 'Tanı',
+            title: Translations.tabDiagnosis[language],
             headerShown: false,
             tabBarIcon: ({ color, focused }) => (
               <TabBarIcon Icon={Stethoscope} color={color} focused={focused} />
             ),
             tabBarLabel: ({ focused, color }) => (
-              <Text style={[styles.tabLabel, focused && styles.tabLabelActive, { color }]}>Tanı</Text>
+              <Text style={[styles.tabLabel, focused && styles.tabLabelActive, { color }]}>{Translations.tabDiagnosis[language]}</Text>
             ),
           }}
         />
         <Tabs.Screen
           name="history"
           options={{
-            title: 'Geçmiş',
-            headerTitle: 'Vaka Geçmişi',
+            title: Translations.tabHistory[language],
+            headerTitle: Translations.caseHistory[language],
             tabBarIcon: ({ color, focused }) => (
               <TabBarIcon Icon={History} color={color} focused={focused} />
             ),
             tabBarLabel: ({ focused, color }) => (
-              <Text style={[styles.tabLabel, focused && styles.tabLabelActive, { color }]}>Geçmiş</Text>
+              <Text style={[styles.tabLabel, focused && styles.tabLabelActive, { color }]}>{Translations.tabHistory[language]}</Text>
             ),
           }}
         />
         <Tabs.Screen
           name="profile"
           options={{
-            title: 'Profil',
-            headerTitle: 'Profilim',
+            title: Translations.tabProfile[language],
+            headerTitle: Translations.myProfile[language],
             tabBarIcon: ({ color, focused }) => (
               <TabBarIcon Icon={User} color={color} focused={focused} />
             ),
             tabBarLabel: ({ focused, color }) => (
-              <Text style={[styles.tabLabel, focused && styles.tabLabelActive, { color }]}>Profil</Text>
+              <Text style={[styles.tabLabel, focused && styles.tabLabelActive, { color }]}>{Translations.tabProfile[language]}</Text>
             ),
           }}
         />
         <Tabs.Screen
           name="settings"
           options={{
-            title: 'Ayarlar',
-            headerTitle: 'Ayarlar',
+            title: Translations.tabSettings[language],
+            headerTitle: Translations.settingsTitle[language],
             tabBarIcon: ({ color, focused }) => (
               <TabBarIcon Icon={Settings} color={color} focused={focused} />
             ),
             tabBarLabel: ({ focused, color }) => (
-              <Text style={[styles.tabLabel, focused && styles.tabLabelActive, { color }]}>Ayarlar</Text>
+              <Text style={[styles.tabLabel, focused && styles.tabLabelActive, { color }]}>{Translations.tabSettings[language]}</Text>
             ),
           }}
         />

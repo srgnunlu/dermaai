@@ -37,6 +37,7 @@ interface DiagnosisResult {
 interface AnalysisContext {
   lesionLocation?: string;
   medicalHistory?: string[];
+  language?: 'tr' | 'en';
 }
 
 export async function analyzeWithGemini(
@@ -95,11 +96,22 @@ export async function analyzeWithGemini(
         ? `\n\nYou are provided with ${urlArray.length} images of the same lesion from different angles or locations. Analyze all images together to provide a comprehensive diagnosis.`
         : '';
 
-    const systemPrompt = `You are an expert dermatologist AI assistant specializing in differential diagnosis of skin lesions.
+    // Language-specific instructions
+    const languageInstruction = context.language === 'tr'
+      ? `\n\nCRITICAL LANGUAGE REQUIREMENT:
+ALL OUTPUT MUST BE IN TURKISH LANGUAGE.
+- Use Turkish medical terminology (e.g., "Egzama" instead of "Eczema", "Sedef Hastalığı" instead of "Psoriasis")
+- Write all descriptions in Turkish
+- Provide all recommendations in Turkish
+- Use proper Turkish grammar and punctuation
+- Keep medical accuracy while using Turkish terms`
+      : '';
+
+    const systemPrompt = `You are an expert dermatologist AI assistant specializing in differential diagnosis of skin lesions.${languageInstruction}
 
 CRITICAL INSTRUCTIONS:
 1. FIRST verify the image shows an actual skin lesion or dermatological condition
-2. If NOT a skin lesion, respond with ONLY: {"error": true, "message": "The provided image does not appear to be a skin lesion. Please upload a clear image of a skin condition for analysis."}
+2. If NOT a skin lesion, respond with ONLY: {"error": true, "message": "${context.language === 'tr' ? 'Yüklenen görsel bir cilt lezyonu görünmüyor. Lütfen analiz için net bir cilt problemi görseli yükleyin.' : 'The provided image does not appear to be a skin lesion. Please upload a clear image of a skin condition for analysis.'}"}
 3. If valid skin lesion, provide REALISTIC differential diagnoses
 
 DIFFERENTIAL DIAGNOSIS GUIDELINES:
@@ -118,8 +130,8 @@ CONFIDENCE SCORING RULES:
 ANALYSIS CRITERIA:
 Visual features: Color, shape, size, texture, borders, distribution, symmetry
 Clinical context: ${symptoms}
-Anatomical location: ${context.lesionLocation || 'Not specified'}
-Medical history: ${context.medicalHistory?.join(', ') || 'None specified'}${multipleImagesNote}
+Anatomical location: ${context.lesionLocation || (context.language === 'tr' ? 'Belirtilmedi' : 'Not specified')}
+Medical history: ${context.medicalHistory?.join(', ') || (context.language === 'tr' ? 'Belirtilmedi' : 'None specified')}${multipleImagesNote}
 
 OUTPUT REQUIREMENTS:
 Provide exactly 5 differential diagnoses ranked by likelihood.
@@ -133,11 +145,11 @@ Respond with JSON in this exact format:
 {
   "diagnoses": [
     {
-      "name": "Diagnosis name (use standard medical terminology)",
+      "name": "${context.language === 'tr' ? 'Tanı adı (Türkçe tıbbi terminoloji kullanın)' : 'Diagnosis name (use standard medical terminology)'}",
       "confidence": 75,
-      "description": "Brief clinical description explaining why this matches",
-      "keyFeatures": ["Specific visual feature 1", "Feature 2", "Feature 3"],
-      "recommendations": ["Specific recommendation 1", "Recommendation 2"]
+      "description": "${context.language === 'tr' ? 'Bu tanıyı neden uygun olduğunu açıklayan kısa klinik açıklama' : 'Brief clinical description explaining why this matches'}",
+      "keyFeatures": ["${context.language === 'tr' ? 'Görünen spesifik özellik 1' : 'Specific visual feature 1'}", "${context.language === 'tr' ? 'Özellik 2' : 'Feature 2'}", "${context.language === 'tr' ? 'Özellik 3' : 'Feature 3'}"],
+      "recommendations": ["${context.language === 'tr' ? 'Spesifik öneri 1' : 'Specific recommendation 1'}", "${context.language === 'tr' ? 'Öneri 2' : 'Recommendation 2'}"]
     }
   ]
 }

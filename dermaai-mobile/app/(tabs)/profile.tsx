@@ -29,9 +29,11 @@ import {
 import { Colors } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
 import { Spacing, Shadows } from '@/constants/Spacing';
+import { Translations } from '@/constants/Translations';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useAuth } from '@/hooks/useAuth';
 import { useCases } from '@/hooks/useCases';
+import { useLanguage } from '@/contexts/LanguageContext';
 import {
     Card,
     CardHeader,
@@ -49,15 +51,18 @@ export default function ProfileScreen() {
 
     const { user, isLoading: authLoading, logout } = useAuth();
     const { cases } = useCases();
+    const { language } = useLanguage();
 
     const handleLogout = () => {
         Alert.alert(
-            'Çıkış Yap',
-            'Hesabınızdan çıkış yapmak istediğinize emin misiniz?',
+            Translations.logout[language],
+            language === 'tr'
+                ? 'Hesabınızdan çıkış yapmak istediğinize emin misiniz?'
+                : 'Are you sure you want to logout?',
             [
-                { text: 'İptal', style: 'cancel' },
+                { text: Translations.cancel[language], style: 'cancel' },
                 {
-                    text: 'Çıkış Yap',
+                    text: Translations.logout[language],
                     style: 'destructive',
                     onPress: async () => {
                         await logout();
@@ -69,13 +74,16 @@ export default function ProfileScreen() {
     };
 
     const handleEditProfile = () => {
-        Alert.alert('Profil Düzenle', 'Bu özellik yakında eklenecek.');
+        Alert.alert(
+            Translations.editProfile[language],
+            language === 'tr' ? 'Bu özellik yakında eklenecek.' : 'This feature is coming soon.'
+        );
     };
 
     if (authLoading) {
         return (
             <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
-                <LoadingSpinner text="Yükleniyor..." />
+                <LoadingSpinner text={Translations.loading[language]} />
             </View>
         );
     }
@@ -85,9 +93,11 @@ export default function ProfileScreen() {
             <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
                 <EmptyState
                     emoji="👤"
-                    title="Giriş yapın"
-                    description="Profilinizi görüntülemek için giriş yapmanız gerekmektedir."
-                    actionLabel="Giriş Yap"
+                    title={language === 'tr' ? 'Giriş yapın' : 'Login required'}
+                    description={language === 'tr'
+                        ? 'Profilinizi görüntülemek için giriş yapmanız gerekmektedir.'
+                        : 'Please login to view your profile.'}
+                    actionLabel={language === 'tr' ? 'Giriş Yap' : 'Login'}
                     onAction={() => router.replace('/(auth)/login')}
                 />
             </View>
@@ -106,7 +116,7 @@ export default function ProfileScreen() {
         )
         : 0;
 
-    const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Kullanıcı';
+    const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ') || (language === 'tr' ? 'Kullanıcı' : 'User');
     const initials = [user.firstName?.[0], user.lastName?.[0]].filter(Boolean).join('').toUpperCase() || 'U';
 
     return (
@@ -137,7 +147,9 @@ export default function ProfileScreen() {
                             {user.email}
                         </Text>
                         <Badge variant={user.role === 'admin' ? 'primary' : 'default'} style={styles.roleBadge}>
-                            {user.role === 'admin' ? 'Yönetici' : 'Kullanıcı'}
+                            {user.role === 'admin'
+                                ? (language === 'tr' ? 'Yönetici' : 'Admin')
+                                : (language === 'tr' ? 'Kullanıcı' : 'User')}
                         </Badge>
                     </View>
 
@@ -152,22 +164,22 @@ export default function ProfileScreen() {
 
             {/* Statistics */}
             <Card>
-                <CardHeader title="İstatistikler" icon={<Award size={18} color={colors.primary} />} />
+                <CardHeader title={language === 'tr' ? 'İstatistikler' : 'Statistics'} icon={<Award size={18} color={colors.primary} />} />
                 <CardContent>
                     <View style={styles.statsRow}>
                         <StatItem
                             value={totalCases.toString()}
-                            label="Toplam Vaka"
+                            label={language === 'tr' ? 'Toplam Vaka' : 'Total Cases'}
                             colors={colors}
                         />
                         <StatItem
                             value={completedCases.toString()}
-                            label="Tamamlanan"
+                            label={language === 'tr' ? 'Tamamlanan' : 'Completed'}
                             colors={colors}
                         />
                         <StatItem
                             value={`%${avgConfidence}`}
-                            label="Ort. Güven"
+                            label={language === 'tr' ? 'Ort. Güven' : 'Avg. Confidence'}
                             colors={colors}
                         />
                     </View>
@@ -176,30 +188,32 @@ export default function ProfileScreen() {
 
             {/* Professional Info */}
             <Card>
-                <CardHeader title="Profesyonel Bilgiler" icon={<Building2 size={18} color={colors.primary} />} />
+                <CardHeader title={language === 'tr' ? 'Profesyonel Bilgiler' : 'Professional Info'} icon={<Building2 size={18} color={colors.primary} />} />
                 <CardContent>
                     <InfoRow
                         icon={<Building2 size={16} color={colors.textSecondary} />}
-                        label="Kurum"
-                        value={user.hospital || 'Belirtilmedi'}
+                        label={language === 'tr' ? 'Kurum' : 'Institution'}
+                        value={user.hospital || (language === 'tr' ? 'Belirtilmedi' : 'Not specified')}
                         colors={colors}
                     />
                     <InfoRow
                         icon={<Award size={16} color={colors.textSecondary} />}
-                        label="Uzmanlık"
-                        value={user.specialization || 'Belirtilmedi'}
+                        label={language === 'tr' ? 'Uzmanlık' : 'Specialty'}
+                        value={user.specialization || (language === 'tr' ? 'Belirtilmedi' : 'Not specified')}
                         colors={colors}
                     />
                     <InfoRow
                         icon={<Shield size={16} color={colors.textSecondary} />}
-                        label="Lisans No"
-                        value={user.medicalLicenseNumber || 'Belirtilmedi'}
+                        label={language === 'tr' ? 'Lisans No' : 'License No'}
+                        value={user.medicalLicenseNumber || (language === 'tr' ? 'Belirtilmedi' : 'Not specified')}
                         colors={colors}
                     />
                     <InfoRow
                         icon={<Calendar size={16} color={colors.textSecondary} />}
-                        label="Deneyim"
-                        value={user.yearsOfExperience ? `${user.yearsOfExperience} yıl` : 'Belirtilmedi'}
+                        label={language === 'tr' ? 'Deneyim' : 'Experience'}
+                        value={user.yearsOfExperience
+                            ? `${user.yearsOfExperience} ${language === 'tr' ? 'yıl' : 'years'}`
+                            : (language === 'tr' ? 'Belirtilmedi' : 'Not specified')}
                         colors={colors}
                         isLast
                     />
@@ -208,17 +222,17 @@ export default function ProfileScreen() {
 
             {/* Quick Actions */}
             <Card>
-                <CardHeader title="Hızlı İşlemler" />
+                <CardHeader title={language === 'tr' ? 'Hızlı İşlemler' : 'Quick Actions'} />
                 <CardContent>
                     <ActionRow
                         icon={<HelpCircle size={18} color={colors.primary} />}
-                        label="Destek"
+                        label={Translations.contactSupport[language]}
                         colors={colors}
                         onPress={() => router.push('/contact-support')}
                     />
                     <ActionRow
                         icon={<Shield size={18} color={colors.primary} />}
-                        label="Gizlilik Politikası"
+                        label={Translations.privacyPolicy[language]}
                         colors={colors}
                         onPress={() => router.push('/privacy-policy')}
                         isLast
@@ -235,7 +249,7 @@ export default function ProfileScreen() {
                 onPress={handleLogout}
                 style={styles.logoutButton}
             >
-                Çıkış Yap
+                {Translations.logout[language]}
             </Button>
         </ScrollView>
     );

@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { format } from 'date-fns';
-import { tr } from 'date-fns/locale';
+import { tr, enUS } from 'date-fns/locale';
 import {
     Calendar,
     MapPin,
@@ -24,8 +24,10 @@ import {
 import { Colors, getConfidenceColor } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
 import { Spacing, Shadows } from '@/constants/Spacing';
+import { Translations } from '@/constants/Translations';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useCases } from '@/hooks/useCases';
+import { useLanguage } from '@/contexts/LanguageContext';
 import {
     Card,
     ConfidenceBadge,
@@ -39,6 +41,7 @@ export default function HistoryScreen() {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
     const router = useRouter();
+    const { language } = useLanguage();
 
     const { cases, isLoading, error, refetch } = useCases();
 
@@ -52,13 +55,14 @@ export default function HistoryScreen() {
             onPress={() => handleCasePress(item)}
             colors={colors}
             colorScheme={colorScheme}
+            language={language}
         />
-    ), [handleCasePress, colors, colorScheme]);
+    ), [handleCasePress, colors, colorScheme, language]);
 
     if (isLoading && cases.length === 0) {
         return (
             <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
-                <LoadingSpinner text="Vakalar yükleniyor..." />
+                <LoadingSpinner text={Translations.loading[language]} />
             </View>
         );
     }
@@ -68,9 +72,11 @@ export default function HistoryScreen() {
             <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
                 <EmptyState
                     emoji="⚠️"
-                    title="Bir hata oluştu"
-                    description="Vakalar yüklenirken bir hata oluştu."
-                    actionLabel="Tekrar Dene"
+                    title={language === 'tr' ? 'Bir hata oluştu' : 'An error occurred'}
+                    description={language === 'tr'
+                        ? 'Vakalar yüklenirken bir hata oluştu.'
+                        : 'An error occurred while loading cases.'}
+                    actionLabel={Translations.retry[language]}
                     onAction={refetch}
                 />
             </View>
@@ -82,9 +88,11 @@ export default function HistoryScreen() {
             <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
                 <EmptyState
                     emoji="📋"
-                    title="Henüz vaka yok"
-                    description="İlk tanı analizinizi yapmak için Tanı sekmesine gidin."
-                    actionLabel="Tanı Yap"
+                    title={Translations.noScansYet[language]}
+                    description={language === 'tr'
+                        ? 'İlk tanı analizinizi yapmak için Tanı sekmesine gidin.'
+                        : 'Go to Diagnosis tab to start your first analysis.'}
+                    actionLabel={Translations.tabDiagnosis[language]}
                     onAction={() => router.push('/(tabs)')}
                 />
             </View>
@@ -96,19 +104,19 @@ export default function HistoryScreen() {
             {/* Stats Header */}
             <View style={[styles.statsHeader, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <StatItem
-                    label="Toplam Vaka"
+                    label={language === 'tr' ? 'Toplam Vaka' : 'Total Cases'}
                     value={cases.length.toString()}
                     colors={colors}
                 />
                 <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
                 <StatItem
-                    label="Bu Ay"
+                    label={language === 'tr' ? 'Bu Ay' : 'This Month'}
                     value={getThisMonthCount(cases).toString()}
                     colors={colors}
                 />
                 <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
                 <StatItem
-                    label="Tamamlanan"
+                    label={language === 'tr' ? 'Tamamlanan' : 'Completed'}
                     value={cases.filter(c => c.finalDiagnoses?.length).length.toString()}
                     colors={colors}
                 />
@@ -140,18 +148,20 @@ function CaseCard({
     onPress,
     colors,
     colorScheme,
+    language = 'tr',
 }: {
     caseData: Case;
     onPress: () => void;
     colors: typeof Colors.light;
     colorScheme: 'light' | 'dark';
+    language?: 'tr' | 'en';
 }) {
     const topDiagnosis = caseData.finalDiagnoses?.[0] ||
         caseData.geminiAnalysis?.diagnoses?.[0] ||
         caseData.openaiAnalysis?.diagnoses?.[0];
 
     const createdDate = caseData.createdAt
-        ? format(new Date(caseData.createdAt), 'dd MMM yyyy', { locale: tr })
+        ? format(new Date(caseData.createdAt), 'dd MMM yyyy', { locale: language === 'tr' ? tr : enUS })
         : '-';
 
     return (
@@ -178,7 +188,7 @@ function CaseCard({
                     <View style={styles.diagnosisRow}>
                         <View style={styles.diagnosisInfo}>
                             <Text style={[styles.diagnosisLabel, { color: colors.textSecondary }]}>
-                                Olası Tanı
+                                {language === 'tr' ? 'Olası Tanı' : 'Possible Diagnosis'}
                             </Text>
                             <Text
                                 style={[styles.diagnosisName, { color: colors.text }]}

@@ -18,6 +18,7 @@ import { useAnalyzeCase, useCases } from '@/hooks/useCases';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'expo-router';
 import { useTabBarVisibility } from '@/contexts/TabBarVisibilityContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // Step components
 import { WelcomeStep } from './wizard/WelcomeStep';
@@ -84,6 +85,7 @@ export function DiagnosisWizard() {
 
     const slideAnim = useRef(new Animated.Value(0)).current;
     const { analyze } = useAnalyzeCase();
+    const { language } = useLanguage();
 
     // Hide/show tab bar based on current step
     React.useEffect(() => {
@@ -153,6 +155,7 @@ export function DiagnosisWizard() {
             const result = await analyze({
                 patientData,
                 imageUrls: state.images,
+                language, // Pass current language for localized AI responses
             });
 
             setAnalysisResult(result);
@@ -191,12 +194,32 @@ export function DiagnosisWizard() {
         router.push(`/case/${caseId}`);
     }, [router]);
 
-    // Show results screen
     if (showResults && analysisResult) {
         return (
             <DiagnosisResults
                 caseData={analysisResult}
                 onNewAnalysis={handleNewAnalysis}
+                onRequestSecondaryAnalysis={() => {
+                    // Check if OpenAI analysis exists
+                    if (analysisResult.openaiAnalysis?.diagnoses && analysisResult.openaiAnalysis.diagnoses.length > 0) {
+                        // Switch to show OpenAI results
+                        // Create a modified result with OpenAI as primary
+                        const openaiResult: AnalysisResponse = {
+                            ...analysisResult,
+                            geminiAnalysis: analysisResult.openaiAnalysis,
+                        };
+                        setAnalysisResult(openaiResult);
+                    } else {
+                        // No OpenAI analysis available - show alert
+                        import('react-native').then(({ Alert }) => {
+                            Alert.alert(
+                                'OpenAI Analizi',
+                                'Bu vaka için OpenAI analizi mevcut değil. Analiz ayarlarından OpenAI\'ı etkinleştirmeyi deneyin.',
+                                [{ text: 'Tamam' }]
+                            );
+                        });
+                    }
+                }}
             />
         );
     }

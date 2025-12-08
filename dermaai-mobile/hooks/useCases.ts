@@ -49,10 +49,12 @@ export function useAnalyzeCase() {
     const mutation = useMutation({
         mutationFn: async ({
             patientData,
-            imageUrls
+            imageUrls,
+            language = 'en'
         }: {
             patientData: PatientData;
             imageUrls: string[];
+            language?: 'tr' | 'en';
         }) => {
             // First create patient
             const patient = await api.post<Patient>('/api/patients', patientData);
@@ -86,12 +88,16 @@ export function useAnalyzeCase() {
                     uploadedUrls.push(uploadResult.url);
                 } catch (uploadError) {
                     console.error(`Failed to upload image ${i + 1}:`, uploadError);
-                    throw new Error(`Görsel ${i + 1} yüklenemedi. Lütfen tekrar deneyin.`);
+                    throw new Error(language === 'tr'
+                        ? `Görsel ${i + 1} yüklenemedi. Lütfen tekrar deneyin.`
+                        : `Failed to upload image ${i + 1}. Please try again.`);
                 }
             }
 
             if (uploadedUrls.length === 0) {
-                throw new Error('Hiçbir görsel yüklenemedi.');
+                throw new Error(language === 'tr'
+                    ? 'Hiçbir görsel yüklenemedi.'
+                    : 'No images were uploaded.');
             }
 
             // Then analyze the case with uploaded server URLs
@@ -103,6 +109,7 @@ export function useAnalyzeCase() {
                 additionalSymptoms: patientData.additionalSymptoms,
                 symptomDuration: patientData.symptomDuration,
                 medicalHistory: patientData.medicalHistory,
+                language, // Pass language preference for AI analysis output
             };
 
             // Use longer timeout for AI analysis (2 minutes)

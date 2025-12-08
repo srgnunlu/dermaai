@@ -86,13 +86,14 @@ class ApiClient {
     async request<T>(
         endpoint: string,
         options: RequestInit = {},
-        retryOnUnauthorized: boolean = true
+        retryOnUnauthorized: boolean = true,
+        timeout: number = API_TIMEOUT
     ): Promise<T> {
         const url = `${this.baseUrl}${endpoint}`;
         const headers = await this.getHeaders(true);
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
 
         try {
             const response = await fetch(url, {
@@ -108,7 +109,7 @@ class ApiClient {
                 const newToken = await this.refreshToken();
                 if (newToken) {
                     // Retry the request with new token
-                    return this.request<T>(endpoint, options, false);
+                    return this.request<T>(endpoint, options, false, timeout);
                 }
                 throw new Error('Authentication failed');
             }
@@ -155,6 +156,21 @@ class ApiClient {
             method: 'POST',
             body: data ? JSON.stringify(data) : undefined,
         });
+    }
+
+    /**
+     * POST request with custom timeout (for long-running operations)
+     */
+    async postWithTimeout<T>(endpoint: string, data: unknown, timeout: number): Promise<T> {
+        return this.request<T>(
+            endpoint,
+            {
+                method: 'POST',
+                body: data ? JSON.stringify(data) : undefined,
+            },
+            true,
+            timeout
+        );
     }
 
     /**

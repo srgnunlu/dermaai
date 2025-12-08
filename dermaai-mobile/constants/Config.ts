@@ -5,7 +5,8 @@ export const API_BASE_URL = 'https://dermaai-1d9i.onrender.com';
 //     ? 'http://localhost:5000'
 //     : 'https://dermaai-1d9i.onrender.com'; // Production URL
 
-export const API_TIMEOUT = 30000; // 30 seconds
+export const API_TIMEOUT = 30000; // 30 seconds for normal requests
+export const ANALYSIS_TIMEOUT = 120000; // 120 seconds (2 min) for AI analysis
 
 // App Configuration
 export const APP_NAME = 'DermaAssistAI';
@@ -49,19 +50,19 @@ export const SYMPTOM_OPTIONS = [
 
 // Lesion Locations
 export const LESION_LOCATIONS = [
-    'Baş (Head)',
-    'Yüz (Face)',
-    'Boyun (Neck)',
-    'Göğüs (Chest)',
-    'Sırt (Back)',
-    'Karın (Abdomen)',
-    'Üst Kol (Upper Arm)',
-    'Alt Kol (Forearm)',
-    'El (Hand)',
-    'Üst Bacak (Upper Leg)',
-    'Alt Bacak (Lower Leg)',
-    'Ayak (Foot)',
-    'Genital Bölge (Genital Area)',
+    { value: 'head', label: 'Baş (Head)' },
+    { value: 'face', label: 'Yüz (Face)' },
+    { value: 'neck', label: 'Boyun (Neck)' },
+    { value: 'chest', label: 'Göğüs (Chest)' },
+    { value: 'back', label: 'Sırt (Back)' },
+    { value: 'abdomen', label: 'Karın (Abdomen)' },
+    { value: 'upper-arm', label: 'Üst Kol (Upper Arm)' },
+    { value: 'forearm', label: 'Alt Kol (Forearm)' },
+    { value: 'hand', label: 'El (Hand)' },
+    { value: 'upper-leg', label: 'Üst Bacak (Upper Leg)' },
+    { value: 'lower-leg', label: 'Alt Bacak (Lower Leg)' },
+    { value: 'foot', label: 'Ayak (Foot)' },
+    { value: 'genital', label: 'Genital Bölge (Genital Area)' },
 ] as const;
 
 // Symptom Duration Options
@@ -84,8 +85,8 @@ export const SKIN_TYPES = [
 
 // Medical Conditions
 export const MEDICAL_CONDITIONS = [
-    'Previous skin cancer',
-    'Family history of melanoma',
-    'Immunosuppressive medications',
-    'Excessive sun exposure',
+    { value: 'skin-cancer', label: 'Önceki cilt kanseri' },
+    { value: 'melanoma-family', label: 'Ailede melanom öyküsü' },
+    { value: 'immunosuppressive', label: 'Bağışıklık baskılayıcı ilaçlar' },
+    { value: 'sun-exposure', label: 'Aşırı güneş maruziyeti' },
 ] as const;

@@ -1,3 +1,9 @@
+/**
+ * Profile Screen
+ * User profile information and account management
+ */
+
+import React from 'react';
 import {
     View,
     Text,
@@ -8,153 +14,310 @@ import {
     Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useColorScheme } from '@/components/useColorScheme';
+import {
+    User,
+    Mail,
+    Building2,
+    Award,
+    Calendar,
+    LogOut,
+    Edit2,
+    ChevronRight,
+    Shield,
+    HelpCircle,
+} from 'lucide-react-native';
 import { Colors } from '@/constants/Colors';
+import { Typography } from '@/constants/Typography';
+import { Spacing, Shadows } from '@/constants/Spacing';
+import { useColorScheme } from '@/components/useColorScheme';
 import { useAuth } from '@/hooks/useAuth';
+import { useCases } from '@/hooks/useCases';
+import {
+    Card,
+    CardHeader,
+    CardContent,
+    Button,
+    Badge,
+    LoadingSpinner,
+    EmptyState,
+} from '@/components/ui';
 
 export default function ProfileScreen() {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
-    const { user, logout, isLoggingOut } = useAuth();
     const router = useRouter();
 
-    if (!user) {
-        return (
-            <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', padding: 24 }]}>
-                <Text style={{ color: colors.text, fontSize: 18, marginBottom: 20 }}>Oturum açmadınız</Text>
-                <TouchableOpacity
-                    style={[styles.logoutButton, { backgroundColor: '#4285F4', width: '100%', marginTop: 0 }]}
-                    onPress={() => router.replace('/(auth)/login')}
-                >
-                    <Text style={[styles.logoutText, { color: '#ffffff' }]}>Giriş Yap</Text>
-                </TouchableOpacity>
-            </View>
-        );
-    }
+    const { user, isLoading: authLoading, logout } = useAuth();
+    const { cases } = useCases();
 
-    const handleLogout = async () => {
+    const handleLogout = () => {
         Alert.alert(
             'Çıkış Yap',
-            'Hesabınızdan çıkış yapmak istediğinizden emin misiniz?',
+            'Hesabınızdan çıkış yapmak istediğinize emin misiniz?',
             [
                 { text: 'İptal', style: 'cancel' },
                 {
                     text: 'Çıkış Yap',
                     style: 'destructive',
                     onPress: async () => {
-                        try {
-                            await logout();
-                        } catch (error) {
-                            Alert.alert('Hata', 'Çıkış yapılırken bir hata oluştu.');
-                        }
-                    }
+                        await logout();
+                        router.replace('/(auth)/login');
+                    },
                 },
             ]
         );
     };
 
-    const initials = user
-        ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() || user.email?.[0]?.toUpperCase()
-        : '?';
+    const handleEditProfile = () => {
+        Alert.alert('Profil Düzenle', 'Bu özellik yakında eklenecek.');
+    };
+
+    if (authLoading) {
+        return (
+            <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
+                <LoadingSpinner text="Yükleniyor..." />
+            </View>
+        );
+    }
+
+    if (!user) {
+        return (
+            <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
+                <EmptyState
+                    emoji="👤"
+                    title="Giriş yapın"
+                    description="Profilinizi görüntülemek için giriş yapmanız gerekmektedir."
+                    actionLabel="Giriş Yap"
+                    onAction={() => router.replace('/(auth)/login')}
+                />
+            </View>
+        );
+    }
+
+    // Calculate statistics
+    const totalCases = cases.length;
+    const completedCases = cases.filter(c => c.finalDiagnoses?.length).length;
+    const avgConfidence = cases.length > 0
+        ? Math.round(
+            cases.reduce((sum, c) => {
+                const topDiagnosis = c.finalDiagnoses?.[0] || c.geminiAnalysis?.diagnoses?.[0];
+                return sum + (topDiagnosis?.confidence || 0);
+            }, 0) / cases.length
+        )
+        : 0;
+
+    const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Kullanıcı';
+    const initials = [user.firstName?.[0], user.lastName?.[0]].filter(Boolean).join('').toUpperCase() || 'U';
 
     return (
         <ScrollView
             style={[styles.container, { backgroundColor: colors.background }]}
             contentContainerStyle={styles.content}
+            showsVerticalScrollIndicator={false}
         >
             {/* Profile Header */}
-            <View style={[styles.header, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                {user?.profileImageUrl ? (
-                    <Image
-                        source={{ uri: user.profileImageUrl }}
-                        style={styles.avatar}
-                    />
-                ) : (
-                    <View style={[styles.avatarPlaceholder, { backgroundColor: colors.primary }]}>
-                        <Text style={[styles.avatarText, { color: colors.primaryForeground }]}>
-                            {initials}
+            <Card style={{ ...styles.headerCard, backgroundColor: colors.primaryLight }}>
+                <View style={styles.header}>
+                    {user.profileImageUrl ? (
+                        <Image
+                            source={{ uri: user.profileImageUrl }}
+                            style={[styles.avatar, { borderColor: colors.primary }]}
+                        />
+                    ) : (
+                        <View style={[styles.avatarPlaceholder, { backgroundColor: colors.primary }]}>
+                            <Text style={[styles.avatarText, { color: colors.primaryForeground }]}>
+                                {initials}
+                            </Text>
+                        </View>
+                    )}
+
+                    <View style={styles.headerInfo}>
+                        <Text style={[styles.name, { color: colors.text }]}>{fullName}</Text>
+                        <Text style={[styles.email, { color: colors.textSecondary }]}>
+                            {user.email}
                         </Text>
+                        <Badge variant={user.role === 'admin' ? 'primary' : 'default'} style={styles.roleBadge}>
+                            {user.role === 'admin' ? 'Yönetici' : 'Kullanıcı'}
+                        </Badge>
                     </View>
-                )}
 
-                <Text style={[styles.name, { color: colors.text }]}>
-                    {user?.firstName && user?.lastName
-                        ? `${user.firstName} ${user.lastName}`
-                        : user?.email || 'Kullanıcı'
-                    }
-                </Text>
+                    <TouchableOpacity
+                        style={[styles.editButton, { backgroundColor: colors.card }]}
+                        onPress={handleEditProfile}
+                    >
+                        <Edit2 size={16} color={colors.primary} />
+                    </TouchableOpacity>
+                </View>
+            </Card>
 
-                <Text style={[styles.email, { color: colors.textSecondary }]}>
-                    {user?.email}
-                </Text>
-
-                {user?.role === 'admin' && (
-                    <View style={[styles.badge, { backgroundColor: colors.primary + '20' }]}>
-                        <Text style={[styles.badgeText, { color: colors.primary }]}>Admin</Text>
+            {/* Statistics */}
+            <Card>
+                <CardHeader title="İstatistikler" icon={<Award size={18} color={colors.primary} />} />
+                <CardContent>
+                    <View style={styles.statsRow}>
+                        <StatItem
+                            value={totalCases.toString()}
+                            label="Toplam Vaka"
+                            colors={colors}
+                        />
+                        <StatItem
+                            value={completedCases.toString()}
+                            label="Tamamlanan"
+                            colors={colors}
+                        />
+                        <StatItem
+                            value={`%${avgConfidence}`}
+                            label="Ort. Güven"
+                            colors={colors}
+                        />
                     </View>
-                )}
-            </View>
+                </CardContent>
+            </Card>
 
-            {/* Profile Info */}
-            <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>Hesap Bilgileri</Text>
-
-                <InfoRow
-                    label="Email"
-                    value={user?.email || '-'}
-                    colors={colors}
-                />
-                <InfoRow
-                    label="Ad"
-                    value={user?.firstName || '-'}
-                    colors={colors}
-                />
-                <InfoRow
-                    label="Soyad"
-                    value={user?.lastName || '-'}
-                    colors={colors}
-                />
-                <InfoRow
-                    label="Rol"
-                    value={user?.role === 'admin' ? 'Yönetici' : 'Kullanıcı'}
-                    colors={colors}
-                />
-                {user?.hospital && (
+            {/* Professional Info */}
+            <Card>
+                <CardHeader title="Profesyonel Bilgiler" icon={<Building2 size={18} color={colors.primary} />} />
+                <CardContent>
                     <InfoRow
-                        label="Hastane"
-                        value={user.hospital}
+                        icon={<Building2 size={16} color={colors.textSecondary} />}
+                        label="Kurum"
+                        value={user.hospital || 'Belirtilmedi'}
                         colors={colors}
                     />
-                )}
-                {user?.specialization && (
                     <InfoRow
+                        icon={<Award size={16} color={colors.textSecondary} />}
                         label="Uzmanlık"
-                        value={user.specialization}
+                        value={user.specialization || 'Belirtilmedi'}
                         colors={colors}
                     />
-                )}
-            </View>
+                    <InfoRow
+                        icon={<Shield size={16} color={colors.textSecondary} />}
+                        label="Lisans No"
+                        value={user.medicalLicenseNumber || 'Belirtilmedi'}
+                        colors={colors}
+                    />
+                    <InfoRow
+                        icon={<Calendar size={16} color={colors.textSecondary} />}
+                        label="Deneyim"
+                        value={user.yearsOfExperience ? `${user.yearsOfExperience} yıl` : 'Belirtilmedi'}
+                        colors={colors}
+                        isLast
+                    />
+                </CardContent>
+            </Card>
+
+            {/* Quick Actions */}
+            <Card>
+                <CardHeader title="Hızlı İşlemler" />
+                <CardContent>
+                    <ActionRow
+                        icon={<HelpCircle size={18} color={colors.primary} />}
+                        label="Destek"
+                        colors={colors}
+                        onPress={() => router.push('/contact-support')}
+                    />
+                    <ActionRow
+                        icon={<Shield size={18} color={colors.primary} />}
+                        label="Gizlilik Politikası"
+                        colors={colors}
+                        onPress={() => router.push('/privacy-policy')}
+                        isLast
+                    />
+                </CardContent>
+            </Card>
 
             {/* Logout Button */}
-            <TouchableOpacity
-                style={[styles.logoutButton, { backgroundColor: colors.destructive }]}
+            <Button
+                variant="destructive"
+                size="lg"
+                fullWidth
+                icon={<LogOut size={18} color={colors.destructiveForeground} />}
                 onPress={handleLogout}
-                disabled={isLoggingOut}
+                style={styles.logoutButton}
             >
-                <Text style={[styles.logoutText, { color: colors.destructiveForeground }]}>
-                    {isLoggingOut ? 'Çıkış yapılıyor...' : 'Çıkış Yap'}
-                </Text>
-            </TouchableOpacity>
+                Çıkış Yap
+            </Button>
         </ScrollView>
     );
 }
 
-function InfoRow({ label, value, colors }: { label: string; value: string; colors: typeof Colors.light }) {
+// Stat item component
+function StatItem({
+    value,
+    label,
+    colors,
+}: {
+    value: string;
+    label: string;
+    colors: typeof Colors.light;
+}) {
     return (
-        <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>{label}</Text>
+        <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: colors.primary }]}>{value}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{label}</Text>
+        </View>
+    );
+}
+
+// Info row component
+function InfoRow({
+    icon,
+    label,
+    value,
+    colors,
+    isLast = false,
+}: {
+    icon: React.ReactNode;
+    label: string;
+    value: string;
+    colors: typeof Colors.light;
+    isLast?: boolean;
+}) {
+    return (
+        <View
+            style={[
+                styles.infoRow,
+                !isLast && { borderBottomWidth: 1, borderBottomColor: colors.borderLight },
+            ]}
+        >
+            <View style={styles.infoLabel}>
+                {icon}
+                <Text style={[styles.infoLabelText, { color: colors.textSecondary }]}>{label}</Text>
+            </View>
             <Text style={[styles.infoValue, { color: colors.text }]}>{value}</Text>
         </View>
+    );
+}
+
+// Action row component
+function ActionRow({
+    icon,
+    label,
+    colors,
+    onPress,
+    isLast = false,
+}: {
+    icon: React.ReactNode;
+    label: string;
+    colors: typeof Colors.light;
+    onPress: () => void;
+    isLast?: boolean;
+}) {
+    return (
+        <TouchableOpacity
+            style={[
+                styles.actionRow,
+                !isLast && { borderBottomWidth: 1, borderBottomColor: colors.borderLight },
+            ]}
+            onPress={onPress}
+            activeOpacity={0.7}
+        >
+            <View style={styles.actionLeft}>
+                {icon}
+                <Text style={[styles.actionLabel, { color: colors.text }]}>{label}</Text>
+            </View>
+            <ChevronRight size={18} color={colors.textMuted} />
+        </TouchableOpacity>
     );
 }
 
@@ -162,85 +325,110 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    content: {
-        padding: 16,
-        gap: 16,
-    },
-    header: {
-        alignItems: 'center',
-        padding: 24,
-        borderRadius: 16,
-        borderWidth: 1,
-    },
-    avatar: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        marginBottom: 12,
-    },
-    avatarPlaceholder: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
+    centered: {
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 12,
+    },
+    content: {
+        padding: Spacing.base,
+        paddingBottom: Spacing['4xl'],
+        gap: Spacing.md,
+    },
+    headerCard: {
+        padding: Spacing.lg,
+        borderWidth: 0,
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+    },
+    avatar: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        borderWidth: 3,
+    },
+    avatarPlaceholder: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     avatarText: {
-        fontSize: 28,
-        fontWeight: '600',
+        fontSize: 24,
+        fontWeight: '700',
+    },
+    headerInfo: {
+        flex: 1,
+        marginLeft: Spacing.md,
     },
     name: {
-        fontSize: 20,
-        fontWeight: '600',
-        marginBottom: 4,
+        ...Typography.styles.h3,
     },
     email: {
-        fontSize: 14,
-        marginBottom: 8,
+        ...Typography.styles.body,
+        marginTop: 2,
     },
-    badge: {
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-        borderRadius: 12,
+    roleBadge: {
+        marginTop: Spacing.sm,
     },
-    badgeText: {
-        fontSize: 12,
-        fontWeight: '600',
+    editButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...Shadows.sm,
     },
-    section: {
-        borderRadius: 16,
-        borderWidth: 1,
-        padding: 16,
+    statsRow: {
+        flexDirection: 'row',
     },
-    sectionTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        marginBottom: 16,
+    statItem: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    statValue: {
+        ...Typography.styles.h2,
+    },
+    statLabel: {
+        ...Typography.styles.caption,
+        marginTop: 2,
     },
     infoRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingVertical: 12,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: '#e2e8f0',
+        alignItems: 'center',
+        paddingVertical: Spacing.md,
     },
     infoLabel: {
-        fontSize: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    infoLabelText: {
+        ...Typography.styles.body,
+        marginLeft: Spacing.sm,
     },
     infoValue: {
-        fontSize: 14,
+        ...Typography.styles.body,
         fontWeight: '500',
     },
-    logoutButton: {
-        height: 48,
-        borderRadius: 12,
-        justifyContent: 'center',
+    actionRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: 8,
+        paddingVertical: Spacing.md,
     },
-    logoutText: {
-        fontSize: 16,
-        fontWeight: '600',
+    actionLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    actionLabel: {
+        ...Typography.styles.body,
+        fontWeight: '500',
+        marginLeft: Spacing.md,
+    },
+    logoutButton: {
+        marginTop: Spacing.lg,
     },
 });

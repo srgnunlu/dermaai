@@ -4,6 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { ANALYSIS_TIMEOUT } from '@/constants/Config';
 import type { Case, PatientData, AnalysisResponse, Patient } from '@/types/schema';
 
 export function useCases() {
@@ -104,7 +105,8 @@ export function useAnalyzeCase() {
                 medicalHistory: patientData.medicalHistory,
             };
 
-            return api.post<AnalysisResponse>('/api/cases/analyze', caseData);
+            // Use longer timeout for AI analysis (2 minutes)
+            return api.postWithTimeout<AnalysisResponse>('/api/cases/analyze', caseData, ANALYSIS_TIMEOUT);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['cases'] });

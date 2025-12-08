@@ -1,40 +1,247 @@
 /**
- * ImageCapture component for capturing and selecting lesion images
- * Supports camera and gallery with up to 3 images
+ * Image Capture Component
+ * Premium design with gradient borders, glow effects, and animations
  */
 
-import { useState } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
     View,
     Text,
+    StyleSheet,
     TouchableOpacity,
     Image,
-    StyleSheet,
     Alert,
-    ActivityIndicator,
+    ScrollView,
+    Modal,
+    Animated,
+    Easing,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
+import * as Haptics from 'expo-haptics';
+import { Camera, ImageIcon, X, Info, ZoomIn, Sparkles } from 'lucide-react-native';
+import { Colors, Gradients, Glow } from '@/constants/Colors';
+import { Typography } from '@/constants/Typography';
+import { Spacing, Shadows } from '@/constants/Spacing';
+import { Duration } from '@/constants/Animations';
 import { useColorScheme } from '@/components/useColorScheme';
-import { Colors } from '@/constants/Colors';
-import { MAX_IMAGES, IMAGE_QUALITY, MAX_IMAGE_SIZE } from '@/constants/Config';
-import { api } from '@/lib/api';
+import { Card, CardHeader, CardContent } from '@/components/ui';
+import { MAX_IMAGES, IMAGE_QUALITY } from '@/constants/Config';
 
 interface ImageCaptureProps {
     images: string[];
     onImagesChange: (images: string[]) => void;
+    maxImages?: number;
 }
 
-export function ImageCapture({ images, onImagesChange }: ImageCaptureProps) {
+// Animated action button
+const AnimatedButton = ({
+    onPress,
+    icon: Icon,
+    label,
+    isPrimary,
+    colors,
+    colorScheme,
+    gradients,
+}: {
+    onPress: () => void;
+    icon: any;
+    label: string;
+    isPrimary: boolean;
+    colors: typeof Colors.light;
+    colorScheme: 'light' | 'dark';
+    gradients: typeof Gradients.light | typeof Gradients.dark;
+}) => {
+    const scaleAnim = useRef(new Animated.Value(1)).current;
+    const glowAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (isPrimary) {
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(glowAnim, {
+                        toValue: 1,
+                        duration: Duration.pulse,
+                        easing: Easing.inOut(Easing.ease),
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(glowAnim, {
+                        toValue: 0.3,
+                        duration: Duration.pulse,
+                        easing: Easing.inOut(Easing.ease),
+                        useNativeDriver: true,
+                    }),
+                ])
+            ).start();
+        }
+    }, [isPrimary]);
+
+    const handlePressIn = () => {
+        Animated.spring(scaleAnim, {
+            toValue: 0.95,
+            useNativeDriver: true,
+        }).start();
+    };
+
+    const handlePressOut = () => {
+        Animated.spring(scaleAnim, {
+            toValue: 1,
+            friction: 3,
+            tension: 40,
+            useNativeDriver: true,
+        }).start();
+    };
+
+    const handlePress = async () => {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        onPress();
+    };
+
+    return (
+        <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+            <TouchableOpacity
+                onPress={handlePress}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                activeOpacity={1}
+            >
+                {isPrimary ? (
+                    <View style={styles.buttonContainer}>
+                        {/* Glow Effect */}
+                        <Animated.View
+                            style={[
+                                styles.buttonGlow,
+                                {
+                                    backgroundColor: Glow[colorScheme].primary,
+                                    opacity: glowAnim,
+                                },
+                            ]}
+                        />
+                        <LinearGradient
+                            colors={gradients.primary}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.addButtonPrimary}
+                        >
+                            <Icon size={28} color="#FFFFFF" strokeWidth={1.5} />
+                            <Text style={styles.addButtonTextPrimary}>{label}</Text>
+                        </LinearGradient>
+                    </View>
+                ) : (
+                    <View
+                        style={[
+                            styles.addButton,
+                            {
+                                borderColor: colors.border,
+                                backgroundColor: colors.card,
+                            },
+                        ]}
+                    >
+                        <Icon size={24} color={colors.textSecondary} strokeWidth={1.5} />
+                        <Text style={[styles.addButtonText, { color: colors.textSecondary }]}>
+                            {label}
+                        </Text>
+                    </View>
+                )}
+            </TouchableOpacity>
+        </Animated.View>
+    );
+};
+
+// Image thumbnail with delete button
+const ImageThumbnail = ({
+    uri,
+    index,
+    onRemove,
+    onPreview,
+    colors,
+    gradients,
+}: {
+    uri: string;
+    index: number;
+    onRemove: () => void;
+    onPreview: () => void;
+    colors: typeof Colors.light;
+    gradients: typeof Gradients.light | typeof Gradients.dark;
+}) => {
+    const scaleAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        Animated.spring(scaleAnim, {
+            toValue: 1,
+            delay: index * 100,
+            friction: 6,
+            tension: 40,
+            useNativeDriver: true,
+        }).start();
+    }, []);
+
+    const handleRemove = async () => {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        Animated.timing(scaleAnim, {
+            toValue: 0,
+            duration: Duration.fast,
+            useNativeDriver: true,
+        }).start(() => onRemove());
+    };
+
+    return (
+        <Animated.View
+            style={[styles.imageContainer, { transform: [{ scale: scaleAnim }] }]}
+        >
+            {/* Gradient Border */}
+            <LinearGradient
+                colors={gradients.accent}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.imageBorderGradient}
+            >
+                <TouchableOpacity onPress={onPreview} activeOpacity={0.8}>
+                    <Image source={{ uri }} style={styles.image} />
+                    <View style={[styles.zoomIcon, { backgroundColor: colors.overlay }]}>
+                        <ZoomIn size={14} color="#FFFFFF" />
+                    </View>
+                </TouchableOpacity>
+            </LinearGradient>
+
+            {/* Remove Button */}
+            <TouchableOpacity
+                style={styles.removeButton}
+                onPress={handleRemove}
+            >
+                <LinearGradient
+                    colors={['#EF4444', '#DC2626']}
+                    style={styles.removeButtonGradient}
+                >
+                    <X size={12} color="#FFFFFF" strokeWidth={3} />
+                </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Image Number Badge */}
+            <View style={[styles.numberBadge, { backgroundColor: colors.primary }]}>
+                <Text style={styles.numberBadgeText}>{index + 1}</Text>
+            </View>
+        </Animated.View>
+    );
+};
+
+export function ImageCapture({
+    images,
+    onImagesChange,
+    maxImages = MAX_IMAGES,
+}: ImageCaptureProps) {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
-    const [isUploading, setIsUploading] = useState(false);
+    const gradients = Gradients[colorScheme];
+    const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-    const requestCameraPermission = async (): Promise<boolean> => {
+    // Request camera permissions
+    const requestCameraPermission = async () => {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') {
             Alert.alert(
-                'Kamera İzni Gerekli',
-                'Fotoğraf çekmek için kamera iznine ihtiyacımız var.',
+                'İzin Gerekli',
+                'Kamera kullanmak için izin vermeniz gerekmektedir.',
                 [{ text: 'Tamam' }]
             );
             return false;
@@ -42,12 +249,13 @@ export function ImageCapture({ images, onImagesChange }: ImageCaptureProps) {
         return true;
     };
 
-    const requestMediaPermission = async (): Promise<boolean> => {
+    // Request gallery permissions
+    const requestGalleryPermission = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
             Alert.alert(
-                'Galeri İzni Gerekli',
-                'Galeriden resim seçmek için izne ihtiyacımız var.',
+                'İzin Gerekli',
+                'Galeri erişimi için izin vermeniz gerekmektedir.',
                 [{ text: 'Tamam' }]
             );
             return false;
@@ -55,21 +263,10 @@ export function ImageCapture({ images, onImagesChange }: ImageCaptureProps) {
         return true;
     };
 
-    const uploadImage = async (uri: string): Promise<string | null> => {
-        try {
-            // For now, return the local URI
-            // In production, you'd upload to backend and return the URL
-            // TODO: Implement actual upload when backend is ready
-            return uri;
-        } catch (error) {
-            console.error('Upload error:', error);
-            return null;
-        }
-    };
-
-    const handleTakePhoto = async () => {
-        if (images.length >= MAX_IMAGES) {
-            Alert.alert('Limit', `Maksimum ${MAX_IMAGES} görsel yükleyebilirsiniz.`);
+    // Take photo with camera
+    const handleTakePhoto = useCallback(async () => {
+        if (images.length >= maxImages) {
+            Alert.alert('Limit', `En fazla ${maxImages} görsel ekleyebilirsiniz.`);
             return;
         }
 
@@ -78,225 +275,347 @@ export function ImageCapture({ images, onImagesChange }: ImageCaptureProps) {
 
         try {
             const result = await ImagePicker.launchCameraAsync({
-                mediaTypes: ['images'],
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 quality: IMAGE_QUALITY,
                 allowsEditing: true,
-                aspect: [1, 1],
+                aspect: [4, 3],
             });
 
             if (!result.canceled && result.assets[0]) {
-                setIsUploading(true);
-                const uploadedUrl = await uploadImage(result.assets[0].uri);
-                if (uploadedUrl) {
-                    onImagesChange([...images, uploadedUrl]);
-                }
-                setIsUploading(false);
+                await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                onImagesChange([...images, result.assets[0].uri]);
             }
         } catch (error) {
+            console.error('Camera error:', error);
             Alert.alert('Hata', 'Fotoğraf çekilirken bir hata oluştu.');
-            setIsUploading(false);
         }
-    };
+    }, [images, maxImages, onImagesChange]);
 
-    const handlePickFromGallery = async () => {
-        const remaining = MAX_IMAGES - images.length;
-        if (remaining <= 0) {
-            Alert.alert('Limit', `Maksimum ${MAX_IMAGES} görsel yükleyebilirsiniz.`);
+    // Pick from gallery
+    const handlePickFromGallery = useCallback(async () => {
+        if (images.length >= maxImages) {
+            Alert.alert('Limit', `En fazla ${maxImages} görsel ekleyebilirsiniz.`);
             return;
         }
 
-        const hasPermission = await requestMediaPermission();
+        const hasPermission = await requestGalleryPermission();
         if (!hasPermission) return;
 
         try {
             const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ['images'],
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 quality: IMAGE_QUALITY,
                 allowsMultipleSelection: true,
-                selectionLimit: remaining,
+                selectionLimit: maxImages - images.length,
             });
 
             if (!result.canceled && result.assets.length > 0) {
-                setIsUploading(true);
-                const newImages: string[] = [];
-
-                for (const asset of result.assets) {
-                    const uploadedUrl = await uploadImage(asset.uri);
-                    if (uploadedUrl) {
-                        newImages.push(uploadedUrl);
-                    }
-                }
-
-                onImagesChange([...images, ...newImages].slice(0, MAX_IMAGES));
-                setIsUploading(false);
+                await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                const newImages = result.assets.map(asset => asset.uri);
+                onImagesChange([...images, ...newImages].slice(0, maxImages));
             }
         } catch (error) {
-            Alert.alert('Hata', 'Galeriden resim seçilirken bir hata oluştu.');
-            setIsUploading(false);
+            console.error('Gallery error:', error);
+            Alert.alert('Hata', 'Görsel seçilirken bir hata oluştu.');
         }
-    };
+    }, [images, maxImages, onImagesChange]);
 
-    const handleRemoveImage = (index: number) => {
-        const newImages = images.filter((_, i) => i !== index);
-        onImagesChange(newImages);
-    };
+    // Remove image
+    const handleRemoveImage = useCallback(
+        (index: number) => {
+            const newImages = [...images];
+            newImages.splice(index, 1);
+            onImagesChange(newImages);
+        },
+        [images, onImagesChange]
+    );
+
+    // Preview image
+    const handlePreviewImage = useCallback((uri: string) => {
+        setPreviewImage(uri);
+    }, []);
+
+    const hasImages = images.length > 0;
+    const canAddMore = images.length < maxImages;
 
     return (
-        <View style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.title, { color: colors.text }]}>
-                📷 Lezyon Görseli (1-3 görsel)
-            </Text>
-
-            {/* Image Preview Grid */}
-            {images.length > 0 && (
-                <View style={styles.imageGrid}>
-                    {images.map((uri, index) => (
-                        <View key={index} style={styles.imageWrapper}>
-                            <Image source={{ uri }} style={styles.previewImage} />
-                            <TouchableOpacity
-                                style={[styles.removeButton, { backgroundColor: colors.destructive }]}
-                                onPress={() => handleRemoveImage(index)}
-                            >
-                                <Text style={styles.removeButtonText}>✕</Text>
-                            </TouchableOpacity>
-                            <View style={[styles.imageCounter, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
-                                <Text style={styles.imageCounterText}>{index + 1}/{images.length}</Text>
-                            </View>
-                        </View>
-                    ))}
-                </View>
-            )}
-
-            {/* Action Buttons */}
-            {images.length < MAX_IMAGES && (
-                <View style={styles.buttonRow}>
-                    <TouchableOpacity
-                        style={[styles.button, { backgroundColor: colors.primary }]}
-                        onPress={handleTakePhoto}
-                        disabled={isUploading}
-                    >
-                        {isUploading ? (
-                            <ActivityIndicator color={colors.primaryForeground} size="small" />
-                        ) : (
-                            <Text style={[styles.buttonText, { color: colors.primaryForeground }]}>
-                                📸 Fotoğraf Çek
+        <Card elevated>
+            <CardHeader
+                title="Lezyon Görselleri"
+                subtitle={`1-${maxImages} görsel yükleyin`}
+                icon={<Camera size={18} color={colors.primary} />}
+                action={
+                    hasImages && (
+                        <View style={[styles.countBadge, { backgroundColor: colors.successLight }]}>
+                            <Text style={[styles.countText, { color: colors.success }]}>
+                                {images.length}/{maxImages}
                             </Text>
-                        )}
-                    </TouchableOpacity>
+                        </View>
+                    )
+                }
+            />
+            <CardContent>
+                {/* Image Grid */}
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.imageScrollContent}
+                >
+                    {/* Existing Images */}
+                    {images.map((uri, index) => (
+                        <ImageThumbnail
+                            key={uri}
+                            uri={uri}
+                            index={index}
+                            onRemove={() => handleRemoveImage(index)}
+                            onPreview={() => handlePreviewImage(uri)}
+                            colors={colors}
+                            gradients={gradients}
+                        />
+                    ))}
 
-                    <TouchableOpacity
-                        style={[styles.button, { backgroundColor: colors.secondary, borderWidth: 1, borderColor: colors.border }]}
-                        onPress={handlePickFromGallery}
-                        disabled={isUploading}
-                    >
-                        <Text style={[styles.buttonText, { color: colors.text }]}>
-                            🖼️ Galeriden Seç
+                    {/* Add Image Buttons */}
+                    {canAddMore && (
+                        <View style={styles.addButtons}>
+                            <AnimatedButton
+                                onPress={handleTakePhoto}
+                                icon={Camera}
+                                label="Kamera"
+                                isPrimary={!hasImages}
+                                colors={colors}
+                                colorScheme={colorScheme}
+                                gradients={gradients}
+                            />
+                            <AnimatedButton
+                                onPress={handlePickFromGallery}
+                                icon={ImageIcon}
+                                label="Galeri"
+                                isPrimary={false}
+                                colors={colors}
+                                colorScheme={colorScheme}
+                                gradients={gradients}
+                            />
+                        </View>
+                    )}
+                </ScrollView>
+
+                {/* Guidelines - Premium Design */}
+                <LinearGradient
+                    colors={[colors.infoLight, `${colors.info}10`]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.guidelines}
+                >
+                    <View style={styles.guidelinesIconContainer}>
+                        <Sparkles size={18} color={colors.info} />
+                    </View>
+                    <View style={styles.guidelinesText}>
+                        <Text style={[styles.guidelinesTitle, { color: colors.info }]}>
+                            İyi bir görsel için:
                         </Text>
-                    </TouchableOpacity>
-                </View>
-            )}
+                        <Text style={[styles.guidelinesItem, { color: colors.textSecondary }]}>
+                            • Yeterli ışık altında çekin{'\n'}
+                            • Lezyonu net odaklayın{'\n'}
+                            • Yaklaşık 10-15 cm mesafeden çekin
+                        </Text>
+                    </View>
+                </LinearGradient>
+            </CardContent>
 
-            {/* Guidelines */}
-            <View style={[styles.guidelines, { backgroundColor: colors.muted }]}>
-                <Text style={[styles.guidelinesTitle, { color: colors.text }]}>Görsel Rehberi</Text>
-                <Text style={[styles.guidelineText, { color: colors.textSecondary }]}>
-                    • Aynı lezyonun 1-3 farklı açıdan fotoğrafını çekin
-                </Text>
-                <Text style={[styles.guidelineText, { color: colors.textSecondary }]}>
-                    • Yüksek çözünürlük (min 1000x1000px) tercih edin
-                </Text>
-                <Text style={[styles.guidelineText, { color: colors.textSecondary }]}>
-                    • İyi aydınlatma sağlayın
-                </Text>
-                <Text style={[styles.guidelineText, { color: colors.textSecondary }]}>
-                    • Lezyona net odaklanın
-                </Text>
-            </View>
-        </View>
+            {/* Preview Modal */}
+            <Modal
+                visible={!!previewImage}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setPreviewImage(null)}
+            >
+                <TouchableOpacity
+                    style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}
+                    activeOpacity={1}
+                    onPress={() => setPreviewImage(null)}
+                >
+                    <View style={styles.modalContent}>
+                        {previewImage && (
+                            <Image
+                                source={{ uri: previewImage }}
+                                style={styles.previewImage}
+                                resizeMode="contain"
+                            />
+                        )}
+                        <TouchableOpacity
+                            style={[styles.closeButton, { backgroundColor: colors.card }]}
+                            onPress={() => setPreviewImage(null)}
+                        >
+                            <X size={20} color={colors.text} />
+                        </TouchableOpacity>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+        </Card>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        borderRadius: 16,
-        borderWidth: 1,
-        padding: 16,
+    imageScrollContent: {
+        gap: Spacing.md,
+        paddingVertical: Spacing.sm,
     },
-    title: {
-        fontSize: 16,
-        fontWeight: '600',
-        marginBottom: 16,
-    },
-    imageGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 12,
-        marginBottom: 16,
-    },
-    imageWrapper: {
+    imageContainer: {
         position: 'relative',
+    },
+    imageBorderGradient: {
+        padding: 2,
+        borderRadius: Spacing.radius.lg + 2,
+    },
+    image: {
         width: 100,
         height: 100,
+        borderRadius: Spacing.radius.lg,
+    },
+    zoomIcon: {
+        position: 'absolute',
+        bottom: Spacing.xs,
+        right: Spacing.xs,
+        width: 26,
+        height: 26,
+        borderRadius: 13,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    removeButton: {
+        position: 'absolute',
+        top: -6,
+        right: -6,
+        zIndex: 10,
+    },
+    removeButtonGradient: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...Shadows.sm,
+    },
+    numberBadge: {
+        position: 'absolute',
+        top: -4,
+        left: -4,
+        width: 22,
+        height: 22,
+        borderRadius: 11,
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...Shadows.sm,
+    },
+    numberBadgeText: {
+        color: '#FFFFFF',
+        fontSize: 11,
+        fontWeight: '700',
+    },
+    addButtons: {
+        flexDirection: 'row',
+        gap: Spacing.md,
+    },
+    buttonContainer: {
+        position: 'relative',
+    },
+    buttonGlow: {
+        position: 'absolute',
+        top: -4,
+        left: -4,
+        right: -4,
+        bottom: -4,
+        borderRadius: Spacing.radius.lg + 4,
+    },
+    addButtonPrimary: {
+        width: 104,
+        height: 104,
+        borderRadius: Spacing.radius.lg,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: Spacing.xs,
+        ...Shadows.md,
+    },
+    addButtonTextPrimary: {
+        color: '#FFFFFF',
+        ...Typography.styles.caption,
+        fontWeight: '600',
+    },
+    addButton: {
+        width: 100,
+        height: 100,
+        borderRadius: Spacing.radius.lg,
+        borderWidth: 2,
+        borderStyle: 'dashed',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: Spacing.xs,
+    },
+    addButtonText: {
+        ...Typography.styles.caption,
+        fontWeight: '500',
+    },
+    guidelines: {
+        flexDirection: 'row',
+        padding: Spacing.md,
+        borderRadius: Spacing.radius.lg,
+        marginTop: Spacing.lg,
+        gap: Spacing.sm,
+    },
+    guidelinesIconContainer: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    guidelinesText: {
+        flex: 1,
+    },
+    guidelinesTitle: {
+        ...Typography.styles.label,
+        marginBottom: Spacing.xs,
+    },
+    guidelinesItem: {
+        ...Typography.styles.caption,
+        lineHeight: 18,
+    },
+    countBadge: {
+        paddingHorizontal: Spacing.sm,
+        paddingVertical: Spacing.xs,
+        borderRadius: Spacing.radius.full,
+    },
+    countText: {
+        ...Typography.styles.caption,
+        fontWeight: '600',
+    },
+    modalOverlay: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: Spacing.xl,
+    },
+    modalContent: {
+        width: '100%',
+        aspectRatio: 1,
+        position: 'relative',
     },
     previewImage: {
         width: '100%',
         height: '100%',
-        borderRadius: 12,
+        borderRadius: Spacing.radius.xl,
     },
-    removeButton: {
+    closeButton: {
         position: 'absolute',
-        top: -8,
-        right: -8,
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        justifyContent: 'center',
+        top: Spacing.md,
+        right: Spacing.md,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         alignItems: 'center',
-    },
-    removeButtonText: {
-        color: 'white',
-        fontSize: 12,
-        fontWeight: '600',
-    },
-    imageCounter: {
-        position: 'absolute',
-        bottom: 4,
-        left: 4,
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 4,
-    },
-    imageCounterText: {
-        color: 'white',
-        fontSize: 10,
-    },
-    buttonRow: {
-        flexDirection: 'row',
-        gap: 12,
-        marginBottom: 16,
-    },
-    button: {
-        flex: 1,
-        height: 44,
-        borderRadius: 10,
         justifyContent: 'center',
-        alignItems: 'center',
-    },
-    buttonText: {
-        fontSize: 14,
-        fontWeight: '500',
-    },
-    guidelines: {
-        padding: 12,
-        borderRadius: 10,
-    },
-    guidelinesTitle: {
-        fontSize: 14,
-        fontWeight: '600',
-        marginBottom: 8,
-    },
-    guidelineText: {
-        fontSize: 12,
-        marginBottom: 4,
+        ...Shadows.md,
     },
 });
+

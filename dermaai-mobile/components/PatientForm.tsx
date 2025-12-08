@@ -1,20 +1,30 @@
 /**
- * PatientForm component for collecting patient information and symptoms
- * Ported from web app PatientForm.tsx
+ * Patient Form Component
+ * Collects patient information and symptoms for AI analysis
  */
 
-import { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View,
     Text,
-    TextInput,
-    TouchableOpacity,
     StyleSheet,
-    ScrollView,
-    ActivityIndicator,
+    KeyboardAvoidingView,
+    Platform,
 } from 'react-native';
-import { useColorScheme } from '@/components/useColorScheme';
 import { Colors } from '@/constants/Colors';
+import { Typography } from '@/constants/Typography';
+import { Spacing } from '@/constants/Spacing';
+import { useColorScheme } from '@/components/useColorScheme';
+import {
+    Card,
+    CardHeader,
+    CardContent,
+    Input,
+    TextArea,
+    Button,
+    Chip,
+    ChipGroup,
+} from '@/components/ui';
 import {
     SYMPTOM_OPTIONS,
     LESION_LOCATIONS,
@@ -23,240 +33,221 @@ import {
     MEDICAL_CONDITIONS,
 } from '@/constants/Config';
 import type { PatientData } from '@/types/schema';
+import { User, MapPin, Thermometer, Clock, FileText } from 'lucide-react-native';
 
 interface PatientFormProps {
     onSubmit: (data: PatientData) => void;
     isLoading?: boolean;
     hasImages?: boolean;
+    initialData?: Partial<PatientData>;
 }
 
-export function PatientForm({ onSubmit, isLoading = false, hasImages = false }: PatientFormProps) {
+export function PatientForm({
+    onSubmit,
+    isLoading = false,
+    hasImages = false,
+    initialData,
+}: PatientFormProps) {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
 
-    const [formData, setFormData] = useState<PatientData>({
-        patientId: '',
-        age: null,
-        gender: '',
-        skinType: '',
-        lesionLocation: [],
-        symptoms: [],
-        additionalSymptoms: '',
-        symptomDuration: '',
-        medicalHistory: [],
-    });
+    // Form state
+    const [patientId, setPatientId] = useState(initialData?.patientId || '');
+    const [age, setAge] = useState(initialData?.age?.toString() || '');
+    const [gender, setGender] = useState<string[]>(initialData?.gender ? [initialData.gender] : []);
+    const [skinType, setSkinType] = useState<string[]>(initialData?.skinType ? [initialData.skinType] : []);
+    const [lesionLocation, setLesionLocation] = useState<string[]>(initialData?.lesionLocation || []);
+    const [symptoms, setSymptoms] = useState<string[]>(initialData?.symptoms || []);
+    const [additionalSymptoms, setAdditionalSymptoms] = useState(initialData?.additionalSymptoms || '');
+    const [symptomDuration, setSymptomDuration] = useState<string[]>(
+        initialData?.symptomDuration ? [initialData.symptomDuration] : []
+    );
+    const [medicalHistory, setMedicalHistory] = useState<string[]>(initialData?.medicalHistory || []);
 
-    const toggleArrayItem = (field: 'lesionLocation' | 'symptoms' | 'medicalHistory', item: string) => {
-        setFormData(prev => ({
-            ...prev,
-            [field]: prev[field].includes(item)
-                ? prev[field].filter(i => i !== item)
-                : [...prev[field], item],
-        }));
-    };
+    // Handle form submission
+    const handleSubmit = useCallback(() => {
+        const data: PatientData = {
+            patientId: patientId || `P-${Date.now()}`,
+            age: age ? parseInt(age, 10) : null,
+            gender: gender[0] || '',
+            skinType: skinType[0] || '',
+            lesionLocation,
+            symptoms,
+            additionalSymptoms,
+            symptomDuration: symptomDuration[0] || '',
+            medicalHistory,
+        };
 
-    const handleSubmit = () => {
-        onSubmit(formData);
-    };
+        onSubmit(data);
+    }, [
+        patientId,
+        age,
+        gender,
+        skinType,
+        lesionLocation,
+        symptoms,
+        additionalSymptoms,
+        symptomDuration,
+        medicalHistory,
+        onSubmit,
+    ]);
 
-    const isFormValid = formData.lesionLocation.length > 0;
+    // Validation
+    const isValid = hasImages && lesionLocation.length > 0;
+
+    const genderOptions = [
+        { label: 'Erkek', value: 'male' },
+        { label: 'Kadın', value: 'female' },
+        { label: 'Diğer', value: 'other' },
+    ];
 
     return (
-        <View style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.title, { color: colors.text }]}>
-                👤 Hasta Bilgileri ve Belirtiler
-            </Text>
-
-            {/* Patient ID */}
-            <View style={styles.fieldGroup}>
-                <Text style={[styles.label, { color: colors.text }]}>Hasta ID (opsiyonel)</Text>
-                <TextInput
-                    style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-                    placeholder="Hasta numarası girin"
-                    placeholderTextColor={colors.textSecondary}
-                    value={formData.patientId}
-                    onChangeText={(text) => setFormData(prev => ({ ...prev, patientId: text }))}
+        <View style={styles.container}>
+            {/* Patient Info Section */}
+            <Card>
+                <CardHeader
+                    title="Hasta Bilgileri"
+                    subtitle="İsteğe bağlı"
+                    icon={<User size={18} color={colors.primary} />}
                 />
-            </View>
+                <CardContent>
+                    <View style={styles.row}>
+                        <View style={styles.halfInput}>
+                            <Input
+                                label="Hasta ID"
+                                placeholder="P-001"
+                                value={patientId}
+                                onChangeText={setPatientId}
+                                containerStyle={{ marginBottom: 0 }}
+                            />
+                        </View>
+                        <View style={styles.halfInput}>
+                            <Input
+                                label="Yaş"
+                                placeholder="35"
+                                value={age}
+                                onChangeText={setAge}
+                                keyboardType="numeric"
+                                containerStyle={{ marginBottom: 0 }}
+                            />
+                        </View>
+                    </View>
 
-            {/* Age & Gender Row */}
-            <View style={styles.row}>
-                <View style={[styles.fieldGroup, { flex: 1 }]}>
-                    <Text style={[styles.label, { color: colors.text }]}>Yaş</Text>
-                    <TextInput
-                        style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-                        placeholder="Yaş"
-                        placeholderTextColor={colors.textSecondary}
-                        keyboardType="numeric"
-                        value={formData.age?.toString() || ''}
-                        onChangeText={(text) => setFormData(prev => ({ ...prev, age: text ? parseInt(text) : null }))}
+                    <Text style={[styles.fieldLabel, { color: colors.text }]}>Cinsiyet</Text>
+                    <ChipGroup
+                        options={genderOptions}
+                        selected={gender}
+                        onSelectionChange={setGender}
+                        multiple={false}
                     />
-                </View>
-                <View style={[styles.fieldGroup, { flex: 1 }]}>
-                    <Text style={[styles.label, { color: colors.text }]}>Cinsiyet</Text>
-                    <View style={styles.chipRow}>
-                        {['male', 'female'].map((g) => (
-                            <TouchableOpacity
-                                key={g}
-                                style={[
-                                    styles.chip,
-                                    { borderColor: colors.border },
-                                    formData.gender === g && { backgroundColor: colors.primary, borderColor: colors.primary },
-                                ]}
-                                onPress={() => setFormData(prev => ({ ...prev, gender: g }))}
-                            >
-                                <Text style={[
-                                    styles.chipText,
-                                    { color: formData.gender === g ? colors.primaryForeground : colors.text },
-                                ]}>
-                                    {g === 'male' ? 'Erkek' : 'Kadın'}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </View>
-            </View>
 
-            {/* Skin Type */}
-            <View style={styles.fieldGroup}>
-                <Text style={[styles.label, { color: colors.text }]}>Fitzpatrick Cilt Tipi</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    <View style={styles.chipRow}>
-                        {SKIN_TYPES.map((type) => (
-                            <TouchableOpacity
-                                key={type.value}
-                                style={[
-                                    styles.chip,
-                                    { borderColor: colors.border },
-                                    formData.skinType === type.value && { backgroundColor: colors.primary, borderColor: colors.primary },
-                                ]}
-                                onPress={() => setFormData(prev => ({ ...prev, skinType: type.value }))}
-                            >
-                                <Text style={[
-                                    styles.chipText,
-                                    { color: formData.skinType === type.value ? colors.primaryForeground : colors.text },
-                                ]}>
-                                    {type.label}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </ScrollView>
-            </View>
+                    <Text style={[styles.fieldLabel, { color: colors.text }]}>Cilt Tipi</Text>
+                    <ChipGroup
+                        options={SKIN_TYPES.map(s => ({ label: s.label, value: s.value }))}
+                        selected={skinType}
+                        onSelectionChange={setSkinType}
+                        multiple={false}
+                    />
+                </CardContent>
+            </Card>
 
-            {/* Lesion Location */}
-            <View style={styles.fieldGroup}>
-                <Text style={[styles.label, { color: colors.text }]}>
-                    Lezyon Konumu *
-                </Text>
-                <View style={styles.chipGrid}>
-                    {LESION_LOCATIONS.map((location) => (
-                        <TouchableOpacity
-                            key={location}
-                            style={[
-                                styles.chip,
-                                { borderColor: colors.border },
-                                formData.lesionLocation.includes(location) && { backgroundColor: colors.primary, borderColor: colors.primary },
-                            ]}
-                            onPress={() => toggleArrayItem('lesionLocation', location)}
-                        >
-                            <Text style={[
-                                styles.chipText,
-                                { color: formData.lesionLocation.includes(location) ? colors.primaryForeground : colors.text },
-                            ]}>
-                                {location}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
-            </View>
-
-            {/* Symptoms */}
-            <View style={styles.fieldGroup}>
-                <Text style={[styles.label, { color: colors.text }]}>Belirtiler</Text>
-                <View style={styles.chipGrid}>
-                    {SYMPTOM_OPTIONS.map((symptom) => (
-                        <TouchableOpacity
-                            key={symptom.value}
-                            style={[
-                                styles.chip,
-                                { borderColor: colors.border },
-                                formData.symptoms.includes(symptom.value) && { backgroundColor: colors.primary, borderColor: colors.primary },
-                            ]}
-                            onPress={() => toggleArrayItem('symptoms', symptom.value)}
-                        >
-                            <Text style={[
-                                styles.chipText,
-                                { color: formData.symptoms.includes(symptom.value) ? colors.primaryForeground : colors.text },
-                            ]}>
-                                {symptom.label}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
-            </View>
-
-            {/* Additional Symptoms */}
-            <View style={styles.fieldGroup}>
-                <Text style={[styles.label, { color: colors.text }]}>Ek Belirtiler</Text>
-                <TextInput
-                    style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-                    placeholder="Diğer belirtileri yazın..."
-                    placeholderTextColor={colors.textSecondary}
-                    value={formData.additionalSymptoms}
-                    onChangeText={(text) => setFormData(prev => ({ ...prev, additionalSymptoms: text }))}
-                    multiline
-                    numberOfLines={3}
+            {/* Lesion Location Section */}
+            <Card>
+                <CardHeader
+                    title="Lezyon Konumu"
+                    subtitle="En az 1 konum seçin *"
+                    icon={<MapPin size={18} color={colors.primary} />}
                 />
-            </View>
+                <CardContent>
+                    <ChipGroup
+                        options={LESION_LOCATIONS.map(l => ({ label: l.label, value: l.value }))}
+                        selected={lesionLocation}
+                        onSelectionChange={setLesionLocation}
+                        multiple={true}
+                    />
+                    {lesionLocation.length === 0 && (
+                        <Text style={[styles.requiredText, { color: colors.warning }]}>
+                            * En az bir konum seçmeniz gerekmektedir
+                        </Text>
+                    )}
+                </CardContent>
+            </Card>
 
-            {/* Duration */}
-            <View style={styles.fieldGroup}>
-                <Text style={[styles.label, { color: colors.text }]}>Belirti Süresi</Text>
-                <View style={styles.chipGrid}>
-                    {DURATION_OPTIONS.map((duration) => (
-                        <TouchableOpacity
-                            key={duration.value}
-                            style={[
-                                styles.chip,
-                                { borderColor: colors.border },
-                                formData.symptomDuration === duration.value && { backgroundColor: colors.primary, borderColor: colors.primary },
-                            ]}
-                            onPress={() => setFormData(prev => ({ ...prev, symptomDuration: duration.value }))}
-                        >
-                            <Text style={[
-                                styles.chipText,
-                                { color: formData.symptomDuration === duration.value ? colors.primaryForeground : colors.text },
-                            ]}>
-                                {duration.label}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
-            </View>
+            {/* Symptoms Section */}
+            <Card>
+                <CardHeader
+                    title="Belirtiler"
+                    subtitle="Birden fazla seçebilirsiniz"
+                    icon={<Thermometer size={18} color={colors.primary} />}
+                />
+                <CardContent>
+                    <ChipGroup
+                        options={SYMPTOM_OPTIONS.map(s => ({ label: s.label, value: s.value }))}
+                        selected={symptoms}
+                        onSelectionChange={setSymptoms}
+                        multiple={true}
+                    />
+
+                    <TextArea
+                        label="Ek Belirtiler"
+                        placeholder="Varsa ek belirtileri açıklayın..."
+                        value={additionalSymptoms}
+                        onChangeText={setAdditionalSymptoms}
+                        numberOfLines={3}
+                        containerStyle={{ marginTop: Spacing.md }}
+                    />
+                </CardContent>
+            </Card>
+
+            {/* Duration Section */}
+            <Card>
+                <CardHeader
+                    title="Belirti Süresi"
+                    icon={<Clock size={18} color={colors.primary} />}
+                />
+                <CardContent>
+                    <ChipGroup
+                        options={DURATION_OPTIONS.map(d => ({ label: d.label, value: d.value }))}
+                        selected={symptomDuration}
+                        onSelectionChange={setSymptomDuration}
+                        multiple={false}
+                    />
+                </CardContent>
+            </Card>
+
+            {/* Medical History Section */}
+            <Card>
+                <CardHeader
+                    title="Tıbbi Geçmiş"
+                    subtitle="Varsa ilgili durumları seçin"
+                    icon={<FileText size={18} color={colors.primary} />}
+                />
+                <CardContent>
+                    <ChipGroup
+                        options={MEDICAL_CONDITIONS.map(m => ({ label: m.label, value: m.value }))}
+                        selected={medicalHistory}
+                        onSelectionChange={setMedicalHistory}
+                        multiple={true}
+                    />
+                </CardContent>
+            </Card>
 
             {/* Submit Button */}
-            <TouchableOpacity
-                style={[
-                    styles.submitButton,
-                    { backgroundColor: colors.primary },
-                    (!hasImages || !isFormValid || isLoading) && styles.buttonDisabled,
-                ]}
+            <Button
+                variant="primary"
+                size="lg"
+                fullWidth
                 onPress={handleSubmit}
-                disabled={!hasImages || !isFormValid || isLoading}
+                disabled={!isValid}
+                loading={isLoading}
+                style={styles.submitButton}
             >
-                {isLoading ? (
-                    <ActivityIndicator color={colors.primaryForeground} />
-                ) : (
-                    <Text style={[styles.submitButtonText, { color: colors.primaryForeground }]}>
-                        🔬 AI Analizi Başlat
-                    </Text>
-                )}
-            </TouchableOpacity>
+                🔬 AI Analizi Başlat
+            </Button>
 
             {!hasImages && (
-                <Text style={[styles.warningText, { color: colors.warning }]}>
-                    ⚠️ Analiz için en az bir görsel yüklemeniz gerekiyor.
+                <Text style={[styles.hint, { color: colors.textMuted }]}>
+                    Analiz için en az 1 lezyon görseli yükleyin
                 </Text>
             )}
         </View>
@@ -265,79 +256,31 @@ export function PatientForm({ onSubmit, isLoading = false, hasImages = false }: 
 
 const styles = StyleSheet.create({
     container: {
-        borderRadius: 16,
-        borderWidth: 1,
-        padding: 16,
-    },
-    title: {
-        fontSize: 16,
-        fontWeight: '600',
-        marginBottom: 16,
-    },
-    fieldGroup: {
-        marginBottom: 16,
-    },
-    label: {
-        fontSize: 14,
-        fontWeight: '500',
-        marginBottom: 8,
-    },
-    input: {
-        height: 44,
-        borderWidth: 1,
-        borderRadius: 10,
-        paddingHorizontal: 12,
-        fontSize: 14,
-    },
-    textArea: {
-        minHeight: 80,
-        borderWidth: 1,
-        borderRadius: 10,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        fontSize: 14,
-        textAlignVertical: 'top',
+        gap: Spacing.md,
     },
     row: {
         flexDirection: 'row',
-        gap: 12,
+        gap: Spacing.md,
+        marginBottom: Spacing.md,
     },
-    chipRow: {
-        flexDirection: 'row',
-        gap: 8,
+    halfInput: {
+        flex: 1,
     },
-    chipGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8,
+    fieldLabel: {
+        ...Typography.styles.label,
+        marginBottom: Spacing.sm,
+        marginTop: Spacing.md,
     },
-    chip: {
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 8,
-        borderWidth: 1,
-    },
-    chipText: {
-        fontSize: 12,
-        fontWeight: '500',
+    requiredText: {
+        ...Typography.styles.caption,
+        marginTop: Spacing.sm,
     },
     submitButton: {
-        height: 52,
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 8,
+        marginTop: Spacing.md,
     },
-    buttonDisabled: {
-        opacity: 0.5,
-    },
-    submitButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    warningText: {
-        fontSize: 12,
+    hint: {
+        ...Typography.styles.caption,
         textAlign: 'center',
-        marginTop: 12,
+        marginTop: Spacing.sm,
     },
 });

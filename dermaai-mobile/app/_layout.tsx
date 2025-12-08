@@ -11,6 +11,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { useColorScheme } from '@/components/useColorScheme';
 import { queryClient } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
+import { TabBarVisibilityProvider } from '@/contexts/TabBarVisibilityContext';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -48,7 +49,9 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <RootLayoutNav />
+      <TabBarVisibilityProvider>
+        <RootLayoutNav />
+      </TabBarVisibilityProvider>
     </QueryClientProvider>
   );
 }
@@ -68,19 +71,13 @@ function RootLayoutNav() {
 
     console.log('[AuthDebug]', { isAuthenticated, inAuthGroup, path: segments.join('/') });
 
-    // TEMPORARILY DISABLED REDIRECT FOR DEBUGGING
-    /*
     if (!isAuthenticated && !inAuthGroup) {
       // Redirect to login if not authenticated
       router.replace('/(auth)/login');
     } else if (isAuthenticated && inAuthGroup) {
-      // Alert to confirm we detected the login
-      Alert.alert('Debug', 'Login detected! Redirecting to tabs...');
-      
       // Redirect to main app if authenticated
       router.replace('/(tabs)');
     }
-    */
   }, [isAuthenticated, isLoading, segments]);
 
   return (
@@ -88,7 +85,21 @@ function RootLayoutNav() {
       <Stack>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="case/[id]" options={{ headerShown: true, title: 'Case Details' }} />
+        <Stack.Screen
+          name="case/[id]"
+          options={{
+            headerShown: true,
+            title: 'Vaka Detayı',
+            animation: 'slide_from_right',
+            gestureEnabled: true,
+            gestureDirection: 'horizontal',
+            headerBackTitle: 'Geri',
+          }}
+        />
+        <Stack.Screen name="medical-disclaimer" options={{ headerShown: true, title: 'Tıbbi Uyarı' }} />
+        <Stack.Screen name="privacy-policy" options={{ headerShown: true, title: 'Gizlilik Politikası' }} />
+        <Stack.Screen name="terms-of-service" options={{ headerShown: true, title: 'Kullanım Şartları' }} />
+        <Stack.Screen name="contact-support" options={{ headerShown: true, title: 'Destek' }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
     </ThemeProvider>

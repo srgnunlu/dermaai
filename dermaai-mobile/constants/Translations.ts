@@ -43,6 +43,70 @@ export const Translations = {
         tr: 'Duş sonrası 3 dakika içinde nemlendirici sürün.',
         en: 'Apply moisturizer within 3 minutes after showering.',
     },
+    sleepWell: {
+        tr: 'Kaliteli Uyku',
+        en: 'Quality Sleep',
+    },
+    sleepWellText: {
+        tr: 'Cildinizin yenilenmesi için günde 7-8 saat uyuyun.',
+        en: 'Sleep 7-8 hours daily for skin regeneration.',
+    },
+    healthyDiet: {
+        tr: 'Sağlıklı Beslenme',
+        en: 'Healthy Diet',
+    },
+    healthyDietText: {
+        tr: 'Antioksidan açısından zengin meyve ve sebzeler tüketin.',
+        en: 'Eat fruits and vegetables rich in antioxidants.',
+    },
+    stressManagement: {
+        tr: 'Stres Yönetimi',
+        en: 'Stress Management',
+    },
+    stressManagementText: {
+        tr: 'Stres cildinizi olumsuz etkiler, rahatlama egzersizleri yapın.',
+        en: 'Stress affects your skin negatively, practice relaxation.',
+    },
+    skinCheck: {
+        tr: 'Cilt Kontrolü',
+        en: 'Skin Check',
+    },
+    skinCheckText: {
+        tr: 'Ayda bir kez cildinizi değişiklikler için kontrol edin.',
+        en: 'Check your skin monthly for any changes.',
+    },
+    vitaminC: {
+        tr: 'C Vitamini',
+        en: 'Vitamin C',
+    },
+    vitaminCText: {
+        tr: 'C vitamini serumu cilt tonunu eşitler ve parlaklık sağlar.',
+        en: 'Vitamin C serum evens skin tone and adds radiance.',
+    },
+    gentleCleanse: {
+        tr: 'Nazik Temizlik',
+        en: 'Gentle Cleanse',
+    },
+    gentleCleanseText: {
+        tr: 'Ilık su ile yüzünüzü yıkayın, sıcak su cildi kurutur.',
+        en: 'Wash face with lukewarm water, hot water dries skin.',
+    },
+    avoidTouching: {
+        tr: 'Yüze Dokunmayın',
+        en: 'Avoid Touching',
+    },
+    avoidTouchingText: {
+        tr: 'Yüzünüze sık dokunmak bakterileri yayabilir.',
+        en: 'Frequently touching your face can spread bacteria.',
+    },
+    nightRoutine: {
+        tr: 'Gece Bakımı',
+        en: 'Night Routine',
+    },
+    nightRoutineText: {
+        tr: 'Uyumadan önce makyajınızı mutlaka temizleyin.',
+        en: 'Always remove makeup before going to sleep.',
+    },
 
     // Tab Bar
     tabDiagnosis: {
@@ -100,6 +164,92 @@ export const Translations = {
     memberSince: {
         tr: 'Üyelik Tarihi',
         en: 'Member Since',
+    },
+
+    // Profile Editing
+    firstName: {
+        tr: 'Ad',
+        en: 'First Name',
+    },
+    lastName: {
+        tr: 'Soyad',
+        en: 'Last Name',
+    },
+    phoneNumber: {
+        tr: 'Telefon Numarası',
+        en: 'Phone Number',
+    },
+    medicalLicenseNumber: {
+        tr: 'Tıbbi Lisans No',
+        en: 'Medical License No',
+    },
+    specialization: {
+        tr: 'Uzmanlık Alanı',
+        en: 'Specialization',
+    },
+    hospitalInstitution: {
+        tr: 'Hastane/Kurum',
+        en: 'Hospital/Institution',
+    },
+    yearsOfExperience: {
+        tr: 'Deneyim (Yıl)',
+        en: 'Experience (Years)',
+    },
+    saving: {
+        tr: 'Kaydediliyor...',
+        en: 'Saving...',
+    },
+    profileUpdated: {
+        tr: 'Profil güncellendi',
+        en: 'Profile updated',
+    },
+    profileUpdateError: {
+        tr: 'Profil güncellenemedi',
+        en: 'Failed to update profile',
+    },
+    changePhoto: {
+        tr: 'Fotoğrafı Değiştir',
+        en: 'Change Photo',
+    },
+    gallery: {
+        tr: 'Galeri',
+        en: 'Gallery',
+    },
+    camera: {
+        tr: 'Kamera',
+        en: 'Camera',
+    },
+    profilePhoto: {
+        tr: 'Profil Fotoğrafı',
+        en: 'Profile Photo',
+    },
+    choosePhotoSource: {
+        tr: 'Fotoğraf kaynağını seçin',
+        en: 'Choose photo source',
+    },
+    uploadingPhoto: {
+        tr: 'Fotoğraf yükleniyor...',
+        en: 'Uploading photo...',
+    },
+    photoUpdated: {
+        tr: 'Profil fotoğrafı güncellendi',
+        en: 'Profile photo updated',
+    },
+    photoUpdateError: {
+        tr: 'Fotoğraf güncellenemedi',
+        en: 'Failed to update photo',
+    },
+    editProfileInfo: {
+        tr: 'Profil Bilgilerini Düzenle',
+        en: 'Edit Profile Information',
+    },
+    personalInfo: {
+        tr: 'Kişisel Bilgiler',
+        en: 'Personal Information',
+    },
+    professionalInfoTitle: {
+        tr: 'Profesyonel Bilgiler',
+        en: 'Professional Information',
     },
 
     // Settings Screen
@@ -357,6 +507,30 @@ export const Translations = {
         tr: 'İkinci Görüş (OpenAI)',
         en: 'Second Opinion (OpenAI)',
     },
+    primaryAI: {
+        tr: 'Birincil AI',
+        en: 'Primary AI',
+    },
+    alternativeAI: {
+        tr: 'Alternatif AI',
+        en: 'Alternative AI',
+    },
+    confirmDiagnosis: {
+        tr: 'Bu Tanıyı Seç',
+        en: 'Select This Diagnosis',
+    },
+    diagnosisSelected: {
+        tr: 'Tanı seçildi!',
+        en: 'Diagnosis selected!',
+    },
+    selectingDiagnosis: {
+        tr: 'Kaydediliyor...',
+        en: 'Saving...',
+    },
+    noAlternativeAnalysis: {
+        tr: 'Alternatif AI analizi mevcut değil',
+        en: 'Alternative AI analysis not available',
+    },
 
     // Common
     next: {
@@ -447,7 +621,209 @@ export const Translations = {
     caseDetail: { tr: 'Vaka Detayı', en: 'Case Detail' },
     analysisDate: { tr: 'Analiz Tarihi', en: 'Analysis Date' },
     location: { tr: 'Konum', en: 'Location' },
+
+    // History Page - Filter & Sort
+    filterSort: { tr: 'Filtrele & Sırala', en: 'Filter & Sort' },
+    filter: { tr: 'Filtrele', en: 'Filter' },
+    sort: { tr: 'Sırala', en: 'Sort' },
+    resetFilters: { tr: 'Sıfırla', en: 'Reset' },
+    apply: { tr: 'Uygula', en: 'Apply' },
+
+    // Filter by Date
+    filterByDate: { tr: 'Tarihe Göre', en: 'By Date' },
+    today: { tr: 'Bugün', en: 'Today' },
+    thisWeek: { tr: 'Bu Hafta', en: 'This Week' },
+    thisMonth: { tr: 'Bu Ay', en: 'This Month' },
+    allTime: { tr: 'Tümü', en: 'All Time' },
+
+    // Filter by Confidence
+    filterByConfidence: { tr: 'Güven Oranına Göre', en: 'By Confidence' },
+    highConfidence: { tr: 'Yüksek (>80%)', en: 'High (>80%)' },
+    mediumConfidence: { tr: 'Orta (50-80%)', en: 'Medium (50-80%)' },
+    lowConfidence: { tr: 'Düşük (<50%)', en: 'Low (<50%)' },
+
+    // Filter by Location
+    filterByLocation: { tr: 'Lokasyona Göre', en: 'By Location' },
+
+    // Sort Options
+    sortBy: { tr: 'Sırala', en: 'Sort By' },
+    newestFirst: { tr: 'En Yeni', en: 'Newest First' },
+    oldestFirst: { tr: 'En Eski', en: 'Oldest First' },
+    highestConfidence: { tr: 'En Yüksek Güven', en: 'Highest Confidence' },
+    lowestConfidence: { tr: 'En Düşük Güven', en: 'Lowest Confidence' },
+
+    // Empty state for filtered results
+    noMatchingCases: { tr: 'Eşleşen vaka bulunamadı', en: 'No matching cases found' },
+    tryDifferentFilters: { tr: 'Farklı filtreler deneyin', en: 'Try different filters' },
+
+    // History Stats
+    totalCases: { tr: 'Toplam Vaka', en: 'Total Cases' },
+    completedCases: { tr: 'Tamamlanan', en: 'Completed' },
+    possibleDiagnosis: { tr: 'Olası Tanı', en: 'Possible Diagnosis' },
 } as const;
+
+// Dynamic value translations (for database values)
+export const ValueTranslations: Record<string, { tr: string; en: string }> = {
+    // Body Parts / Locations (lowercase keys for matching)
+    'head': { tr: 'Baş', en: 'Head' },
+    'face': { tr: 'Yüz', en: 'Face' },
+    'neck': { tr: 'Boyun', en: 'Neck' },
+    'chest': { tr: 'Göğüs', en: 'Chest' },
+    'back': { tr: 'Sırt', en: 'Back' },
+    'abdomen': { tr: 'Karın', en: 'Abdomen' },
+    'arms': { tr: 'Kollar', en: 'Arms' },
+    'arm': { tr: 'Kol', en: 'Arm' },
+    'hands': { tr: 'Eller', en: 'Hands' },
+    'hand': { tr: 'El', en: 'Hand' },
+    'legs': { tr: 'Bacaklar', en: 'Legs' },
+    'leg': { tr: 'Bacak', en: 'Leg' },
+    'feet': { tr: 'Ayaklar', en: 'Feet' },
+    'foot': { tr: 'Ayak', en: 'Foot' },
+    'scalp': { tr: 'Saçlı Deri', en: 'Scalp' },
+    'forehead': { tr: 'Alın', en: 'Forehead' },
+    'ear': { tr: 'Kulak', en: 'Ear' },
+    'ears': { tr: 'Kulaklar', en: 'Ears' },
+    'nose': { tr: 'Burun', en: 'Nose' },
+    'lips': { tr: 'Dudaklar', en: 'Lips' },
+    'lip': { tr: 'Dudak', en: 'Lip' },
+    'shoulder': { tr: 'Omuz', en: 'Shoulder' },
+    'shoulders': { tr: 'Omuzlar', en: 'Shoulders' },
+    'elbow': { tr: 'Dirsek', en: 'Elbow' },
+    'elbows': { tr: 'Dirsekler', en: 'Elbows' },
+    'wrist': { tr: 'Bilek', en: 'Wrist' },
+    'wrists': { tr: 'Bilekler', en: 'Wrists' },
+    'fingers': { tr: 'Parmaklar', en: 'Fingers' },
+    'finger': { tr: 'Parmak', en: 'Finger' },
+    'palm': { tr: 'Avuç İçi', en: 'Palm' },
+    'palms': { tr: 'Avuç İçleri', en: 'Palms' },
+    'hip': { tr: 'Kalça', en: 'Hip' },
+    'hips': { tr: 'Kalçalar', en: 'Hips' },
+    'thigh': { tr: 'Uyluk', en: 'Thigh' },
+    'thighs': { tr: 'Uyluklar', en: 'Thighs' },
+    'knee': { tr: 'Diz', en: 'Knee' },
+    'knees': { tr: 'Dizler', en: 'Knees' },
+    'ankle': { tr: 'Ayak Bileği', en: 'Ankle' },
+    'ankles': { tr: 'Ayak Bilekleri', en: 'Ankles' },
+    'toes': { tr: 'Ayak Parmakları', en: 'Toes' },
+    'toe': { tr: 'Ayak Parmağı', en: 'Toe' },
+    'groin': { tr: 'Kasık', en: 'Groin' },
+    'genital': { tr: 'Genital Bölge', en: 'Genital Area' },
+    'buttocks': { tr: 'Kalçalar', en: 'Buttocks' },
+    'stomach': { tr: 'Mide', en: 'Stomach' },
+    'waist': { tr: 'Bel', en: 'Waist' },
+
+    // Turkish body parts (for reverse translation to English)
+    'baş': { tr: 'Baş', en: 'Head' },
+    'yüz': { tr: 'Yüz', en: 'Face' },
+    'boyun': { tr: 'Boyun', en: 'Neck' },
+    'göğüs': { tr: 'Göğüs', en: 'Chest' },
+    'sırt': { tr: 'Sırt', en: 'Back' },
+    'karın': { tr: 'Karın', en: 'Abdomen' },
+    'kollar': { tr: 'Kollar', en: 'Arms' },
+    'kol': { tr: 'Kol', en: 'Arm' },
+    'eller': { tr: 'Eller', en: 'Hands' },
+    'el': { tr: 'El', en: 'Hand' },
+    'bacaklar': { tr: 'Bacaklar', en: 'Legs' },
+    'bacak': { tr: 'Bacak', en: 'Leg' },
+    'ayaklar': { tr: 'Ayaklar', en: 'Feet' },
+    'ayak': { tr: 'Ayak', en: 'Foot' },
+
+    // Durations - singular
+    'day': { tr: 'Günler', en: 'Day' },
+    'week': { tr: 'Hafta', en: 'Week' },
+    'month': { tr: 'Ay', en: 'Month' },
+    'year': { tr: 'Yıl', en: 'Year' },
+
+    // Durations - plural (Turkish uses plural forms)
+    'days': { tr: 'Günler', en: 'Days' },
+    'weeks': { tr: 'Haftalar', en: 'Weeks' },
+    'months': { tr: 'Aylar', en: 'Months' },
+    'years': { tr: 'Yıllar', en: 'Years' },
+
+    // Turkish durations (for when stored in Turkish)
+    'gün': { tr: 'Günler', en: 'Days' },
+    'günler': { tr: 'Günler', en: 'Days' },
+    'hafta': { tr: 'Haftalar', en: 'Weeks' },
+    'haftalar': { tr: 'Haftalar', en: 'Weeks' },
+    'ay': { tr: 'Aylar', en: 'Months' },
+    'aylar': { tr: 'Aylar', en: 'Months' },
+    'yıl': { tr: 'Yıllar', en: 'Years' },
+    'yıllar': { tr: 'Yıllar', en: 'Years' },
+
+    // Common duration phrases
+    'less than a week': { tr: '1 Haftadan Az', en: 'Less than a week' },
+    '1-2 weeks': { tr: '1-2 Hafta', en: '1-2 weeks' },
+    '2-4 weeks': { tr: '2-4 Hafta', en: '2-4 weeks' },
+    '1-3 months': { tr: '1-3 Ay', en: '1-3 months' },
+    'more than 3 months': { tr: '3 Aydan Fazla', en: 'More than 3 months' },
+    'more than 6 months': { tr: '6 Aydan Fazla', en: 'More than 6 months' },
+    'more than 1 year': { tr: '1 Yıldan Fazla', en: 'More than 1 year' },
+
+    // Symptoms
+    'itching': { tr: 'Kaşıntı', en: 'Itching' },
+    'pain': { tr: 'Ağrı', en: 'Pain' },
+    'burning': { tr: 'Yanma', en: 'Burning' },
+    'bleeding': { tr: 'Kanama', en: 'Bleeding' },
+    'scaling': { tr: 'Pullanma', en: 'Scaling' },
+    'swelling': { tr: 'Şişlik', en: 'Swelling' },
+    'discharge': { tr: 'Akıntı', en: 'Discharge' },
+    'color change': { tr: 'Renk Değişimi', en: 'Color Change' },
+    'redness': { tr: 'Kızarıklık', en: 'Redness' },
+    'dryness': { tr: 'Kuruluk', en: 'Dryness' },
+    'cracking': { tr: 'Çatlama', en: 'Cracking' },
+    'peeling': { tr: 'Soyulma', en: 'Peeling' },
+
+    // Turkish symptoms
+    'kaşıntı': { tr: 'Kaşıntı', en: 'Itching' },
+    'ağrı': { tr: 'Ağrı', en: 'Pain' },
+    'yanma': { tr: 'Yanma', en: 'Burning' },
+    'kanama': { tr: 'Kanama', en: 'Bleeding' },
+    'pullanma': { tr: 'Pullanma', en: 'Scaling' },
+    'şişlik': { tr: 'Şişlik', en: 'Swelling' },
+    'akıntı': { tr: 'Akıntı', en: 'Discharge' },
+    'renk değişimi': { tr: 'Renk Değişimi', en: 'Color Change' },
+    'kızarıklık': { tr: 'Kızarıklık', en: 'Redness' },
+    'kuruluk': { tr: 'Kuruluk', en: 'Dryness' },
+    'çatlama': { tr: 'Çatlama', en: 'Cracking' },
+    'soyulma': { tr: 'Soyulma', en: 'Peeling' },
+
+    // Medical History
+    'diabetes': { tr: 'Diyabet', en: 'Diabetes' },
+    'allergies': { tr: 'Alerjiler', en: 'Allergies' },
+    'skin conditions': { tr: 'Cilt Hastalıkları', en: 'Skin Conditions' },
+    'autoimmune': { tr: 'Otoimmün Hastalıklar', en: 'Autoimmune Diseases' },
+    'hypertension': { tr: 'Hipertansiyon', en: 'Hypertension' },
+    'heart disease': { tr: 'Kalp Hastalığı', en: 'Heart Disease' },
+};
+
+// Helper function to translate a single value
+const translateSingleValue = (value: string, language: 'tr' | 'en'): string => {
+    const trimmedValue = value.trim();
+    const lowerValue = trimmedValue.toLowerCase();
+
+    // Check exact match first
+    if (ValueTranslations[lowerValue]) {
+        return ValueTranslations[lowerValue][language];
+    }
+
+    // Return original value if no translation found
+    return trimmedValue;
+};
+
+// Helper function to translate dynamic values (handles comma-separated values)
+export const translateValue = (value: string | null | undefined, language: 'tr' | 'en'): string => {
+    if (!value) return '';
+
+    // Check if value contains commas (multiple values)
+    if (value.includes(',')) {
+        const parts = value.split(',');
+        const translatedParts = parts.map(part => translateSingleValue(part.trim(), language));
+        return translatedParts.join(', ');
+    }
+
+    // Single value
+    return translateSingleValue(value, language);
+};
 
 // Type-safe translation key
 export type TranslationKey = keyof typeof Translations;

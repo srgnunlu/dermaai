@@ -16,6 +16,8 @@ import {
     Easing,
     ImageBackground,
     ScrollView,
+    Alert,
+    ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -27,6 +29,7 @@ import {
     RefreshCw,
     Sparkles,
     Stethoscope,
+    Check,
 } from 'lucide-react-native';
 import { Colors, getConfidenceColor } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
@@ -35,13 +38,14 @@ import { Translations } from '@/constants/Translations';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui';
+import { api } from '@/lib/api';
 import type { AnalysisResponse, DiagnosisResult } from '@/types/schema';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - Spacing.xl * 2;
 const CARD_MARGIN = Spacing.sm;
 // Card yüksekliğini ekrana göre dinamik hesapla (header, disclaimer, buttons için alan bırak)
-const CARD_HEIGHT = SCREEN_HEIGHT - 280;
+const CARD_HEIGHT = SCREEN_HEIGHT - 320;
 // Card + margin toplam genişlik
 const ITEM_WIDTH = CARD_WIDTH + CARD_MARGIN * 2;
 // Ortalama için kenar boşluğu
@@ -112,12 +116,68 @@ export function DiagnosisResults({
     const { language } = useLanguage();
 
     const [activeIndex, setActiveIndex] = useState(0);
+    const [activeProvider, setActiveProvider] = useState<'gemini' | 'openai'>('gemini');
+    const [isSelecting, setIsSelecting] = useState(false);
+    const [isSelected, setIsSelected] = useState(false);
     const flatListRef = useRef<FlatList>(null);
 
-    // Get diagnoses from gemini (primary) analysis
-    const diagnoses = caseData.geminiAnalysis?.diagnoses || [];
+    // Get diagnoses based on active provider
+    const geminiDiagnoses = caseData.geminiAnalysis?.diagnoses || [];
+    const openaiDiagnoses = caseData.openaiAnalysis?.diagnoses || [];
+    const diagnoses = activeProvider === 'gemini' ? geminiDiagnoses : openaiDiagnoses;
+
     const hasErrors = caseData.analysisErrors && caseData.analysisErrors.length > 0;
-    const hasSecondaryAnalysis = caseData.openaiAnalysis?.diagnoses && caseData.openaiAnalysis.diagnoses.length > 0;
+    const hasAlternativeAnalysis = openaiDiagnoses.length > 0;
+
+    // Reset card index when switching providers
+    useEffect(() => {
+        setActiveIndex(0);
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    }, [activeProvider]);
+
+    // Handle provider toggle
+    const handleProviderToggle = (provider: 'gemini' | 'openai') => {
+        if (provider === 'openai' && !hasAlternativeAnalysis) {
+            Alert.alert(
+                language === 'tr' ? 'Bilgi' : 'Info',
+                Translations.noAlternativeAnalysis[language]
+            );
+            return;
+        }
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        setActiveProvider(provider);
+        setIsSelected(false); // Reset selection when switching
+    };
+
+    // Handle diagnosis selection
+    const handleSelectDiagnosis = async () => {
+        if (!caseData.id) return;
+
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        setIsSelecting(true);
+
+        try {
+            await api.selectAnalysisProvider(caseData.id, activeProvider);
+            setIsSelected(true);
+
+            // Show success feedback
+            setTimeout(() => {
+                Alert.alert(
+                    '✓',
+                    Translations.diagnosisSelected[language],
+                    [{ text: Translations.ok[language] }]
+                );
+            }, 300);
+        } catch (error) {
+            console.error('Error selecting provider:', error);
+            Alert.alert(
+                Translations.error[language],
+                language === 'tr' ? 'Tanı seçimi kaydedilemedi' : 'Failed to save diagnosis selection'
+            );
+        } finally {
+            setIsSelecting(false);
+        }
+    };
 
     // Handle scroll with haptic feedback
     const handleScroll = useCallback((event: any) => {
@@ -175,6 +235,53 @@ export function DiagnosisResults({
                 <Text style={styles.brandTitle}>DermAssistAI</Text>
             </View>
 
+            {/* AI Provider Toggle Tabs */}
+            <View style={styles.toggleContainer}>
+                <BlurView intensity={60} tint="light" style={styles.toggleBlur}>
+                    <View style={styles.toggleRow}>
+                        <TouchableOpacity
+                            style={[
+                                styles.toggleTab,
+                                activeProvider === 'gemini' && styles.toggleTabActive,
+                            ]}
+                            onPress={() => handleProviderToggle('gemini')}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={[
+                                styles.toggleTabText,
+                                activeProvider === 'gemini' && styles.toggleTabTextActive,
+                            ]}>
+                                {Translations.primaryAI[language]}
+                            </Text>
+                            {isSelected && activeProvider === 'gemini' && (
+                                <Check size={14} color="#FFFFFF" style={{ marginLeft: 4 }} />
+                            )}
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[
+                                styles.toggleTab,
+                                activeProvider === 'openai' && styles.toggleTabActive,
+                                !hasAlternativeAnalysis && styles.toggleTabDisabled,
+                            ]}
+                            onPress={() => handleProviderToggle('openai')}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={[
+                                styles.toggleTabText,
+                                activeProvider === 'openai' && styles.toggleTabTextActive,
+                                !hasAlternativeAnalysis && styles.toggleTabTextDisabled,
+                            ]}>
+                                {Translations.alternativeAI[language]}
+                            </Text>
+                            {isSelected && activeProvider === 'openai' && (
+                                <Check size={14} color="#FFFFFF" style={{ marginLeft: 4 }} />
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                </BlurView>
+            </View>
+
             {/* Errors (if any) */}
             {hasErrors && (
                 <View style={[styles.errorBanner, { backgroundColor: colors.warningLight }]}>
@@ -194,7 +301,7 @@ export function DiagnosisResults({
                         ref={flatListRef}
                         data={diagnoses}
                         renderItem={renderDiagnosisCard}
-                        keyExtractor={(_, index) => `diagnosis-${index}`}
+                        keyExtractor={(_, index) => `diagnosis-${activeProvider}-${index}`}
                         horizontal
                         pagingEnabled={false}
                         showsHorizontalScrollIndicator={false}
@@ -266,12 +373,23 @@ export function DiagnosisResults({
                     </LinearGradient>
                 </TouchableOpacity>
 
+                {/* Confirm Diagnosis Button */}
                 <TouchableOpacity
-                    style={styles.secondaryIconButton}
-                    onPress={onRequestSecondaryAnalysis}
+                    style={[
+                        styles.confirmButton,
+                        isSelected && styles.confirmButtonSelected,
+                    ]}
+                    onPress={handleSelectDiagnosis}
+                    disabled={isSelecting || isSelected}
                     activeOpacity={0.7}
                 >
-                    <Sparkles size={20} color="#0891B2" />
+                    {isSelecting ? (
+                        <ActivityIndicator size="small" color="#0891B2" />
+                    ) : isSelected ? (
+                        <Check size={20} color="#10B981" />
+                    ) : (
+                        <CheckCircle size={20} color="#0891B2" />
+                    )}
                 </TouchableOpacity>
             </View>
         </ImageBackground>
@@ -759,5 +877,65 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 6,
         elevation: 3,
+    },
+    // AI Provider Toggle Styles
+    toggleContainer: {
+        marginHorizontal: Spacing.lg,
+        marginBottom: Spacing.sm,
+    },
+    toggleBlur: {
+        borderRadius: 16,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.5)',
+    },
+    toggleRow: {
+        flexDirection: 'row',
+        padding: 4,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    },
+    toggleTab: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 10,
+        borderRadius: 12,
+    },
+    toggleTabActive: {
+        backgroundColor: '#0891B2',
+    },
+    toggleTabDisabled: {
+        opacity: 0.5,
+    },
+    toggleTabText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#64748B',
+    },
+    toggleTabTextActive: {
+        color: '#FFFFFF',
+    },
+    toggleTabTextDisabled: {
+        color: '#94A3B8',
+    },
+    confirmButton: {
+        width: 52,
+        height: 52,
+        borderRadius: 16,
+        backgroundColor: 'rgba(255, 255, 255, 0.6)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1.5,
+        borderColor: 'rgba(8, 145, 178, 0.15)',
+        shadowColor: '#0E7490',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        elevation: 3,
+    },
+    confirmButtonSelected: {
+        backgroundColor: 'rgba(16, 185, 129, 0.15)',
+        borderColor: 'rgba(16, 185, 129, 0.3)',
     },
 });

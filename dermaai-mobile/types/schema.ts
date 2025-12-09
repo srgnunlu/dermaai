@@ -87,6 +87,7 @@ export interface Case {
     dermatologistDiagnosedBy: string | null;
     dermatologistDiagnosedAt: Date | null;
     status: string | null;
+    selectedAnalysisProvider: 'gemini' | 'openai' | null;
     createdAt: Date | null;
 }
 
@@ -143,3 +144,16 @@ export interface ProfileWithStats extends User {
         averageConfidence: number;
     };
 }
+
+// Profile update data
+export interface UpdateProfileData {
+    firstName?: string | null;
+    lastName?: string | null;
+    phoneNumber?: string | null;
+    medicalLicenseNumber?: string | null;
+    specialization?: string | null;
+    hospital?: string | null;
+    yearsOfExperience?: number | null;
+    profileImageUrl?: string | null;
+}
+

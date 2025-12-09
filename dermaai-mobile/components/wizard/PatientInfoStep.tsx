@@ -27,7 +27,9 @@ import { Colors, Gradients } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
 import { Spacing, Shadows } from '@/constants/Spacing';
 import { Duration } from '@/constants/Animations';
+import { Translations } from '@/constants/Translations';
 import { useColorScheme } from '@/components/useColorScheme';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface PatientInfoStepProps {
@@ -102,17 +104,17 @@ const SelectionChip = ({
 };
 
 // Gender options
-const GENDER_OPTIONS = [
-    { label: 'Erkek', value: 'male' },
-    { label: 'Kadın', value: 'female' },
-    { label: 'Diğer', value: 'other' },
+const getGenderOptions = (language: 'tr' | 'en') => [
+    { label: language === 'tr' ? 'Erkek' : 'Male', value: 'male' },
+    { label: language === 'tr' ? 'Kadın' : 'Female', value: 'female' },
+    { label: language === 'tr' ? 'Diğer' : 'Other', value: 'other' },
 ];
 
 // Skin type options - Simplified
-const SKIN_TYPE_OPTIONS = [
-    { label: 'Açık', value: 'light' },
-    { label: 'Orta', value: 'medium' },
-    { label: 'Koyu', value: 'dark' },
+const getSkinTypeOptions = (language: 'tr' | 'en') => [
+    { label: language === 'tr' ? 'Açık' : 'Light', value: 'light' },
+    { label: language === 'tr' ? 'Orta' : 'Medium', value: 'medium' },
+    { label: language === 'tr' ? 'Koyu' : 'Dark', value: 'dark' },
 ];
 
 export function PatientInfoStep({
@@ -131,6 +133,9 @@ export function PatientInfoStep({
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
     const gradients = Gradients[colorScheme];
+    const { language } = useLanguage();
+    const GENDER_OPTIONS = getGenderOptions(language);
+    const SKIN_TYPE_OPTIONS = getSkinTypeOptions(language);
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const buttonScaleAnim = useRef(new Animated.Value(1)).current;
@@ -167,7 +172,9 @@ export function PatientInfoStep({
                     DermaAssist<Text style={{ color: colors.primary }}>AI</Text>
                 </Text>
                 <TouchableOpacity onPress={onSkip} style={styles.skipButton}>
-                    <Text style={[styles.skipText, { color: colors.primary }]}>Atla</Text>
+                    <Text style={[styles.skipText, { color: colors.primary }]}>
+                        {Translations.skip[language]}
+                    </Text>
                 </TouchableOpacity>
             </View>
 
@@ -183,19 +190,21 @@ export function PatientInfoStep({
                 >
                     {/* Title */}
                     <Text style={[styles.title, { color: colors.text }]}>
-                        Hasta Bilgileri
+                        {Translations.patientInfo[language]}
                     </Text>
                     <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                        Bu bilgiler isteğe bağlıdır
+                        {language === 'tr' ? 'Bu bilgiler isteğe bağlıdır' : 'This information is optional'}
                     </Text>
 
                     {/* Age Input with glassmorphism */}
                     <View style={styles.inputGroup}>
-                        <Text style={[styles.inputLabel, { color: colors.text }]}>Yaş</Text>
+                        <Text style={[styles.inputLabel, { color: colors.text }]}>
+                            {Translations.age[language]}
+                        </Text>
                         <BlurView intensity={60} tint="light" style={styles.inputBlur}>
                             <TextInput
                                 style={styles.input}
-                                placeholder="Yaşınızı girin"
+                                placeholder={language === 'tr' ? 'Yaşınızı girin' : 'Enter your age'}
                                 placeholderTextColor="#64748B"
                                 value={age}
                                 onChangeText={onAgeChange}
@@ -207,7 +216,9 @@ export function PatientInfoStep({
 
                     {/* Gender Selection */}
                     <View style={styles.inputGroup}>
-                        <Text style={[styles.inputLabel, { color: colors.text }]}>Cinsiyet</Text>
+                        <Text style={[styles.inputLabel, { color: colors.text }]}>
+                            {Translations.gender[language]}
+                        </Text>
                         <View style={styles.chipsRow}>
                             {GENDER_OPTIONS.map((option) => (
                                 <SelectionChip
@@ -224,7 +235,9 @@ export function PatientInfoStep({
 
                     {/* Skin Type Selection */}
                     <View style={styles.inputGroup}>
-                        <Text style={[styles.inputLabel, { color: colors.text }]}>Cilt Tonu</Text>
+                        <Text style={[styles.inputLabel, { color: colors.text }]}>
+                            {Translations.skinType[language]}
+                        </Text>
                         <View style={styles.chipsRow}>
                             {SKIN_TYPE_OPTIONS.map((option) => (
                                 <SelectionChip
@@ -256,7 +269,9 @@ export function PatientInfoStep({
                             end={{ x: 1, y: 0 }}
                             style={styles.continueButton}
                         >
-                            <Text style={styles.continueButtonText}>Devam</Text>
+                            <Text style={styles.continueButtonText}>
+                                {Translations.next[language]}
+                            </Text>
                             <ArrowRight size={20} color="#FFFFFF" />
                         </LinearGradient>
                     </TouchableOpacity>

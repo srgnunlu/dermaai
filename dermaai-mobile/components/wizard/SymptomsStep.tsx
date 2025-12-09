@@ -3,7 +3,7 @@
  * Organized symptom selection with professional icons
  */
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -294,12 +294,14 @@ export function SymptomsStep({
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.keyboardView}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 120 : 0}
             >
                 <ScrollView
                     style={styles.scrollView}
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode="interactive"
                 >
                     {/* Title */}
                     <Text style={[styles.title, { color: colors.text }]}>
@@ -343,7 +345,6 @@ export function SymptomsStep({
                         </View>
                     </View>
 
-                    {/* Additional Notes with glassmorphism */}
                     <View style={styles.section}>
                         <Text style={[styles.sectionTitle, { color: colors.text }]}>
                             {Translations.additionalSymptoms[language]} <Text style={[styles.optionalLabel, { color: colors.textSecondary }]}>({language === 'tr' ? 'opsiyonel' : 'optional'})</Text>
@@ -357,12 +358,16 @@ export function SymptomsStep({
                                     value={additionalSymptoms}
                                     onChangeText={onAdditionalSymptomsChange}
                                     multiline
-                                    numberOfLines={2}
+                                    numberOfLines={3}
                                     textAlignVertical="top"
+                                    scrollEnabled={false}
                                 />
                             </BlurView>
                         </View>
                     </View>
+
+                    {/* Extra padding for keyboard */}
+                    <View style={{ height: 100 }} />
                 </ScrollView>
             </KeyboardAvoidingView>
 

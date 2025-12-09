@@ -23,6 +23,14 @@ import {
     User,
     Droplets,
     Sparkles,
+    Moon,
+    Apple,
+    Heart,
+    Eye,
+    Zap,
+    ThermometerSnowflake,
+    Hand,
+    Sparkle,
 } from 'lucide-react-native';
 import { Colors, Gradients } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
@@ -46,11 +54,19 @@ interface WelcomeStepProps {
     onScanPress?: (caseId: string) => void;
 }
 
-// Daily tips - will be localized based on language
+// Daily tips - will be localized based on language (9 tips with appropriate icons)
 const getDailyTips = (language: 'tr' | 'en') => [
     { icon: Droplets, title: Translations.dailySkinCare[language], text: Translations.dailySkinCareText[language] },
     { icon: Sparkles, title: Translations.sunProtection[language], text: Translations.sunProtectionText[language] },
     { icon: Droplets, title: Translations.moisturize[language], text: Translations.moisturizeText[language] },
+    { icon: Moon, title: Translations.sleepWell[language], text: Translations.sleepWellText[language] },
+    { icon: Apple, title: Translations.healthyDiet[language], text: Translations.healthyDietText[language] },
+    { icon: Heart, title: Translations.stressManagement[language], text: Translations.stressManagementText[language] },
+    { icon: Eye, title: Translations.skinCheck[language], text: Translations.skinCheckText[language] },
+    { icon: Zap, title: Translations.vitaminC[language], text: Translations.vitaminCText[language] },
+    { icon: ThermometerSnowflake, title: Translations.gentleCleanse[language], text: Translations.gentleCleanseText[language] },
+    { icon: Hand, title: Translations.avoidTouching[language], text: Translations.avoidTouchingText[language] },
+    { icon: Sparkle, title: Translations.nightRoutine[language], text: Translations.nightRoutineText[language] },
 ];
 
 // Recent scan card with press animation
@@ -216,7 +232,7 @@ export function WelcomeStep({
     const { language, toggleLanguage } = useLanguage();
     const DAILY_TIPS = getDailyTips(language);
 
-    const [currentTipIndex] = useState(() => Math.floor(Math.random() * 3));
+    const [currentTipIndex] = useState(() => Math.floor(Math.random() * 11));
 
     useEffect(() => {
         Animated.sequence([
@@ -311,11 +327,18 @@ export function WelcomeStep({
     };
 
     // Demo recent scans if empty
-    const displayScans = recentScans.length > 0 ? recentScans : [
-        { id: '1', date: 'Eki 15' },
-        { id: '2', date: 'Eki 12' },
-        { id: '3', date: 'Eki 12' },
-    ];
+    const demoScans = language === 'tr'
+        ? [
+            { id: '1', date: 'Eki 15' },
+            { id: '2', date: 'Eki 12' },
+            { id: '3', date: 'Eki 12' },
+        ]
+        : [
+            { id: '1', date: 'Oct 15' },
+            { id: '2', date: 'Oct 12' },
+            { id: '3', date: 'Oct 12' },
+        ];
+    const displayScans = recentScans.length > 0 ? recentScans : demoScans;
 
     return (
         <Animated.View style={[styles.container, { opacity: fadeAnim }]}>

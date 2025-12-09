@@ -12,13 +12,17 @@ import {
     ScrollView,
     Alert,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 import { Colors } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
 import { Spacing } from '@/constants/Spacing';
+import { Translations } from '@/constants/Translations';
 import { useColorScheme } from '@/components/useColorScheme';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { API_BASE_URL } from '@/constants/Config';
 import { saveTokens, saveUserData } from '@/lib/storage';
@@ -34,6 +38,7 @@ export default function LoginScreen() {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
     const router = useRouter();
+    const { language, toggleLanguage } = useLanguage();
     const { isAuthenticated, loginWithGoogle, isLoggingIn } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
 
@@ -110,9 +115,15 @@ export default function LoginScreen() {
                         // Check for error
                         const error = params.get('error');
                         if (error) {
-                            Alert.alert('Giriş Hatası', `Hata: ${error}`);
+                            Alert.alert(
+                                language === 'tr' ? 'Giriş Hatası' : 'Login Error',
+                                `${language === 'tr' ? 'Hata' : 'Error'}: ${error}`
+                            );
                         } else {
-                            Alert.alert('Giriş Hatası', 'Token alınamadı. Lütfen tekrar deneyin.');
+                            Alert.alert(
+                                language === 'tr' ? 'Giriş Hatası' : 'Login Error',
+                                language === 'tr' ? 'Token alınamadı. Lütfen tekrar deneyin.' : 'Could not get token. Please try again.'
+                            );
                         }
                     }
                 }
@@ -123,7 +134,10 @@ export default function LoginScreen() {
             }
         } catch (error) {
             console.error('[Auth] Login error:', error);
-            Alert.alert('Hata', 'Giriş yapılırken bir hata oluştu.');
+            Alert.alert(
+                language === 'tr' ? 'Hata' : 'Error',
+                language === 'tr' ? 'Giriş yapılırken bir hata oluştu.' : 'An error occurred during login.'
+            );
         } finally {
             setIsLoading(false);
         }
@@ -145,6 +159,26 @@ export default function LoginScreen() {
                 contentContainerStyle={styles.content}
                 showsVerticalScrollIndicator={false}
             >
+                {/* Language Toggle - Top Right */}
+                <View style={styles.languageToggleContainer}>
+                    <TouchableOpacity
+                        onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            toggleLanguage();
+                        }}
+                        style={styles.languageToggleWrapper}
+                        activeOpacity={0.7}
+                    >
+                        <BlurView intensity={60} tint="light" style={styles.languageToggleBlur}>
+                            <View style={styles.languageToggleInner}>
+                                <Text style={styles.languageToggleText}>
+                                    {language === 'tr' ? 'EN' : 'TR'}
+                                </Text>
+                            </View>
+                        </BlurView>
+                    </TouchableOpacity>
+                </View>
+
                 {/* Logo & Branding */}
                 <View style={styles.brandSection}>
                     <View style={[styles.logoContainer, { backgroundColor: colors.primaryLight }]}>
@@ -156,7 +190,9 @@ export default function LoginScreen() {
                     </Text>
 
                     <Text style={[styles.tagline, { color: colors.textSecondary }]}>
-                        AI Destekli Dermatolojik Tanı Sistemi
+                        {language === 'tr'
+                            ? 'AI Destekli Dermatolojik Tanı Sistemi'
+                            : 'AI-Powered Dermatological Diagnosis System'}
                     </Text>
                 </View>
 
@@ -164,20 +200,20 @@ export default function LoginScreen() {
                 <View style={[styles.featuresCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                     <FeatureItem
                         emoji="🧠"
-                        title="Akıllı AI Analizi"
-                        description="DermAI ile kapsamlı tanı desteği"
+                        title={language === 'tr' ? 'Akıllı AI Analizi' : 'Smart AI Analysis'}
+                        description={language === 'tr' ? 'DermAI ile kapsamlı tanı desteği' : 'Comprehensive diagnosis support with DermAI'}
                         colors={colors}
                     />
                     <FeatureItem
                         emoji="📊"
-                        title="Detaylı Raporlama"
-                        description="PDF formatında tanı raporları"
+                        title={language === 'tr' ? 'Detaylı Raporlama' : 'Detailed Reporting'}
+                        description={language === 'tr' ? 'PDF formatında tanı raporları' : 'Diagnosis reports in PDF format'}
                         colors={colors}
                     />
                     <FeatureItem
                         emoji="🔒"
-                        title="Güvenli Veri"
-                        description="HIPAA uyumlu veri koruma"
+                        title={language === 'tr' ? 'Güvenli Veri' : 'Secure Data'}
+                        description={language === 'tr' ? 'HIPAA uyumlu veri koruma' : 'HIPAA compliant data protection'}
                         colors={colors}
                     />
                 </View>
@@ -198,13 +234,16 @@ export default function LoginScreen() {
                             <Text style={styles.googleIcon}>G</Text>
                         </View>
                         <Text style={styles.googleButtonText}>
-                            {isLoading || isLoggingIn ? 'Giriş yapılıyor...' : 'Google ile Giriş Yap'}
+                            {isLoading || isLoggingIn
+                                ? (language === 'tr' ? 'Giriş yapılıyor...' : 'Signing in...')
+                                : (language === 'tr' ? 'Google ile Giriş Yap' : 'Sign in with Google')}
                         </Text>
                     </TouchableOpacity>
 
                     <Text style={[styles.disclaimer, { color: colors.textMuted }]}>
-                        Sağlık profesyonelleri için tasarlanmıştır.{'\n'}
-                        Devam ederek şartları ve gizlilik politikasını kabul etmiş olursunuz.
+                        {language === 'tr'
+                            ? 'Sağlık profesyonelleri için tasarlanmıştır.\nDevam ederek şartları ve gizlilik politikasını kabul etmiş olursunuz.'
+                            : 'Designed for healthcare professionals.\nBy continuing, you agree to the terms and privacy policy.'}
                     </Text>
                 </View>
 
@@ -212,13 +251,13 @@ export default function LoginScreen() {
                 <View style={styles.footer}>
                     <TouchableOpacity onPress={handlePrivacyPolicy}>
                         <Text style={[styles.footerLink, { color: colors.primary }]}>
-                            Gizlilik Politikası
+                            {Translations.privacyPolicy[language]}
                         </Text>
                     </TouchableOpacity>
                     <Text style={[styles.footerDivider, { color: colors.textMuted }]}>•</Text>
                     <TouchableOpacity onPress={handleTerms}>
                         <Text style={[styles.footerLink, { color: colors.primary }]}>
-                            Kullanım Şartları
+                            {Translations.termsOfService[language]}
                         </Text>
                     </TouchableOpacity>
                 </View>
@@ -261,6 +300,33 @@ const styles = StyleSheet.create({
         paddingHorizontal: Spacing.xl,
         paddingTop: 80,
         paddingBottom: Spacing['3xl'],
+    },
+    languageToggleContainer: {
+        position: 'absolute',
+        top: 50,
+        right: Spacing.xl,
+        zIndex: 10,
+    },
+    languageToggleWrapper: {
+        borderRadius: 12,
+        overflow: 'hidden',
+    },
+    languageToggleBlur: {
+        borderRadius: 12,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.5)',
+    },
+    languageToggleInner: {
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    },
+    languageToggleText: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#0E7490',
+        letterSpacing: 0.5,
     },
     brandSection: {
         alignItems: 'center',

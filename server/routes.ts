@@ -783,6 +783,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Select AI provider for case diagnosis (mobile endpoint)
+  app.patch('/api/mobile/cases/:id/select-provider', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const caseId = req.params.id;
+      const { provider } = req.body;
+
+      // Validate provider
+      if (!provider || !['gemini', 'openai'].includes(provider)) {
+        return res.status(400).json({ error: 'Invalid provider. Must be "gemini" or "openai"' });
+      }
+
+      // Verify case exists and belongs to user
+      const existingCase = await storage.getCase(caseId, userId);
+      if (!existingCase) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      // Update the selected provider
+      const updatedCase = await storage.updateCase(caseId, userId, {
+        selectedAnalysisProvider: provider,
+      });
+
+      res.json(updatedCase);
+    } catch (error) {
+      logger.error('Error selecting analysis provider:', error);
+      res.status(500).json({ error: 'Failed to update provider selection' });
+    }
+  });
+
   // Dermatologist diagnosis endpoints
   app.post('/api/cases/:id/dermatologist-diagnosis', isAuthenticated, requireAdmin, async (req: any, res) => {
     try {

@@ -107,6 +107,7 @@ export const cases = pgTable(
     dermatologistDiagnosedBy: varchar('dermatologist_diagnosed_by').references(() => users.id),
     dermatologistDiagnosedAt: timestamp('dermatologist_diagnosed_at'),
     status: text('status').default('pending'),
+    selectedAnalysisProvider: text('selected_analysis_provider').default('gemini'), // 'gemini' | 'openai'
     createdAt: timestamp('created_at').defaultNow(),
   },
   (table) => [
@@ -162,6 +163,7 @@ export const updateUserProfileSchema = createInsertSchema(users)
     specialization: true,
     hospital: true,
     yearsOfExperience: true,
+    profileImageUrl: true,
   })
   .partial();
 

@@ -11,6 +11,7 @@ import {
     Dimensions,
     SafeAreaView,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { Colors } from '@/constants/Colors';
 import { Spacing } from '@/constants/Spacing';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -230,7 +231,7 @@ export function DiagnosisWizard() {
             <AnalysisProgress
                 isActive={true}
                 onComplete={() => { }}
-                imageUri={state.images[0]} // Pass user's first image
+                imageUris={state.images} // Pass all user's images
             />
         );
     }
@@ -248,18 +249,19 @@ export function DiagnosisWizard() {
         switch (state.currentStep) {
             case 0:
                 // Format cases for the welcome step
+                const dateLocale = language === 'tr' ? 'tr-TR' : 'en-US';
                 const recentScans = cases
                     ?.slice(0, 5) // Take last 5
                     .map((c: any) => ({
                         id: c.id,
                         imageUrl: c.imageUrls?.[0] || c.imageUrl,
-                        date: c.createdAt ? new Date(c.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) : ''
+                        date: c.createdAt ? new Date(c.createdAt).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' }) : ''
                     })) || [];
 
                 return (
                     <WelcomeStep
                         onStart={nextStep}
-                        userName={user?.firstName || user?.email?.split('@')[0] || 'Kullanıcı'}
+                        userName={user?.firstName || user?.email?.split('@')[0] || (language === 'tr' ? 'Kullanıcı' : 'User')}
                         recentScans={recentScans}
                         onScanPress={handleScanPress}
                     />
@@ -334,39 +336,46 @@ export function DiagnosisWizard() {
 
     return (
         <SafeAreaView style={styles.container}>
-            {/* Progress Bar */}
+            {/* Progress Bar with Glassmorphism */}
             {showProgress && (
-                <View style={styles.progressContainer}>
-                    <View style={[styles.progressBackground, { backgroundColor: colors.muted }]}>
-                        <Animated.View
-                            style={[
-                                styles.progressFill,
-                                {
-                                    backgroundColor: colors.primary,
-                                    width: `${(currentStepIndex / (STEPS.length - 1)) * 100}%`,
-                                },
-                            ]}
-                        />
-                    </View>
-                    {/* Step dots */}
-                    <View style={styles.stepsDotsContainer}>
-                        {STEPS.slice(1).map((step, index) => (
-                            <View
-                                key={step.id}
-                                style={[
-                                    styles.stepDot,
-                                    {
-                                        backgroundColor:
-                                            index < currentStepIndex
-                                                ? colors.primary
-                                                : index === currentStepIndex - 1
-                                                    ? colors.primary
-                                                    : colors.muted,
-                                    },
-                                ]}
-                            />
-                        ))}
-                    </View>
+                <View style={styles.progressWrapper}>
+                    <BlurView intensity={60} tint="light" style={styles.progressBlur}>
+                        <View style={styles.progressContainer}>
+                            <View style={styles.progressBackground}>
+                                <Animated.View
+                                    style={[
+                                        styles.progressFill,
+                                        {
+                                            width: `${(currentStepIndex / (STEPS.length - 1)) * 100}%`,
+                                        },
+                                    ]}
+                                />
+                            </View>
+                            {/* Step dots */}
+                            <View style={styles.stepsDotsContainer}>
+                                {STEPS.slice(1).map((step, index) => (
+                                    <View
+                                        key={step.id}
+                                        style={[
+                                            styles.stepDot,
+                                            {
+                                                backgroundColor:
+                                                    index < currentStepIndex
+                                                        ? '#0891B2'
+                                                        : index === currentStepIndex - 1
+                                                            ? '#0891B2'
+                                                            : 'rgba(255, 255, 255, 0.6)',
+                                                borderWidth: index >= currentStepIndex - 1 ? 1 : 0,
+                                                borderColor: index < currentStepIndex
+                                                    ? 'transparent'
+                                                    : 'rgba(8, 145, 178, 0.3)',
+                                            },
+                                        ]}
+                                    />
+                                ))}
+                            </View>
+                        </View>
+                    </BlurView>
                 </View>
             )}
 
@@ -387,19 +396,33 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
+    progressWrapper: {
+        paddingHorizontal: Spacing.lg,
+        paddingTop: Spacing.sm,
+        paddingBottom: Spacing.xs,
+    },
+    progressBlur: {
+        borderRadius: 16,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.5)',
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    },
     progressContainer: {
-        paddingHorizontal: Spacing.xl,
-        paddingTop: Spacing.md,
-        paddingBottom: Spacing.sm,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.sm,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
     },
     progressBackground: {
         height: 4,
         borderRadius: 2,
         overflow: 'hidden',
+        backgroundColor: 'rgba(8, 145, 178, 0.2)',
     },
     progressFill: {
         height: '100%',
         borderRadius: 2,
+        backgroundColor: '#0891B2',
     },
     stepsDotsContainer: {
         flexDirection: 'row',

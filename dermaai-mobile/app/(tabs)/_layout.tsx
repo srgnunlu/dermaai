@@ -53,8 +53,9 @@ export default function TabLayout() {
           tabBarStyle: {
             position: 'absolute',
             bottom: 32,
-            left: 70,
-            right: 70,
+            left: 0,
+            right: 0,
+            marginHorizontal: 24,
             height: 68,
             borderRadius: 34,
             backgroundColor: 'transparent',
@@ -128,7 +129,7 @@ export default function TabLayout() {
           name="history"
           options={{
             title: Translations.tabHistory[language],
-            headerTitle: Translations.caseHistory[language],
+            headerShown: false,
             tabBarIcon: ({ color, focused }) => (
               <TabBarIcon Icon={History} color={color} focused={focused} />
             ),
@@ -141,7 +142,7 @@ export default function TabLayout() {
           name="profile"
           options={{
             title: Translations.tabProfile[language],
-            headerTitle: Translations.myProfile[language],
+            headerShown: false,
             tabBarIcon: ({ color, focused }) => (
               <TabBarIcon Icon={User} color={color} focused={focused} />
             ),
@@ -154,7 +155,7 @@ export default function TabLayout() {
           name="settings"
           options={{
             title: Translations.tabSettings[language],
-            headerTitle: Translations.settingsTitle[language],
+            headerShown: false,
             tabBarIcon: ({ color, focused }) => (
               <TabBarIcon Icon={Settings} color={color} focused={focused} />
             ),
@@ -183,15 +184,15 @@ const styles = StyleSheet.create({
   iconWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 44,
-    height: 44,
+    width: 38,
+    height: 38,
     position: 'relative',
   },
   activeBackground: {
     position: 'absolute',
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: '#E0F7FA',
     opacity: 0.9,
   },
@@ -200,13 +201,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tabLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 2,
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 4,
     marginBottom: 0,
   },
   tabLabelActive: {
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#0891B2',
   },
   pullUpIndicator: {

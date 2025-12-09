@@ -191,6 +191,23 @@ class ApiClient {
     }
 
     /**
+     * PATCH request
+     */
+    async patch<T>(endpoint: string, data?: unknown): Promise<T> {
+        return this.request<T>(endpoint, {
+            method: 'PATCH',
+            body: data ? JSON.stringify(data) : undefined,
+        });
+    }
+
+    /**
+     * Select analysis provider for a case
+     */
+    async selectAnalysisProvider(caseId: string, provider: 'gemini' | 'openai'): Promise<void> {
+        return this.patch(`/api/mobile/cases/${caseId}/select-provider`, { provider });
+    }
+
+    /**
      * Upload image as base64
      */
     async uploadImage(base64Data: string, filename: string): Promise<{ url: string }> {

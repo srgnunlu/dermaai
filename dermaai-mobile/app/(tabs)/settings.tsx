@@ -1,9 +1,9 @@
 /**
  * Settings Screen
- * AI preferences, notifications, appearance, and privacy settings
+ * Premium glassmorphism design with AI preferences, notifications, and privacy settings
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     View,
     Text,
@@ -12,43 +12,42 @@ import {
     Switch,
     TouchableOpacity,
     Alert,
+    ImageBackground,
+    SafeAreaView,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import {
     Brain,
     Bell,
-    Palette,
     Shield,
     Info,
     ChevronRight,
-    Sun,
-    Moon,
-    Smartphone,
+    Sparkles,
+    BellRing,
+    Volume2,
+    Lock,
+    Save,
+    FileText,
+    Scale,
+    Heart,
 } from 'lucide-react-native';
 import { Colors } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
 import { Spacing } from '@/constants/Spacing';
 import { Translations } from '@/constants/Translations';
 import { useColorScheme } from '@/components/useColorScheme';
-import { Card, CardHeader, CardContent } from '@/components/ui';
 import { APP_VERSION } from '@/constants/Config';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface SettingsState {
-    // AI Preferences
     useGemini: boolean;
     useOpenAI: boolean;
     confidenceThreshold: number;
-
-    // Notifications
     analysisNotifications: boolean;
     urgentAlerts: boolean;
     soundEnabled: boolean;
-
-    // Appearance
-    theme: 'light' | 'dark' | 'system';
-
-    // Privacy
     anonymizeData: boolean;
     autoSaveCases: boolean;
 }
@@ -66,7 +65,6 @@ export default function SettingsScreen() {
         analysisNotifications: true,
         urgentAlerts: true,
         soundEnabled: false,
-        theme: 'system',
         anonymizeData: false,
         autoSaveCases: true,
     });
@@ -75,383 +73,418 @@ export default function SettingsScreen() {
         key: K,
         value: SettingsState[K]
     ) => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setSettings(prev => ({ ...prev, [key]: value }));
-        // TODO: Save to backend/storage
     };
 
-    const renderSwitch = (
-        value: boolean,
-        onValueChange: (value: boolean) => void
-    ) => (
-        <Switch
-            value={value}
-            onValueChange={onValueChange}
-            trackColor={{ false: colors.muted, true: colors.primary }}
-            thumbColor={value ? colors.primaryForeground : colors.textMuted}
-        />
-    );
-
-    const renderChevron = () => (
-        <ChevronRight size={20} color={colors.textMuted} />
-    );
-
     return (
-        <ScrollView
-            style={[styles.container, { backgroundColor: colors.background }]}
-            contentContainerStyle={styles.content}
-            showsVerticalScrollIndicator={false}
+        <ImageBackground
+            source={require('@/assets/images/home-bg.png')}
+            style={styles.backgroundImage}
+            resizeMode="cover"
         >
-            {/* AI Preferences Section */}
-            <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                    <Brain size={20} color={colors.primary} />
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                        {language === 'tr' ? 'AI Tercihleri' : 'AI Preferences'}
+            <SafeAreaView style={styles.container}>
+                {/* Header Title */}
+                <View style={styles.headerTitleContainer}>
+                    <Text style={styles.headerTitle}>
+                        {Translations.settingsTitle[language]}
                     </Text>
                 </View>
 
-                <Card>
-                    <CardContent>
-                        <SettingRow
-                            title={language === 'tr' ? 'DermAI Analizi' : 'DermAI Analysis'}
-                            subtitle={language === 'tr' ? 'Yapay zeka destekli tanı analizi' : 'AI-powered diagnosis analysis'}
-                            colors={colors}
-                            right={renderSwitch(
-                                settings.useGemini,
-                                (v) => updateSetting('useGemini', v)
-                            )}
-                        />
-                        <SettingRow
-                            title={language === 'tr' ? 'Güven Eşiği' : 'Confidence Threshold'}
-                            subtitle={language === 'tr'
-                                ? `Minimum %${settings.confidenceThreshold} güven`
-                                : `Minimum ${settings.confidenceThreshold}% confidence`}
-                            colors={colors}
-                            right={renderChevron()}
-                            onPress={() => {
-                                Alert.alert(
-                                    language === 'tr' ? 'Güven Eşiği' : 'Confidence Threshold',
-                                    language === 'tr' ? 'Bu özellik yakında eklenecek.' : 'This feature is coming soon.'
-                                );
-                            }}
-                            isLast
-                        />
-                    </CardContent>
-                </Card>
-            </View>
+                <ScrollView
+                    style={styles.scrollView}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                >
+                    {/* AI Preferences Section */}
+                    <View style={styles.sectionWrapper}>
+                        <View style={styles.sectionHeader}>
+                            <Brain size={20} color="#0891B2" />
+                            <Text style={styles.sectionTitle}>
+                                {language === 'tr' ? 'AI Tercihleri' : 'AI Preferences'}
+                            </Text>
+                        </View>
+                        <View style={styles.cardWrapper}>
+                            <BlurView intensity={65} tint="light" style={styles.cardBlur}>
+                                <View style={styles.card}>
+                                    <SettingToggleRow
+                                        icon={<Sparkles size={20} color="#8B5CF6" />}
+                                        title={language === 'tr' ? 'DermAI Analizi' : 'DermAI Analysis'}
+                                        subtitle={language === 'tr' ? 'Yapay zeka destekli tanı analizi' : 'AI-powered diagnosis analysis'}
+                                        value={settings.useGemini}
+                                        onValueChange={(v) => updateSetting('useGemini', v)}
+                                    />
+                                    <View style={styles.divider} />
+                                    <SettingNavRow
+                                        icon={<Brain size={20} color="#0891B2" />}
+                                        title={language === 'tr' ? 'Güven Eşiği' : 'Confidence Threshold'}
+                                        subtitle={language === 'tr'
+                                            ? `Minimum %${settings.confidenceThreshold} güven`
+                                            : `Minimum ${settings.confidenceThreshold}% confidence`}
+                                        onPress={() => {
+                                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                            Alert.alert(
+                                                language === 'tr' ? 'Güven Eşiği' : 'Confidence Threshold',
+                                                language === 'tr' ? 'Bu özellik yakında eklenecek.' : 'This feature is coming soon.'
+                                            );
+                                        }}
+                                    />
+                                </View>
+                            </BlurView>
+                        </View>
+                    </View>
 
-            {/* Notifications Section */}
-            <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                    <Bell size={20} color={colors.primary} />
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                        {Translations.notifications[language]}
-                    </Text>
-                </View>
+                    {/* Notifications Section */}
+                    <View style={styles.sectionWrapper}>
+                        <View style={styles.sectionHeader}>
+                            <Bell size={20} color="#0891B2" />
+                            <Text style={styles.sectionTitle}>
+                                {Translations.notifications[language]}
+                            </Text>
+                        </View>
+                        <View style={styles.cardWrapper}>
+                            <BlurView intensity={65} tint="light" style={styles.cardBlur}>
+                                <View style={styles.card}>
+                                    <SettingToggleRow
+                                        icon={<BellRing size={20} color="#10B981" />}
+                                        title={language === 'tr' ? 'Analiz Bildirimleri' : 'Analysis Notifications'}
+                                        subtitle={language === 'tr' ? 'Analiz tamamlandığında bildirim al' : 'Get notified when analysis is complete'}
+                                        value={settings.analysisNotifications}
+                                        onValueChange={(v) => updateSetting('analysisNotifications', v)}
+                                    />
+                                    <View style={styles.divider} />
+                                    <SettingToggleRow
+                                        icon={<Bell size={20} color="#F59E0B" />}
+                                        title={language === 'tr' ? 'Acil Uyarılar' : 'Urgent Alerts'}
+                                        subtitle={language === 'tr' ? 'Acil durumlar için anlık bildirim' : 'Instant notifications for urgent cases'}
+                                        value={settings.urgentAlerts}
+                                        onValueChange={(v) => updateSetting('urgentAlerts', v)}
+                                    />
+                                    <View style={styles.divider} />
+                                    <SettingToggleRow
+                                        icon={<Volume2 size={20} color="#6366F1" />}
+                                        title={language === 'tr' ? 'Ses' : 'Sound'}
+                                        subtitle={language === 'tr' ? 'Bildirim sesi aç' : 'Enable notification sound'}
+                                        value={settings.soundEnabled}
+                                        onValueChange={(v) => updateSetting('soundEnabled', v)}
+                                    />
+                                </View>
+                            </BlurView>
+                        </View>
+                    </View>
 
-                <Card>
-                    <CardContent>
-                        <SettingRow
-                            title={language === 'tr' ? 'Analiz Bildirimleri' : 'Analysis Notifications'}
-                            subtitle={language === 'tr' ? 'Analiz tamamlandığında bildirim al' : 'Get notified when analysis is complete'}
-                            colors={colors}
-                            right={renderSwitch(
-                                settings.analysisNotifications,
-                                (v) => updateSetting('analysisNotifications', v)
-                            )}
-                        />
-                        <SettingRow
-                            title={language === 'tr' ? 'Acil Uyarılar' : 'Urgent Alerts'}
-                            subtitle={language === 'tr' ? 'Acil durumlar için anlık bildirim' : 'Instant notifications for urgent cases'}
-                            colors={colors}
-                            right={renderSwitch(
-                                settings.urgentAlerts,
-                                (v) => updateSetting('urgentAlerts', v)
-                            )}
-                        />
-                        <SettingRow
-                            title={language === 'tr' ? 'Ses' : 'Sound'}
-                            subtitle={language === 'tr' ? 'Bildirim sesi aç' : 'Enable notification sound'}
-                            colors={colors}
-                            right={renderSwitch(
-                                settings.soundEnabled,
-                                (v) => updateSetting('soundEnabled', v)
-                            )}
-                            isLast
-                        />
-                    </CardContent>
-                </Card>
-            </View>
+                    {/* Privacy Section */}
+                    <View style={styles.sectionWrapper}>
+                        <View style={styles.sectionHeader}>
+                            <Shield size={20} color="#0891B2" />
+                            <Text style={styles.sectionTitle}>
+                                {language === 'tr' ? 'Gizlilik' : 'Privacy'}
+                            </Text>
+                        </View>
+                        <View style={styles.cardWrapper}>
+                            <BlurView intensity={65} tint="light" style={styles.cardBlur}>
+                                <View style={styles.card}>
+                                    <SettingToggleRow
+                                        icon={<Lock size={20} color="#EF4444" />}
+                                        title={language === 'tr' ? 'Veri Anonimleştirme' : 'Data Anonymization'}
+                                        subtitle={language === 'tr' ? 'Hasta verilerini anonimleştir' : 'Anonymize patient data'}
+                                        value={settings.anonymizeData}
+                                        onValueChange={(v) => updateSetting('anonymizeData', v)}
+                                    />
+                                    <View style={styles.divider} />
+                                    <SettingToggleRow
+                                        icon={<Save size={20} color="#0891B2" />}
+                                        title={language === 'tr' ? 'Otomatik Kaydetme' : 'Auto-Save'}
+                                        subtitle={language === 'tr' ? 'Vakaları otomatik kaydet' : 'Auto-save cases'}
+                                        value={settings.autoSaveCases}
+                                        onValueChange={(v) => updateSetting('autoSaveCases', v)}
+                                    />
+                                </View>
+                            </BlurView>
+                        </View>
+                    </View>
 
-            {/* Appearance Section */}
-            <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                    <Palette size={20} color={colors.primary} />
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                        {language === 'tr' ? 'Görünüm' : 'Appearance'}
-                    </Text>
-                </View>
+                    {/* About Section */}
+                    <View style={styles.sectionWrapper}>
+                        <View style={styles.sectionHeader}>
+                            <Info size={20} color="#0891B2" />
+                            <Text style={styles.sectionTitle}>
+                                {Translations.about[language]}
+                            </Text>
+                        </View>
+                        <View style={styles.cardWrapper}>
+                            <BlurView intensity={65} tint="light" style={styles.cardBlur}>
+                                <View style={styles.card}>
+                                    <SettingInfoRow
+                                        icon={<Sparkles size={20} color="#0891B2" />}
+                                        title={language === 'tr' ? 'Uygulama Versiyonu' : 'App Version'}
+                                        value={`v${APP_VERSION}`}
+                                    />
+                                    <View style={styles.divider} />
+                                    <SettingNavRow
+                                        icon={<FileText size={20} color="#0891B2" />}
+                                        title={language === 'tr' ? 'Tıbbi Uyarı' : 'Medical Disclaimer'}
+                                        onPress={() => {
+                                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                            router.push('/medical-disclaimer');
+                                        }}
+                                    />
+                                    <View style={styles.divider} />
+                                    <SettingNavRow
+                                        icon={<Shield size={20} color="#0891B2" />}
+                                        title={Translations.privacyPolicy[language]}
+                                        onPress={() => {
+                                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                            router.push('/privacy-policy');
+                                        }}
+                                    />
+                                    <View style={styles.divider} />
+                                    <SettingNavRow
+                                        icon={<Scale size={20} color="#0891B2" />}
+                                        title={Translations.termsOfService[language]}
+                                        onPress={() => {
+                                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                            router.push('/terms-of-service');
+                                        }}
+                                    />
+                                </View>
+                            </BlurView>
+                        </View>
+                    </View>
 
-                <Card>
-                    <CardContent>
-                        <ThemeSelector
-                            value={settings.theme}
-                            onChange={(v) => updateSetting('theme', v)}
-                            colors={colors}
-                        />
-                    </CardContent>
-                </Card>
-            </View>
-
-            {/* Privacy Section */}
-            <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                    <Shield size={20} color={colors.primary} />
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                        {language === 'tr' ? 'Gizlilik' : 'Privacy'}
-                    </Text>
-                </View>
-
-                <Card>
-                    <CardContent>
-                        <SettingRow
-                            title={language === 'tr' ? 'Veri Anonimleştirme' : 'Data Anonymization'}
-                            subtitle={language === 'tr' ? 'Hasta verilerini anonimleştir' : 'Anonymize patient data'}
-                            colors={colors}
-                            right={renderSwitch(
-                                settings.anonymizeData,
-                                (v) => updateSetting('anonymizeData', v)
-                            )}
-                        />
-                        <SettingRow
-                            title={language === 'tr' ? 'Otomatik Kaydetme' : 'Auto-Save'}
-                            subtitle={language === 'tr' ? 'Vakaları otomatik kaydet' : 'Auto-save cases'}
-                            colors={colors}
-                            right={renderSwitch(
-                                settings.autoSaveCases,
-                                (v) => updateSetting('autoSaveCases', v)
-                            )}
-                            isLast
-                        />
-                    </CardContent>
-                </Card>
-            </View>
-
-            {/* About Section */}
-            <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                    <Info size={20} color={colors.primary} />
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                        {Translations.about[language]}
-                    </Text>
-                </View>
-
-                <Card>
-                    <CardContent>
-                        <SettingRow
-                            title={language === 'tr' ? 'Uygulama Versiyonu' : 'App Version'}
-                            subtitle={`v${APP_VERSION}`}
-                            colors={colors}
-                        />
-                        <SettingRow
-                            title={language === 'tr' ? 'Tıbbi Uyarı' : 'Medical Disclaimer'}
-                            colors={colors}
-                            right={renderChevron()}
-                            onPress={() => router.push('/medical-disclaimer')}
-                        />
-                        <SettingRow
-                            title={Translations.privacyPolicy[language]}
-                            colors={colors}
-                            right={renderChevron()}
-                            onPress={() => router.push('/privacy-policy')}
-                        />
-                        <SettingRow
-                            title={Translations.termsOfService[language]}
-                            colors={colors}
-                            right={renderChevron()}
-                            onPress={() => router.push('/terms-of-service')}
-                            isLast
-                        />
-                    </CardContent>
-                </Card>
-            </View>
-
-            {/* Footer */}
-            <View style={styles.footer}>
-                <Text style={[styles.footerText, { color: colors.textMuted }]}>
-                    DermaAssistAI © 2024
-                </Text>
-                <Text style={[styles.footerSubtext, { color: colors.textMuted }]}>
-                    {language === 'tr'
-                        ? 'Sağlık profesyonelleri için tasarlanmıştır'
-                        : 'Designed for healthcare professionals'}
-                </Text>
-            </View>
-        </ScrollView>
+                    {/* Footer */}
+                    <View style={styles.footer}>
+                        <View style={styles.footerLogoContainer}>
+                            <Heart size={16} color="#0891B2" />
+                        </View>
+                        <Text style={styles.footerText}>DermaAssistAI © 2024</Text>
+                        <Text style={styles.footerSubtext}>
+                            {language === 'tr'
+                                ? 'Sağlık profesyonelleri için tasarlanmıştır'
+                                : 'Designed for healthcare professionals'}
+                        </Text>
+                    </View>
+                </ScrollView>
+            </SafeAreaView>
+        </ImageBackground>
     );
 }
 
-// Setting row component
-function SettingRow({
+// Setting toggle row component
+function SettingToggleRow({
+    icon,
     title,
     subtitle,
-    colors,
-    right,
-    onPress,
-    isLast = false,
+    value,
+    onValueChange,
 }: {
+    icon: React.ReactNode;
     title: string;
     subtitle?: string;
-    colors: typeof Colors.light;
-    right?: React.ReactNode;
-    onPress?: () => void;
-    isLast?: boolean;
+    value: boolean;
+    onValueChange: (value: boolean) => void;
 }) {
-    const content = (
-        <View
-            style={[
-                styles.settingRow,
-                !isLast && { borderBottomWidth: 1, borderBottomColor: colors.borderLight },
-            ]}
-        >
-            <View style={styles.settingText}>
-                <Text style={[styles.settingTitle, { color: colors.text }]}>{title}</Text>
-                {subtitle && (
-                    <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>
-                        {subtitle}
-                    </Text>
-                )}
+    return (
+        <View style={styles.settingRow}>
+            <View style={styles.settingIconContainer}>
+                {icon}
             </View>
-            {right && <View style={styles.settingRight}>{right}</View>}
+            <View style={styles.settingText}>
+                <Text style={styles.settingTitle}>{title}</Text>
+                {subtitle && <Text style={styles.settingSubtitle}>{subtitle}</Text>}
+            </View>
+            <Switch
+                value={value}
+                onValueChange={onValueChange}
+                trackColor={{ false: '#E2E8F0', true: '#0891B2' }}
+                thumbColor="#FFFFFF"
+                ios_backgroundColor="#E2E8F0"
+            />
         </View>
     );
-
-    if (onPress) {
-        return (
-            <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-                {content}
-            </TouchableOpacity>
-        );
-    }
-
-    return content;
 }
 
-// Theme selector component
-function ThemeSelector({
-    value,
-    onChange,
-    colors,
+// Setting navigation row component
+function SettingNavRow({
+    icon,
+    title,
+    subtitle,
+    onPress,
 }: {
-    value: 'light' | 'dark' | 'system';
-    onChange: (value: 'light' | 'dark' | 'system') => void;
-    colors: typeof Colors.light;
+    icon: React.ReactNode;
+    title: string;
+    subtitle?: string;
+    onPress: () => void;
 }) {
-    const options: { key: 'light' | 'dark' | 'system'; label: string; Icon: any }[] = [
-        { key: 'light', label: 'Açık', Icon: Sun },
-        { key: 'dark', label: 'Koyu', Icon: Moon },
-        { key: 'system', label: 'Sistem', Icon: Smartphone },
-    ];
-
     return (
-        <View style={styles.themeSelector}>
-            {options.map((option) => (
-                <TouchableOpacity
-                    key={option.key}
-                    style={[
-                        styles.themeOption,
-                        {
-                            backgroundColor: value === option.key ? colors.primaryLight : colors.background,
-                            borderColor: value === option.key ? colors.primary : colors.border,
-                        },
-                    ]}
-                    onPress={() => onChange(option.key)}
-                    activeOpacity={0.7}
-                >
-                    <option.Icon
-                        size={20}
-                        color={value === option.key ? colors.primary : colors.textSecondary}
-                    />
-                    <Text
-                        style={[
-                            styles.themeLabel,
-                            { color: value === option.key ? colors.primary : colors.text },
-                        ]}
-                    >
-                        {option.label}
-                    </Text>
-                </TouchableOpacity>
-            ))}
+        <TouchableOpacity style={styles.settingRow} onPress={onPress} activeOpacity={0.7}>
+            <View style={styles.settingIconContainer}>
+                {icon}
+            </View>
+            <View style={styles.settingText}>
+                <Text style={styles.settingTitle}>{title}</Text>
+                {subtitle && <Text style={styles.settingSubtitle}>{subtitle}</Text>}
+            </View>
+            <ChevronRight size={20} color="#94A3B8" />
+        </TouchableOpacity>
+    );
+}
+
+// Setting info row component
+function SettingInfoRow({
+    icon,
+    title,
+    value,
+}: {
+    icon: React.ReactNode;
+    title: string;
+    value: string;
+}) {
+    return (
+        <View style={styles.settingRow}>
+            <View style={styles.settingIconContainer}>
+                {icon}
+            </View>
+            <View style={styles.settingText}>
+                <Text style={styles.settingTitle}>{title}</Text>
+            </View>
+            <Text style={styles.settingValue}>{value}</Text>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
+    backgroundImage: {
+        flex: 1,
+    },
     container: {
         flex: 1,
     },
-    content: {
-        padding: Spacing.base,
-        paddingBottom: Spacing['4xl'],
+
+    // Header
+    headerTitleContainer: {
+        paddingHorizontal: Spacing.lg,
+        paddingTop: Spacing.sm,
+        paddingBottom: Spacing.md,
+        alignItems: 'center',
     },
-    section: {
+    headerTitle: {
+        fontSize: 17,
+        fontWeight: '600',
+        color: '#0F172A',
+    },
+
+    // Scroll
+    scrollView: {
+        flex: 1,
+    },
+    scrollContent: {
+        paddingHorizontal: Spacing.lg,
+        paddingBottom: 140,
+    },
+
+    // Section
+    sectionWrapper: {
         marginBottom: Spacing.xl,
     },
     sectionHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: Spacing.md,
-        paddingHorizontal: Spacing.xs,
+        marginBottom: Spacing.sm,
+        gap: 8,
     },
     sectionTitle: {
-        ...Typography.styles.label,
-        marginLeft: Spacing.sm,
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#64748B',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
+
+    // Card
+    cardWrapper: {
+        borderRadius: 18,
+        overflow: 'hidden',
+        shadowColor: '#0891B2',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
+        elevation: 5,
+    },
+    cardBlur: {
+        borderRadius: 18,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.5)',
+    },
+    card: {
+        padding: Spacing.md,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    },
+    divider: {
+        height: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.06)',
+        marginHorizontal: -Spacing.md,
+        paddingHorizontal: Spacing.md,
+    },
+
+    // Setting Row
     settingRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
         paddingVertical: Spacing.md,
+    },
+    settingIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 10,
+        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: Spacing.md,
     },
     settingText: {
         flex: 1,
         marginRight: Spacing.md,
     },
     settingTitle: {
-        ...Typography.styles.body,
+        fontSize: 15,
         fontWeight: '500',
+        color: '#0F172A',
     },
     settingSubtitle: {
-        ...Typography.styles.caption,
+        fontSize: 12,
+        color: '#64748B',
         marginTop: 2,
     },
-    settingRight: {},
-    themeSelector: {
-        flexDirection: 'row',
-        gap: Spacing.sm,
-    },
-    themeOption: {
-        flex: 1,
-        alignItems: 'center',
-        paddingVertical: Spacing.md,
-        borderRadius: Spacing.radius.md,
-        borderWidth: 1.5,
-    },
-    themeLabel: {
-        ...Typography.styles.caption,
+    settingValue: {
+        fontSize: 14,
         fontWeight: '500',
-        marginTop: Spacing.xs,
+        color: '#64748B',
     },
+
+    // Footer
     footer: {
         alignItems: 'center',
         paddingVertical: Spacing.xl,
     },
+    footerLogoContainer: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(8, 145, 178, 0.1)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: Spacing.sm,
+    },
     footerText: {
-        ...Typography.styles.caption,
-        fontWeight: '500',
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#64748B',
     },
     footerSubtext: {
-        ...Typography.styles.caption,
-        marginTop: Spacing.xs,
+        fontSize: 12,
+        color: '#94A3B8',
+        marginTop: 4,
     },
 });

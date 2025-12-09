@@ -6,9 +6,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { getAccessToken, clearTokens, saveUserData, getUserData, saveTokens } from '@/lib/storage';
-import type { User, AuthResponse } from '@/types/schema';
+import type { User, AuthResponse, UpdateProfileData } from '@/types/schema';
 import { useEffect, useState } from 'react';
-import { Alert } from 'react-native';
 import { API_BASE_URL } from '@/constants/Config';
 
 export function useAuth() {
@@ -35,23 +34,16 @@ export function useAuth() {
     } = useQuery<User | null>({
         queryKey: ['auth', 'user'],
         queryFn: async () => {
-            console.log('[AuthDebug] Fetching user...');
             const token = await getAccessToken();
-            console.log('[AuthDebug] Token available:', !!token);
 
             if (!token) return null;
 
             try {
                 const userData = await api.get<User>('/api/auth/mobile/user');
-                console.log('[AuthDebug] User fetched:', userData?.email);
-                Alert.alert('Debug', `User fetched: ${userData?.email}`);
-
                 await saveUserData(userData);
                 return userData;
             } catch (err) {
-                console.error('[AuthDebug] User fetch error:', err);
-                Alert.alert('Debug Error', `Fetch failed: ${(err as any).message}`);
-
+                console.error('[Auth] User fetch error:', err);
                 // If auth fails, try to get cached user data
                 const cachedUser = await getUserData<User>();
                 if (cachedUser) return cachedUser;
@@ -88,6 +80,22 @@ export function useAuth() {
         },
     });
 
+    // Update profile mutation
+    const updateProfileMutation = useMutation({
+        mutationFn: async (profileData: UpdateProfileData) => {
+            const response = await api.put<any>('/api/profile', profileData);
+            // API returns { ...userFields, statistics }, extract just user fields
+            const { statistics, ...userData } = response;
+            return userData as User;
+        },
+        onSuccess: async (userData) => {
+            await saveUserData(userData);
+            queryClient.setQueryData(['auth', 'user'], userData);
+            // Also invalidate to trigger refetch
+            queryClient.invalidateQueries({ queryKey: ['auth', 'user'] });
+        },
+    });
+
     // Logout mutation
     const logoutMutation = useMutation({
         mutationFn: async () => {
@@ -117,6 +125,11 @@ export function useAuth() {
         isLoggingIn: googleLoginMutation.isPending,
         loginError: googleLoginMutation.error,
 
+        // Update profile
+        updateProfile: updateProfileMutation.mutateAsync,
+        isUpdatingProfile: updateProfileMutation.isPending,
+        updateProfileError: updateProfileMutation.error,
+
         // Logout
         logout: logoutMutation.mutateAsync,
         isLoggingOut: logoutMutation.isPending,
@@ -124,3 +137,4 @@ export function useAuth() {
         refetch: refetchUser,
     };
 }
+

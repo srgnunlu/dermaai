@@ -12,6 +12,7 @@ import {
     Easing,
     Dimensions,
     Image,
+    ImageBackground,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -28,7 +29,7 @@ interface AnalysisProgressProps {
     isActive: boolean;
     onComplete?: () => void;
     duration?: number;
-    imageUri?: string;
+    imageUris?: string[];
 }
 
 const getAnalysisStages = (language: 'tr' | 'en') => [
@@ -282,7 +283,7 @@ export function AnalysisProgress({
     isActive,
     onComplete,
     duration = 60,
-    imageUri,
+    imageUris = [],
 }: AnalysisProgressProps) {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
@@ -294,12 +295,14 @@ export function AnalysisProgress({
     const [currentStage, setCurrentStage] = useState(0);
     const [timeRemaining, setTimeRemaining] = useState(duration);
     const [detectedCount, setDetectedCount] = useState(0);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
     // Animations
     const scanLineAnim = useRef(new Animated.Value(0)).current;
     const glowAnim = useRef(new Animated.Value(0)).current;
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const iconRotateAnim = useRef(new Animated.Value(0)).current;
+    const imageFadeAnim = useRef(new Animated.Value(1)).current;
 
     // Fade in animation
     useEffect(() => {
@@ -387,6 +390,37 @@ export function AnalysisProgress({
         setDetectedCount(count);
     }, [progress]);
 
+    // Image carousel logic - rotate images based on count
+    useEffect(() => {
+        if (!isActive || imageUris.length <= 1) return;
+
+        // Calculate interval based on image count
+        // 2 images: 30 seconds each
+        // 3 images: 20 seconds each
+        const intervalDuration = imageUris.length === 2 ? 30000 : 20000;
+
+        const interval = setInterval(() => {
+            // Fade out current image
+            Animated.timing(imageFadeAnim, {
+                toValue: 0,
+                duration: 400,
+                useNativeDriver: true,
+            }).start(() => {
+                // Change image
+                setCurrentImageIndex((prev) => (prev + 1) % imageUris.length);
+
+                // Fade in new image
+                Animated.timing(imageFadeAnim, {
+                    toValue: 1,
+                    duration: 400,
+                    useNativeDriver: true,
+                }).start();
+            });
+        }, intervalDuration);
+
+        return () => clearInterval(interval);
+    }, [isActive, imageUris.length, imageFadeAnim]);
+
     // Progress tracking
     useEffect(() => {
         if (!isActive) {
@@ -444,142 +478,178 @@ export function AnalysisProgress({
     });
 
     return (
-        <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-            {/* Background gradient */}
-            <LinearGradient
-                colors={['#E0F7FA', '#B2EBF2', '#80DEEA']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.backgroundGradient}
-            />
+        <ImageBackground
+            source={require('@/assets/images/home-bg.png')}
+            style={styles.backgroundImage}
+            resizeMode="cover"
+        >
+            {/* Dark overlay for better contrast */}
+            <View style={styles.overlay} />
 
-            {/* Main content */}
-            <View style={styles.content}>
-                {/* Image preview with scanning effect */}
-                <View style={styles.imageSection}>
-                    <Animated.View
-                        style={[
-                            styles.imageGlow,
-                            { shadowOpacity: glowOpacity },
-                        ]}
-                    >
-                        <View style={styles.imageContainer}>
-                            {imageUri ? (
-                                <Image
-                                    source={{ uri: imageUri }}
-                                    style={styles.previewImage}
-                                    resizeMode="cover"
-                                />
-                            ) : (
-                                <View style={styles.placeholderImage}>
-                                    <Crosshair size={60} color="#0891B2" strokeWidth={1} />
-                                </View>
-                            )}
-
-                            {/* Grid scanning overlay */}
-                            <ScanGrid imageSize={IMAGE_SIZE} isActive={isActive} />
-
-                            {/* Scanning line effect */}
-                            <Animated.View
-                                style={[
-                                    styles.scanLine,
-                                    { transform: [{ translateY: scanLineTranslate }] },
-                                ]}
-                            >
-                                <LinearGradient
-                                    colors={['transparent', 'rgba(8, 145, 178, 0.8)', 'transparent']}
-                                    style={styles.scanLineGradient}
-                                />
-                            </Animated.View>
-
-                            {/* Corner brackets */}
-                            <View style={[styles.cornerBracket, styles.topLeft]} />
-                            <View style={[styles.cornerBracket, styles.topRight]} />
-                            <View style={[styles.cornerBracket, styles.bottomLeft]} />
-                            <View style={[styles.cornerBracket, styles.bottomRight]} />
-                        </View>
-                    </Animated.View>
-                </View>
-
-                {/* Info card with glassmorphism */}
-                <BlurView intensity={60} tint="light" style={styles.infoCardBlur}>
-                    <View style={styles.infoCard}>
-                        {/* Animated icon */}
-                        <View style={styles.iconRow}>
-                            <Animated.View
-                                style={[
-                                    styles.iconContainer,
-                                    { transform: [{ rotate: iconRotation }] },
-                                ]}
-                            >
-                                <CurrentIcon size={24} color="#0891B2" strokeWidth={1.8} />
-                            </Animated.View>
-                            <View style={styles.titleContainer}>
-                                <Text style={styles.title}>
-                                    {language === 'tr' ? 'AI Analizi Yapılıyor' : 'AI Analysis in Progress'}
-                                </Text>
-                                <Text style={styles.stageLabel}>{currentLabel}</Text>
-                            </View>
-                        </View>
-
-                        {/* Progress bar */}
-                        <View style={styles.progressSection}>
-                            <View style={styles.progressBarContainer}>
-                                <LinearGradient
-                                    colors={gradients.primary}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 0 }}
-                                    style={[styles.progressBar, { width: `${progress}%` }]}
-                                />
-                                <Animated.View
-                                    style={[
-                                        styles.progressShimmer,
-                                        { opacity: glowOpacity, width: `${progress}%` },
-                                    ]}
-                                />
-                            </View>
-                            <View style={styles.progressInfo}>
-                                <Text style={styles.progressText}>%{Math.round(progress)}</Text>
-                                <Text style={styles.timeText}>
-                                    {language === 'tr'
-                                        ? `~${timeRemaining}s kaldı`
-                                        : `~${timeRemaining}s remaining`}
-                                </Text>
-                            </View>
-                        </View>
-
-                        {/* Stage indicators */}
-                        <View style={styles.stageIndicators}>
-                            {ANALYSIS_STAGES.slice(0, 5).map((stage, index) => (
-                                <View
-                                    key={stage.id}
-                                    style={[
-                                        styles.stageIndicator,
-                                        {
-                                            backgroundColor:
-                                                index <= currentStage ? '#0891B2' : 'rgba(8, 145, 178, 0.2)',
-                                        },
-                                    ]}
-                                />
-                            ))}
-                        </View>
-
-                        {/* Disclaimer */}
-                        <Text style={styles.disclaimer}>
-                            {language === 'tr'
-                                ? 'DermAI yapay zeka sistemi analiz ediyor...\nBu işlem 30-60 saniye sürebilir.'
-                                : 'DermAI system is analyzing...\nThis may take 30-60 seconds.'}
+            <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+                {/* Main content */}
+                <View style={styles.content}>
+                    {/* Header Title */}
+                    <View style={styles.headerSection}>
+                        <Text style={styles.headerTitle}>
+                            DermAssist<Text style={styles.headerTitleAccent}>AI</Text>
+                        </Text>
+                        <Text style={styles.headerSubtitle}>
+                            {language === 'tr' ? 'Yapay Zeka Analizi' : 'AI Analysis'}
                         </Text>
                     </View>
-                </BlurView>
-            </View>
-        </Animated.View>
+
+                    {/* Image preview with scanning effect */}
+                    <View style={styles.imageSection}>
+                        {/* Outer glow frame */}
+                        <BlurView intensity={40} tint="light" style={styles.imageFrameBlur}>
+                            <View style={styles.imageFrameGlass} />
+                            <Animated.View
+                                style={[
+                                    styles.imageGlow,
+                                    { shadowOpacity: glowOpacity },
+                                ]}
+                            >
+                                <View style={styles.imageContainer}>
+                                    {imageUris.length > 0 && imageUris[currentImageIndex] ? (
+                                        <Animated.View style={{ opacity: imageFadeAnim, width: '100%', height: '100%' }}>
+                                            <Image
+                                                source={{ uri: imageUris[currentImageIndex] }}
+                                                style={styles.previewImage}
+                                                resizeMode="cover"
+                                            />
+                                        </Animated.View>
+                                    ) : (
+                                        <View style={styles.placeholderImage}>
+                                            <Crosshair size={60} color="#0891B2" strokeWidth={1} />
+                                        </View>
+                                    )}
+
+                                    {/* Grid scanning overlay */}
+                                    <ScanGrid imageSize={IMAGE_SIZE} isActive={isActive} />
+
+                                    {/* Scanning line effect */}
+                                    <Animated.View
+                                        style={[
+                                            styles.scanLine,
+                                            { transform: [{ translateY: scanLineTranslate }] },
+                                        ]}
+                                    >
+                                        <LinearGradient
+                                            colors={['transparent', 'rgba(8, 145, 178, 0.9)', 'transparent']}
+                                            style={styles.scanLineGradient}
+                                        />
+                                    </Animated.View>
+
+                                    {/* Corner brackets */}
+                                    <View style={[styles.cornerBracket, styles.topLeft]} />
+                                    <View style={[styles.cornerBracket, styles.topRight]} />
+                                    <View style={[styles.cornerBracket, styles.bottomLeft]} />
+                                    <View style={[styles.cornerBracket, styles.bottomRight]} />
+                                </View>
+                            </Animated.View>
+                        </BlurView>
+                    </View>
+
+                    {/* Info card with enhanced glassmorphism */}
+                    <View style={styles.infoCardWrapper}>
+                        <BlurView intensity={80} tint="light" style={styles.infoCardBlur}>
+                            {/* Glass highlight */}
+                            <View style={styles.glassHighlight} />
+
+                            <View style={styles.infoCard}>
+                                {/* Animated icon */}
+                                <View style={styles.iconRow}>
+                                    <View style={styles.iconContainerWrapper}>
+                                        <BlurView intensity={60} tint="light" style={styles.iconBlur}>
+                                            <Animated.View
+                                                style={[
+                                                    styles.iconContainer,
+                                                    { transform: [{ rotate: iconRotation }] },
+                                                ]}
+                                            >
+                                                <CurrentIcon size={26} color="#0891B2" strokeWidth={2} />
+                                            </Animated.View>
+                                        </BlurView>
+                                    </View>
+                                    <View style={styles.titleContainer}>
+                                        <Text style={styles.title}>
+                                            {language === 'tr' ? 'AI Analizi Yapılıyor' : 'AI Analysis in Progress'}
+                                        </Text>
+                                        <Text style={styles.stageLabel}>{currentLabel}</Text>
+                                    </View>
+                                </View>
+
+                                {/* Progress bar with glassmorphism */}
+                                <View style={styles.progressSection}>
+                                    <View style={styles.progressBarWrapper}>
+                                        <BlurView intensity={40} tint="light" style={styles.progressBarBlur}>
+                                            <View style={styles.progressBarContainer}>
+                                                <LinearGradient
+                                                    colors={['#0891B2', '#06B6D4', '#22D3EE']}
+                                                    start={{ x: 0, y: 0 }}
+                                                    end={{ x: 1, y: 0 }}
+                                                    style={[styles.progressBar, { width: `${progress}%` }]}
+                                                />
+                                                <Animated.View
+                                                    style={[
+                                                        styles.progressShimmer,
+                                                        { opacity: glowOpacity, width: `${progress}%` },
+                                                    ]}
+                                                />
+                                            </View>
+                                        </BlurView>
+                                    </View>
+                                    <View style={styles.progressInfo}>
+                                        <View style={styles.progressBadge}>
+                                            <Text style={styles.progressText}>%{Math.round(progress)}</Text>
+                                        </View>
+                                        <Text style={styles.timeText}>
+                                            {language === 'tr'
+                                                ? `~${timeRemaining}s kaldı`
+                                                : `~${timeRemaining}s remaining`}
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                {/* Stage indicators with glow */}
+                                <View style={styles.stageIndicators}>
+                                    {ANALYSIS_STAGES.slice(0, 5).map((stage, index) => (
+                                        <View
+                                            key={stage.id}
+                                            style={[
+                                                styles.stageIndicator,
+                                                index <= currentStage && styles.stageIndicatorActive,
+                                            ]}
+                                        />
+                                    ))}
+                                </View>
+
+                                {/* Disclaimer */}
+                                <Text style={styles.disclaimer}>
+                                    {language === 'tr'
+                                        ? 'DermAI yapay zeka sistemi analiz ediyor...\nBu işlem 30-60 saniye sürebilir.'
+                                        : 'DermAI system is analyzing...\nThis may take 30-60 seconds.'}
+                                </Text>
+                            </View>
+                        </BlurView>
+                    </View>
+                </View>
+            </Animated.View>
+        </ImageBackground>
     );
 }
 
 const IMAGE_SIZE = SCREEN_WIDTH * 0.65;
 
 const styles = StyleSheet.create({
+    backgroundImage: {
+        flex: 1,
+    },
+    overlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    },
     container: {
         flex: 1,
     },
@@ -589,26 +659,57 @@ const styles = StyleSheet.create({
     content: {
         flex: 1,
         paddingHorizontal: Spacing.xl,
-        paddingTop: SCREEN_HEIGHT * 0.08,
+        paddingTop: SCREEN_HEIGHT * 0.06,
         alignItems: 'center',
     },
-    imageSection: {
-        marginBottom: Spacing.lg,
+    headerSection: {
         alignItems: 'center',
+        marginBottom: Spacing.xl,
+    },
+    headerTitle: {
+        fontSize: 22,
+        fontWeight: '600',
+        color: '#475569',
+        letterSpacing: 0.5,
+    },
+    headerTitleAccent: {
+        color: '#0891B2',
+        fontWeight: '700',
+    },
+    headerSubtitle: {
+        fontSize: 14,
+        color: '#64748B',
+        marginTop: 4,
+        letterSpacing: 0.3,
+    },
+    imageSection: {
+        marginBottom: Spacing.xl,
+        alignItems: 'center',
+    },
+    imageFrameBlur: {
+        borderRadius: 28,
+        overflow: 'hidden',
+        padding: 8,
+        borderWidth: 1.5,
+        borderColor: 'rgba(255, 255, 255, 0.6)',
+    },
+    imageFrameGlass: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
     },
     imageGlow: {
         borderRadius: 24,
         shadowColor: '#0891B2',
         shadowOffset: { width: 0, height: 0 },
-        shadowRadius: 30,
-        elevation: 15,
+        shadowRadius: 35,
+        elevation: 20,
     },
     imageContainer: {
         width: IMAGE_SIZE,
         height: IMAGE_SIZE,
         borderRadius: 20,
         overflow: 'hidden',
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
         position: 'relative',
     },
     previewImage: {
@@ -754,98 +855,168 @@ const styles = StyleSheet.create({
         borderTopWidth: 0,
         borderBottomRightRadius: 8,
     },
+    // Info card with enhanced glassmorphism
+    infoCardWrapper: {
+        width: '100%',
+        shadowColor: '#0891B2',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.15,
+        shadowRadius: 20,
+        elevation: 10,
+        borderRadius: 24,
+    },
     infoCardBlur: {
-        borderRadius: 20,
+        borderRadius: 24,
         overflow: 'hidden',
         width: '100%',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.6)',
+        borderWidth: 1.5,
+        borderColor: 'rgba(255, 255, 255, 0.7)',
+    },
+    glassHighlight: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 50,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
     },
     infoCard: {
-        padding: Spacing.lg,
-        backgroundColor: 'rgba(255, 255, 255, 0.3)',
+        padding: Spacing.xl,
+        backgroundColor: 'rgba(255, 255, 255, 0.25)',
         alignItems: 'center',
     },
     iconRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: Spacing.md,
+        marginBottom: Spacing.lg,
         width: '100%',
     },
+    iconContainerWrapper: {
+        marginRight: Spacing.md,
+        borderRadius: 16,
+        overflow: 'hidden',
+        shadowColor: '#0891B2',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    iconBlur: {
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.5)',
+    },
     iconContainer: {
-        width: 44,
-        height: 44,
-        borderRadius: 12,
-        backgroundColor: 'rgba(8, 145, 178, 0.12)',
+        width: 52,
+        height: 52,
+        borderRadius: 16,
+        backgroundColor: 'rgba(8, 145, 178, 0.15)',
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: Spacing.md,
     },
     titleContainer: {
         flex: 1,
     },
     title: {
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: '700',
-        color: '#1E293B',
-        marginBottom: 2,
+        color: '#0F172A',
+        marginBottom: 4,
+        textShadowColor: 'rgba(255, 255, 255, 0.5)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
     },
     stageLabel: {
-        fontSize: 13,
-        color: '#64748B',
+        fontSize: 14,
+        color: '#475569',
+        fontWeight: '500',
     },
     progressSection: {
         width: '100%',
-        marginBottom: Spacing.md,
+        marginBottom: Spacing.lg,
     },
-    progressBarContainer: {
-        width: '100%',
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: 'rgba(8, 145, 178, 0.15)',
+    progressBarWrapper: {
+        borderRadius: 10,
         overflow: 'hidden',
         marginBottom: Spacing.sm,
     },
+    progressBarBlur: {
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.4)',
+    },
+    progressBarContainer: {
+        width: '100%',
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: 'rgba(8, 145, 178, 0.1)',
+        overflow: 'hidden',
+    },
     progressBar: {
         height: '100%',
-        borderRadius: 4,
+        borderRadius: 6,
     },
     progressShimmer: {
         position: 'absolute',
         top: 0,
         left: 0,
         height: '100%',
-        backgroundColor: 'rgba(255, 255, 255, 0.4)',
-        borderRadius: 4,
+        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+        borderRadius: 6,
     },
     progressInfo: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        alignItems: 'center',
         width: '100%',
     },
+    progressBadge: {
+        backgroundColor: 'rgba(8, 145, 178, 0.1)',
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(8, 145, 178, 0.2)',
+    },
     progressText: {
-        fontSize: 15,
-        fontWeight: '700',
+        fontSize: 16,
+        fontWeight: '800',
         color: '#0891B2',
     },
     timeText: {
-        fontSize: 13,
+        fontSize: 14,
         color: '#64748B',
+        fontWeight: '500',
     },
     stageIndicators: {
         flexDirection: 'row',
         gap: Spacing.sm,
-        marginBottom: Spacing.md,
+        marginBottom: Spacing.lg,
     },
     stageIndicator: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: 'rgba(8, 145, 178, 0.2)',
+        borderWidth: 1,
+        borderColor: 'rgba(8, 145, 178, 0.3)',
+    },
+    stageIndicatorActive: {
+        backgroundColor: '#0891B2',
+        borderColor: '#0891B2',
+        shadowColor: '#0891B2',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 4,
+        elevation: 3,
     },
     disclaimer: {
-        fontSize: 11,
+        fontSize: 12,
         color: '#64748B',
         textAlign: 'center',
-        lineHeight: 16,
+        lineHeight: 18,
+        fontWeight: '400',
     },
 });

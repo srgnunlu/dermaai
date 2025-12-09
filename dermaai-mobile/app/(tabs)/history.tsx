@@ -368,9 +368,15 @@ function CaseCard({
     language?: 'tr' | 'en';
     index: number;
 }) {
+    // Use selected provider's diagnosis for display
+    const selectedProvider = caseData.selectedAnalysisProvider || 'gemini';
+    const selectedDiagnoses = selectedProvider === 'openai'
+        ? caseData.openaiAnalysis?.diagnoses
+        : caseData.geminiAnalysis?.diagnoses;
+
     const topDiagnosis = caseData.finalDiagnoses?.[0] ||
-        caseData.geminiAnalysis?.diagnoses?.[0] ||
-        caseData.openaiAnalysis?.diagnoses?.[0];
+        selectedDiagnoses?.[0] ||
+        caseData.geminiAnalysis?.diagnoses?.[0];
 
     const createdDate = caseData.createdAt
         ? format(new Date(caseData.createdAt), 'dd MMM yyyy', { locale: language === 'tr' ? tr : enUS })

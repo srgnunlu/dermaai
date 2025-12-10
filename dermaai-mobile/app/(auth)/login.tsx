@@ -293,7 +293,7 @@ export default function LoginScreen() {
         {
             icon: Brain,
             title: language === 'tr' ? 'Akıllı AI Analizi' : 'Smart AI Analysis',
-            description: language === 'tr' ? 'Gemini & GPT ile kapsamlı tanı desteği' : 'Comprehensive diagnosis with Gemini & GPT',
+            description: language === 'tr' ? 'Gelişmiş yapay zeka ile dermatolojik analiz' : 'Advanced AI dermatological analysis',
         },
         {
             icon: FileText,
@@ -475,8 +475,8 @@ export default function LoginScreen() {
                     <BlurView intensity={40} tint="light" style={styles.disclaimerBlur}>
                         <Text style={styles.disclaimer}>
                             {language === 'tr'
-                                ? 'Sağlık profesyonelleri için tasarlanmıştır.\nDevam ederek şartları ve gizlilik politikasını kabul etmiş olursunuz.'
-                                : 'Designed for healthcare professionals.\nBy continuing, you agree to the terms and privacy policy.'}
+                                ? 'Devam ederek şartları ve gizlilik politikasını kabul etmiş olursunuz.'
+                                : 'By continuing, you agree to the terms and privacy policy.'}
                         </Text>
                     </BlurView>
                 </Animated.View>

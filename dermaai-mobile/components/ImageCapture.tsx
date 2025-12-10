@@ -295,7 +295,7 @@ export function ImageCapture({
 
         try {
             const result = await ImagePicker.launchCameraAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                mediaTypes: ['images'],
                 quality: IMAGE_QUALITY,
                 allowsEditing: true,
                 aspect: [4, 3],
@@ -324,7 +324,7 @@ export function ImageCapture({
 
         try {
             const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                mediaTypes: ['images'],
                 quality: IMAGE_QUALITY,
                 allowsMultipleSelection: true,
                 selectionLimit: maxImages - images.length,

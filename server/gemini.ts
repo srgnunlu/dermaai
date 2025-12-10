@@ -1,4 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
+import logger from './logger';
 
 type GeminiErrorInfo = {
   provider: 'gemini';
@@ -66,6 +67,7 @@ export async function analyzeWithGemini(
     }
 
     // Fetch and encode all images
+    logger.info(`[Gemini] Starting analysis with ${urlArray.length} image(s)`);
     const imageDataArray: { data: string; mimeType: string }[] = [];
 
     for (const imageUrl of urlArray) {
@@ -89,6 +91,8 @@ export async function analyzeWithGemini(
       const [metadata] = await file.getMetadata();
       const imageBase64 = Buffer.from(imageBuffer).toString('base64');
       const mimeType = metadata.contentType || 'image/jpeg';
+
+      logger.info(`[Gemini] Image processed: ${mimeType}, size: ${imageBuffer.length} bytes, base64 length: ${imageBase64.length}`);
 
       imageDataArray.push({ data: imageBase64, mimeType });
     }
@@ -224,6 +228,7 @@ QUALITY CHECKLIST (verify before responding):
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
+        logger.info(`[Gemini] API call attempt ${attempt + 1}/${maxRetries + 1}`);
         response = await ai.models.generateContent({
           model: 'gemini-3-pro-preview',
           config: {
@@ -257,6 +262,7 @@ QUALITY CHECKLIST (verify before responding):
           },
           contents: contents,
         });
+        logger.info(`[Gemini] API call successful on attempt ${attempt + 1}`);
         break;
       } catch (err: any) {
         const status = err?.status ?? err?.error?.status ?? err?.response?.status;
@@ -265,7 +271,7 @@ QUALITY CHECKLIST (verify before responding):
         const retryableStatuses = [429, 500, 503];
         if (retryableStatuses.includes(status) && attempt < maxRetries) {
           const delay = baseDelayMs * Math.pow(2, attempt);
-          console.warn(
+          logger.warn(
             `[Gemini] ${status || ''} ${code || ''} – retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`
           );
           await new Promise((resolve) => setTimeout(resolve, delay));
@@ -310,13 +316,15 @@ QUALITY CHECKLIST (verify before responding):
     const result = JSON.parse(rawJson);
     const diagnoses = result.diagnoses.slice(0, 5);
 
+    logger.info(`[Gemini] Analysis completed successfully with ${diagnoses.length} diagnoses in ${analysisTime.toFixed(1)}s`);
+
     return {
       diagnoses,
       analysisTime,
     };
   } catch (error: any) {
     if (error instanceof GeminiAnalysisError) {
-      console.error('Gemini analysis failed:', error.info);
+      logger.error('[Gemini] Analysis failed with GeminiAnalysisError:', error.info);
       throw error;
     }
 
@@ -332,7 +340,7 @@ QUALITY CHECKLIST (verify before responding):
       details: { raw: error },
     };
 
-    console.error('Gemini analysis failed:', mapped);
+    logger.error('[Gemini] Analysis failed with error:', mapped);
     throw new GeminiAnalysisError(mapped);
   }
 }

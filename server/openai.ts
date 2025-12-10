@@ -299,7 +299,7 @@ STRICT REQUIREMENTS:
           content: userContent,
         },
       ],
-      max_completion_tokens: 2000,
+      max_completion_tokens: 32000,
       response_format: { type: 'json_object' as const },
     };
 
@@ -418,7 +418,7 @@ STRICT REQUIREMENTS:
               content: singleImageContent,
             },
           ],
-          max_completion_tokens: 2000,
+          max_completion_tokens: 32000,
           response_format: { type: 'json_object' as const },
         });
         content = response.choices?.[0]?.message?.content ?? '';
@@ -480,7 +480,7 @@ STRICT REQUIREMENTS:
             content: fallbackContent,
           },
         ],
-        max_completion_tokens: 2000,
+        max_completion_tokens: 32000,
         response_format: { type: 'json_object' as const },
       });
       content = response.choices?.[0]?.message?.content ?? '';

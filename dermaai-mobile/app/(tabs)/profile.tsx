@@ -3,7 +3,7 @@
  * Premium glassmorphism design with user profile and statistics
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -35,6 +35,7 @@ import {
     TrendingUp,
     FileCheck,
     Camera,
+    Phone,
 } from 'lucide-react-native';
 import { Colors } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
@@ -63,6 +64,13 @@ export default function ProfileScreen() {
     // State for edit modal and photo upload
     const [isEditModalVisible, setIsEditModalVisible] = useState(false);
     const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+    // Refetch user data when edit modal closes to ensure UI updates
+    useEffect(() => {
+        if (!isEditModalVisible) {
+            refetch();
+        }
+    }, [isEditModalVisible]);
 
     const handleLogout = () => {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -312,7 +320,9 @@ export default function ProfileScreen() {
                                     <Text style={styles.roleBadgeText}>
                                         {user.role === 'admin'
                                             ? (language === 'tr' ? '👨‍⚕️ Yönetici' : '👨‍⚕️ Admin')
-                                            : (language === 'tr' ? '🩺 Doktor' : '🩺 Doctor')}
+                                            : user.isHealthProfessional
+                                                ? (language === 'tr' ? '🩺 Doktor' : '🩺 Doctor')
+                                                : (language === 'tr' ? '👤 Kullanıcı' : '👤 User')}
                                     </Text>
                                 </View>
                             </View>
@@ -349,43 +359,59 @@ export default function ProfileScreen() {
                         </View>
                     </View>
 
-                    {/* Professional Info Card */}
-                    <View style={styles.sectionWrapper}>
-                        <Text style={styles.sectionTitle}>
-                            {language === 'tr' ? '🏥 Profesyonel Bilgiler' : '🏥 Professional Info'}
-                        </Text>
-                        <View style={styles.infoCardWrapper}>
-                            <BlurView intensity={60} tint="light" style={styles.infoCardBlur}>
-                                <View style={styles.infoCard}>
-                                    <InfoRow
-                                        icon={<Building2 size={18} color="#0891B2" />}
-                                        label={language === 'tr' ? 'Kurum' : 'Institution'}
-                                        value={user.hospital || (language === 'tr' ? 'Belirtilmedi' : 'Not specified')}
-                                    />
-                                    <View style={styles.infoDivider} />
-                                    <InfoRow
-                                        icon={<Award size={18} color="#0891B2" />}
-                                        label={language === 'tr' ? 'Uzmanlık' : 'Specialty'}
-                                        value={user.specialization || (language === 'tr' ? 'Belirtilmedi' : 'Not specified')}
-                                    />
-                                    <View style={styles.infoDivider} />
-                                    <InfoRow
-                                        icon={<Shield size={18} color="#0891B2" />}
-                                        label={language === 'tr' ? 'Lisans No' : 'License No'}
-                                        value={user.medicalLicenseNumber || (language === 'tr' ? 'Belirtilmedi' : 'Not specified')}
-                                    />
-                                    <View style={styles.infoDivider} />
-                                    <InfoRow
-                                        icon={<Calendar size={18} color="#0891B2" />}
-                                        label={language === 'tr' ? 'Deneyim' : 'Experience'}
-                                        value={user.yearsOfExperience
-                                            ? `${user.yearsOfExperience} ${language === 'tr' ? 'yıl' : 'years'}`
-                                            : (language === 'tr' ? 'Belirtilmedi' : 'Not specified')}
-                                    />
-                                </View>
-                            </BlurView>
+                    {/* Professional Info Card - Only for healthcare professionals */}
+                    {user.isHealthProfessional && (
+                        <View style={styles.sectionWrapper}>
+                            <Text style={styles.sectionTitle}>
+                                {language === 'tr' ? '🏥 Profesyonel Bilgiler' : '🏥 Professional Info'}
+                            </Text>
+                            <View style={styles.infoCardWrapper}>
+                                <BlurView intensity={60} tint="light" style={styles.infoCardBlur}>
+                                    <View style={styles.infoCard}>
+                                        <InfoRow
+                                            icon={<Building2 size={18} color="#0891B2" />}
+                                            label={language === 'tr' ? 'Kurum' : 'Institution'}
+                                            value={user.hospital || (language === 'tr' ? 'Belirtilmedi' : 'Not specified')}
+                                        />
+                                        <View style={styles.infoDivider} />
+                                        <InfoRow
+                                            icon={<Award size={18} color="#0891B2" />}
+                                            label={language === 'tr' ? 'Uzmanlık' : 'Specialty'}
+                                            value={user.specialization || (language === 'tr' ? 'Belirtilmedi' : 'Not specified')}
+                                        />
+                                        <View style={styles.infoDivider} />
+                                        <InfoRow
+                                            icon={<Calendar size={18} color="#0891B2" />}
+                                            label={language === 'tr' ? 'Deneyim' : 'Experience'}
+                                            value={user.yearsOfExperience
+                                                ? `${user.yearsOfExperience} ${language === 'tr' ? 'yıl' : 'years'}`
+                                                : (language === 'tr' ? 'Belirtilmedi' : 'Not specified')}
+                                        />
+                                    </View>
+                                </BlurView>
+                            </View>
                         </View>
-                    </View>
+                    )}
+
+                    {/* Personal Info Card - Only for general users */}
+                    {!user.isHealthProfessional && (
+                        <View style={styles.sectionWrapper}>
+                            <Text style={styles.sectionTitle}>
+                                {language === 'tr' ? '👤 Kişisel Bilgiler' : '👤 Personal Info'}
+                            </Text>
+                            <View style={styles.infoCardWrapper}>
+                                <BlurView intensity={60} tint="light" style={styles.infoCardBlur}>
+                                    <View style={styles.infoCard}>
+                                        <InfoRow
+                                            icon={<Phone size={18} color="#0891B2" />}
+                                            label={language === 'tr' ? 'Telefon' : 'Phone'}
+                                            value={user.phoneNumber || (language === 'tr' ? 'Belirtilmedi' : 'Not specified')}
+                                        />
+                                    </View>
+                                </BlurView>
+                            </View>
+                        </View>
+                    )}
 
                     {/* Quick Actions Card */}
                     <View style={styles.sectionWrapper}>
@@ -438,6 +464,7 @@ export default function ProfileScreen() {
                 <EditProfileModal
                     visible={isEditModalVisible}
                     onClose={() => setIsEditModalVisible(false)}
+                    isHealthProfessional={user.isHealthProfessional === true}
                 />
             </SafeAreaView>
         </ImageBackground>

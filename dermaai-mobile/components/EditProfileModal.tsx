@@ -19,7 +19,7 @@ import {
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
-import { X, Save, User, Phone, Award, Building2, Calendar, Shield } from 'lucide-react-native';
+import { X, Save, User, Phone, Award, Building2, Calendar } from 'lucide-react-native';
 import { Spacing } from '@/constants/Spacing';
 import { Translations } from '@/constants/Translations';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -29,18 +29,18 @@ import type { UpdateProfileData } from '@/types/schema';
 interface EditProfileModalProps {
     visible: boolean;
     onClose: () => void;
+    isHealthProfessional: boolean;
 }
 
-export default function EditProfileModal({ visible, onClose }: EditProfileModalProps) {
+export default function EditProfileModal({ visible, onClose, isHealthProfessional }: EditProfileModalProps) {
     const { language } = useLanguage();
-    const { user, updateProfile, isUpdatingProfile } = useAuth();
+    const { user, updateProfile, isUpdatingProfile, refetch } = useAuth();
 
     // Form state
     const [formData, setFormData] = useState<UpdateProfileData>({
         firstName: '',
         lastName: '',
         phoneNumber: '',
-        medicalLicenseNumber: '',
         specialization: '',
         hospital: '',
         yearsOfExperience: null,
@@ -53,7 +53,6 @@ export default function EditProfileModal({ visible, onClose }: EditProfileModalP
                 firstName: user.firstName || '',
                 lastName: user.lastName || '',
                 phoneNumber: user.phoneNumber || '',
-                medicalLicenseNumber: user.medicalLicenseNumber || '',
                 specialization: user.specialization || '',
                 hospital: user.hospital || '',
                 yearsOfExperience: user.yearsOfExperience,
@@ -70,13 +69,15 @@ export default function EditProfileModal({ visible, onClose }: EditProfileModalP
                 firstName: formData.firstName?.trim() || null,
                 lastName: formData.lastName?.trim() || null,
                 phoneNumber: formData.phoneNumber?.trim() || null,
-                medicalLicenseNumber: formData.medicalLicenseNumber?.trim() || null,
                 specialization: formData.specialization?.trim() || null,
                 hospital: formData.hospital?.trim() || null,
                 yearsOfExperience: formData.yearsOfExperience,
             };
 
             await updateProfile(cleanedData);
+
+            // Refetch to ensure UI shows updated data
+            await refetch();
 
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             Alert.alert(
@@ -184,49 +185,43 @@ export default function EditProfileModal({ visible, onClose }: EditProfileModalP
                         </View>
                     </View>
 
-                    {/* Professional Information Section */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>
-                            🏥 {Translations.professionalInfoTitle[language]}
-                        </Text>
-                        <View style={styles.card}>
-                            <FormField
-                                icon={<Shield size={18} color="#0891B2" />}
-                                label={Translations.medicalLicenseNumber[language]}
-                                value={formData.medicalLicenseNumber as string}
-                                onChangeText={(text) => updateField('medicalLicenseNumber', text)}
-                                placeholder={language === 'tr' ? 'Lisans numaranız' : 'Your license number'}
-                            />
-                            <View style={styles.fieldDivider} />
-                            <FormField
-                                icon={<Award size={18} color="#0891B2" />}
-                                label={Translations.specialization[language]}
-                                value={formData.specialization as string}
-                                onChangeText={(text) => updateField('specialization', text)}
-                                placeholder={language === 'tr' ? 'Örn: Dermatoloji' : 'e.g. Dermatology'}
-                            />
-                            <View style={styles.fieldDivider} />
-                            <FormField
-                                icon={<Building2 size={18} color="#0891B2" />}
-                                label={Translations.hospitalInstitution[language]}
-                                value={formData.hospital as string}
-                                onChangeText={(text) => updateField('hospital', text)}
-                                placeholder={language === 'tr' ? 'Çalıştığınız kurum' : 'Your workplace'}
-                            />
-                            <View style={styles.fieldDivider} />
-                            <FormField
-                                icon={<Calendar size={18} color="#0891B2" />}
-                                label={Translations.yearsOfExperience[language]}
-                                value={formData.yearsOfExperience?.toString() || ''}
-                                onChangeText={(text) => {
-                                    const num = parseInt(text, 10);
-                                    updateField('yearsOfExperience', isNaN(num) ? null : num);
-                                }}
-                                placeholder={language === 'tr' ? 'Örn: 5' : 'e.g. 5'}
-                                keyboardType="number-pad"
-                            />
+                    {/* Professional Information Section - Only for healthcare professionals */}
+                    {isHealthProfessional && (
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>
+                                🏥 {Translations.professionalInfoTitle[language]}
+                            </Text>
+                            <View style={styles.card}>
+                                <FormField
+                                    icon={<Award size={18} color="#0891B2" />}
+                                    label={Translations.specialization[language]}
+                                    value={formData.specialization as string}
+                                    onChangeText={(text) => updateField('specialization', text)}
+                                    placeholder={language === 'tr' ? 'Örn: Dermatoloji' : 'e.g. Dermatology'}
+                                />
+                                <View style={styles.fieldDivider} />
+                                <FormField
+                                    icon={<Building2 size={18} color="#0891B2" />}
+                                    label={Translations.hospitalInstitution[language]}
+                                    value={formData.hospital as string}
+                                    onChangeText={(text) => updateField('hospital', text)}
+                                    placeholder={language === 'tr' ? 'Çalıştığınız kurum' : 'Your workplace'}
+                                />
+                                <View style={styles.fieldDivider} />
+                                <FormField
+                                    icon={<Calendar size={18} color="#0891B2" />}
+                                    label={Translations.yearsOfExperience[language]}
+                                    value={formData.yearsOfExperience?.toString() || ''}
+                                    onChangeText={(text) => {
+                                        const num = parseInt(text, 10);
+                                        updateField('yearsOfExperience', isNaN(num) ? null : num);
+                                    }}
+                                    placeholder={language === 'tr' ? 'Örn: 5' : 'e.g. 5'}
+                                    keyboardType="number-pad"
+                                />
+                            </View>
                         </View>
-                    </View>
+                    )}
                 </ScrollView>
             </KeyboardAvoidingView>
         </Modal>

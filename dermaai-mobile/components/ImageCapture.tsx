@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import * as Haptics from 'expo-haptics';
 import { Camera, ImageIcon, X, Info, ZoomIn, Sparkles } from 'lucide-react-native';
 import { Colors, Gradients, Glow } from '@/constants/Colors';
@@ -27,6 +28,9 @@ import { Duration } from '@/constants/Animations';
 import { useColorScheme } from '@/components/useColorScheme';
 import { Card, CardHeader, CardContent } from '@/components/ui';
 import { MAX_IMAGES, IMAGE_QUALITY } from '@/constants/Config';
+
+// Max image dimension for AI analysis (maintains quality while reducing size)
+const MAX_IMAGE_DIMENSION = 1920;
 
 interface ImageCaptureProps {
     images: string[];
@@ -235,6 +239,22 @@ export function ImageCapture({
     const gradients = Gradients[colorScheme];
     const [previewImage, setPreviewImage] = useState<string | null>(null);
 
+    // Optimize image: resize to max 1920x1920 while maintaining aspect ratio
+    const optimizeImage = async (uri: string): Promise<string> => {
+        try {
+            // Get image info to determine if resize is needed
+            const manipResult = await ImageManipulator.manipulateAsync(
+                uri,
+                [{ resize: { width: MAX_IMAGE_DIMENSION, height: MAX_IMAGE_DIMENSION } }],
+                { compress: IMAGE_QUALITY, format: ImageManipulator.SaveFormat.JPEG }
+            );
+            return manipResult.uri;
+        } catch (error) {
+            console.warn('Image optimization failed, using original:', error);
+            return uri; // Fallback to original if optimization fails
+        }
+    };
+
     // Request camera permissions
     const requestCameraPermission = async () => {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -283,7 +303,8 @@ export function ImageCapture({
 
             if (!result.canceled && result.assets[0]) {
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                onImagesChange([...images, result.assets[0].uri]);
+                const optimizedUri = await optimizeImage(result.assets[0].uri);
+                onImagesChange([...images, optimizedUri]);
             }
         } catch (error) {
             console.error('Camera error:', error);
@@ -311,8 +332,11 @@ export function ImageCapture({
 
             if (!result.canceled && result.assets.length > 0) {
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                const newImages = result.assets.map(asset => asset.uri);
-                onImagesChange([...images, ...newImages].slice(0, maxImages));
+                // Optimize all selected images
+                const optimizedImages = await Promise.all(
+                    result.assets.map(asset => optimizeImage(asset.uri))
+                );
+                onImagesChange([...images, ...optimizedImages].slice(0, maxImages));
             }
         } catch (error) {
             console.error('Gallery error:', error);

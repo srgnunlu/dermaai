@@ -326,19 +326,8 @@ export function WelcomeStep({
         onStart();
     };
 
-    // Demo recent scans if empty
-    const demoScans = language === 'tr'
-        ? [
-            { id: '1', date: 'Eki 15' },
-            { id: '2', date: 'Eki 12' },
-            { id: '3', date: 'Eki 12' },
-        ]
-        : [
-            { id: '1', date: 'Oct 15' },
-            { id: '2', date: 'Oct 12' },
-            { id: '3', date: 'Oct 12' },
-        ];
-    const displayScans = recentScans.length > 0 ? recentScans : demoScans;
+    // Check if user has real scans
+    const hasRealScans = recentScans.length > 0;
 
     return (
         <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
@@ -479,21 +468,39 @@ export function WelcomeStep({
                     <Text style={[styles.sectionTitle, { color: colors.text }]}>
                         {Translations.recentScans[language]}
                     </Text>
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.scansScrollContent}
-                    >
-                        {displayScans.map((scan, index) => (
-                            <RecentScanCard
-                                key={scan.id}
-                                scan={scan}
-                                index={index}
-                                colors={colors}
-                                onPress={() => onScanPress?.(scan.id)}
-                            />
-                        ))}
-                    </ScrollView>
+                    {hasRealScans ? (
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.scansScrollContent}
+                        >
+                            {recentScans.map((scan, index) => (
+                                <RecentScanCard
+                                    key={scan.id}
+                                    scan={scan}
+                                    index={index}
+                                    colors={colors}
+                                    onPress={() => onScanPress?.(scan.id)}
+                                />
+                            ))}
+                        </ScrollView>
+                    ) : (
+                        <View style={styles.emptyStateWrapper}>
+                            <BlurView intensity={60} tint="light" style={styles.emptyStateBlur}>
+                                <View style={styles.emptyStateCard}>
+                                    <View style={styles.emptyStateIconContainer}>
+                                        <Camera size={32} color="#0891B2" strokeWidth={2} />
+                                    </View>
+                                    <Text style={styles.emptyStateTitle}>
+                                        {Translations.noScansYet[language]}
+                                    </Text>
+                                    <Text style={styles.emptyStateSubtitle}>
+                                        {Translations.startFirstScan[language]}
+                                    </Text>
+                                </View>
+                            </BlurView>
+                        </View>
+                    )}
                 </View>
 
                 {/* Daily Skin Tip */}
@@ -801,5 +808,48 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         lineHeight: 20,
         color: '#334155',
+    },
+    // Empty State Styles
+    emptyStateWrapper: {
+        borderRadius: 20,
+        overflow: 'hidden',
+        shadowColor: '#0891B2',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
+        elevation: 5,
+    },
+    emptyStateBlur: {
+        borderRadius: 20,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.5)',
+    },
+    emptyStateCard: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: Spacing['2xl'],
+        paddingHorizontal: Spacing.xl,
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    },
+    emptyStateIconContainer: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(8, 145, 178, 0.12)',
+        marginBottom: Spacing.md,
+    },
+    emptyStateTitle: {
+        fontSize: 17,
+        fontWeight: '600',
+        color: '#1A5F5A',
+        marginBottom: 4,
+    },
+    emptyStateSubtitle: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: '#64748B',
     },
 });

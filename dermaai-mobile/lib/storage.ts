@@ -107,3 +107,26 @@ export async function getTheme(): Promise<'light' | 'dark' | 'system' | null> {
     }
     return null;
 }
+
+/**
+ * Check if tutorial has been shown for a specific user
+ * @param userId - The user's unique ID. If not provided, falls back to device-level check.
+ */
+export async function hasTutorialBeenShown(userId?: string): Promise<boolean> {
+    const key = userId
+        ? `${STORAGE_KEYS.TUTORIAL_SHOWN}_${userId}`
+        : STORAGE_KEYS.TUTORIAL_SHOWN;
+    const value = await storage.getItem(key);
+    return value === 'true';
+}
+
+/**
+ * Mark tutorial as shown for a specific user
+ * @param userId - The user's unique ID. If not provided, falls back to device-level storage.
+ */
+export async function markTutorialAsShown(userId?: string): Promise<void> {
+    const key = userId
+        ? `${STORAGE_KEYS.TUTORIAL_SHOWN}_${userId}`
+        : STORAGE_KEYS.TUTORIAL_SHOWN;
+    await storage.setItem(key, 'true');
+}

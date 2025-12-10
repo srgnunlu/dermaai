@@ -3,10 +3,11 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import 'react-native-reanimated';
 import { QueryClientProvider } from '@tanstack/react-query';
+import { Asset } from 'expo-asset';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { queryClient } from '@/lib/queryClient';
@@ -27,24 +28,44 @@ export const unstable_settings = {
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
+// Preload images at app startup
+async function preloadAssets() {
+  const imageAssets = Asset.loadAsync([
+    require('../assets/images/home-bg.png'),
+  ]);
+  return imageAssets;
+}
+
 export default function RootLayout() {
-  const [loaded, error] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     ...FontAwesome.font,
   });
+  const [assetsLoaded, setAssetsLoaded] = useState(false);
+
+  // Preload assets on mount
+  useEffect(() => {
+    preloadAssets()
+      .then(() => setAssetsLoaded(true))
+      .catch((err) => {
+        console.warn('Failed to preload assets:', err);
+        setAssetsLoaded(true); // Continue anyway
+      });
+  }, []);
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
-    if (error) throw error;
-  }, [error]);
+    if (fontError) throw fontError;
+  }, [fontError]);
 
+  // Hide splash screen when both fonts and assets are loaded
   useEffect(() => {
-    if (loaded) {
+    if (fontsLoaded && assetsLoaded) {
       SplashScreen.hideAsync();
     }
-  }, [loaded]);
+  }, [fontsLoaded, assetsLoaded]);
 
-  if (!loaded) {
+  if (!fontsLoaded || !assetsLoaded) {
     return null;
   }
 

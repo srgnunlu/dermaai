@@ -503,7 +503,7 @@ function DiagnosisCard({
                             <Text style={styles.featuresSectionTitle}>
                                 {language === 'tr' ? 'Temel Özellikler' : 'Key Features'}
                             </Text>
-                            {diagnosis.keyFeatures.slice(0, 3).map((feature, index) => (
+                            {diagnosis.keyFeatures.slice(0, 4).map((feature, index) => (
                                 <View key={index} style={styles.featureRow}>
                                     <View style={styles.featureDot} />
                                     <Text style={styles.featureItem}>{feature}</Text>
@@ -518,7 +518,7 @@ function DiagnosisCard({
                             <Text style={styles.featuresSectionTitle}>
                                 {Translations.recommendations[language]}
                             </Text>
-                            {diagnosis.recommendations.slice(0, 3).map((rec, index) => (
+                            {diagnosis.recommendations.slice(0, 4).map((rec, index) => (
                                 <View key={index} style={styles.recommendationRow}>
                                     <ChevronRight size={14} color="#0891B2" />
                                     <Text style={styles.recommendationItem}>{rec}</Text>

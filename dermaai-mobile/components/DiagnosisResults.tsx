@@ -39,6 +39,9 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui';
 import { api } from '@/lib/api';
+import { hasTutorialBeenShown } from '@/lib/storage';
+import { DiagnosisTutorial } from '@/components/DiagnosisTutorial';
+import { useAuth } from '@/hooks/useAuth';
 import type { AnalysisResponse, DiagnosisResult } from '@/types/schema';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -114,12 +117,27 @@ export function DiagnosisResults({
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
     const { language } = useLanguage();
+    const { user } = useAuth();
 
     const [activeIndex, setActiveIndex] = useState(0);
     const [activeProvider, setActiveProvider] = useState<'gemini' | 'openai'>('gemini');
     const [isSelecting, setIsSelecting] = useState(false);
     const [isSelected, setIsSelected] = useState(false);
+    const [showTutorial, setShowTutorial] = useState(false);
     const flatListRef = useRef<FlatList>(null);
+
+    // Check if tutorial should be shown (first-time user - now user-based)
+    useEffect(() => {
+        const checkTutorial = async () => {
+            // Use user ID for user-specific tutorial tracking
+            const hasBeenShown = await hasTutorialBeenShown(user?.id);
+            if (!hasBeenShown) {
+                // Small delay to let the UI render first
+                setTimeout(() => setShowTutorial(true), 500);
+            }
+        };
+        checkTutorial();
+    }, [user?.id]);
 
     // Get diagnoses based on active provider
     const geminiDiagnoses = caseData.geminiAnalysis?.diagnoses || [];
@@ -392,6 +410,15 @@ export function DiagnosisResults({
                     )}
                 </TouchableOpacity>
             </View>
+
+            {/* Onboarding Tutorial Overlay */}
+            {showTutorial && (
+                <DiagnosisTutorial
+                    language={language}
+                    userId={user?.id}
+                    onComplete={() => setShowTutorial(false)}
+                />
+            )}
         </ImageBackground>
     );
 }
@@ -493,7 +520,7 @@ function DiagnosisCard({
                                     <Text style={[styles.sectionTitle, { color: colors.text }]}>
                                         📋 {language === 'tr' ? 'Temel Özellikler' : 'Key Features'}
                                     </Text>
-                                    {diagnosis.keyFeatures.slice(0, 3).map((feature, idx) => (
+                                    {diagnosis.keyFeatures.slice(0, 4).map((feature, idx) => (
                                         <View key={idx} style={styles.featureRow}>
                                             <View style={[styles.featureDot, { backgroundColor: colors.primary }]} />
                                             <Text style={[styles.featureText, { color: colors.textSecondary }]}>
@@ -510,7 +537,7 @@ function DiagnosisCard({
                                     <Text style={[styles.sectionTitle, { color: '#0E7490' }]}>
                                         💡 {Translations.recommendations[language]}
                                     </Text>
-                                    {diagnosis.recommendations.slice(0, 3).map((rec, idx) => (
+                                    {diagnosis.recommendations.slice(0, 4).map((rec, idx) => (
                                         <Text key={idx} style={styles.recommendationText}>
                                             → {rec}
                                         </Text>

@@ -37,7 +37,7 @@ function TabBarIcon({
 export default function TabLayout() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  const { translateY, isVisible, showTabBarTemporarily } = useTabBarVisibility();
+  const { translateY, isVisible, isAnalyzing, showTabBarTemporarily } = useTabBarVisibility();
   const { language } = useLanguage();
 
   // Define explicit colors for better control
@@ -166,8 +166,8 @@ export default function TabLayout() {
         />
       </Tabs>
 
-      {/* Pull-up indicator when tab bar is hidden */}
-      {!isVisible && (
+      {/* Pull-up indicator when tab bar is hidden - hidden during analysis */}
+      {!isVisible && !isAnalyzing && (
         <TouchableOpacity
           style={styles.pullUpIndicator}
           onPress={showTabBarTemporarily}

@@ -7,6 +7,39 @@ import { api } from '@/lib/api';
 import { ANALYSIS_TIMEOUT } from '@/constants/Config';
 import type { Case, PatientData, AnalysisResponse, Patient } from '@/types/schema';
 
+// Retry helper with exponential backoff
+async function withRetry<T>(
+    fn: () => Promise<T>,
+    maxRetries: number = 3,
+    baseDelay: number = 1000
+): Promise<T> {
+    let lastError: Error | undefined;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+            return await fn();
+        } catch (error) {
+            lastError = error as Error;
+
+            // Check if it's a network error (retry-able)
+            const isNetworkError =
+                error instanceof TypeError &&
+                error.message.includes('Network request failed');
+
+            if (!isNetworkError || attempt === maxRetries - 1) {
+                throw error;
+            }
+
+            // Exponential backoff: 1s, 2s, 4s
+            const delay = baseDelay * Math.pow(2, attempt);
+            console.log(`[useCases] Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+
+    throw lastError;
+}
+
 export function useCases() {
     const queryClient = useQueryClient();
 
@@ -82,9 +115,13 @@ export function useAnalyzeCase() {
                         reader.readAsDataURL(blob);
                     });
 
-                    // Upload to server
+                    // Upload to server with retry logic for network resilience
                     const filename = `lesion-${Date.now()}-${i + 1}.jpg`;
-                    const uploadResult = await api.uploadImage(base64, filename);
+                    const uploadResult = await withRetry(
+                        () => api.uploadImage(base64, filename),
+                        3, // max retries
+                        1000 // base delay 1s
+                    );
                     uploadedUrls.push(uploadResult.url);
                 } catch (uploadError) {
                     console.error(`Failed to upload image ${i + 1}:`, uploadError);

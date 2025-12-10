@@ -77,7 +77,7 @@ export function DiagnosisWizard() {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
     const router = useRouter();
-    const { hideTabBar, showTabBar } = useTabBarVisibility();
+    const { hideTabBar, showTabBar, setIsAnalyzing: setTabBarAnalyzing } = useTabBarVisibility();
 
     const [state, setState] = useState<WizardState>(initialState);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -139,6 +139,7 @@ export function DiagnosisWizard() {
     // Handle analysis start
     const handleStartAnalysis = useCallback(async () => {
         setIsAnalyzing(true);
+        setTabBarAnalyzing(true); // Block tab bar interactions during analysis
 
         try {
             const patientData: PatientData = {
@@ -164,16 +165,18 @@ export function DiagnosisWizard() {
         } catch (error) {
             console.error('Analysis error:', error);
             setIsAnalyzing(false);
+            setTabBarAnalyzing(false); // Re-enable tab bar interactions
         }
-    }, [state, analyze]);
+    }, [state, analyze, setTabBarAnalyzing]);
 
     // Handle new analysis
     const handleNewAnalysis = useCallback(() => {
         setState(initialState);
         setIsAnalyzing(false);
+        setTabBarAnalyzing(false); // Re-enable tab bar interactions
         setAnalysisResult(null);
         setShowResults(false);
-    }, []);
+    }, [setTabBarAnalyzing]);
 
     const { user } = useAuth();
     const { cases } = useCases();

@@ -30,6 +30,7 @@ export const STORAGE_KEYS = {
     REFRESH_TOKEN: 'dermaai_refresh_token',
     USER_DATA: 'dermaai_user_data',
     THEME: 'dermaai_theme',
+    TUTORIAL_SHOWN: 'dermaai_tutorial_shown',
 } as const;
 
 // Symptom Options (from web app)

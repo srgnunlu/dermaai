@@ -8,11 +8,13 @@ import { Animated, Easing } from 'react-native';
 
 interface TabBarVisibilityContextType {
     isVisible: boolean;
+    isAnalyzing: boolean;
     translateY: Animated.Value;
     hideTabBar: () => void;
     showTabBar: () => void;
     toggleTabBar: () => void;
     showTabBarTemporarily: () => void;
+    setIsAnalyzing: (analyzing: boolean) => void;
 }
 
 const TabBarVisibilityContext = createContext<TabBarVisibilityContextType | undefined>(undefined);
@@ -20,6 +22,7 @@ const TabBarVisibilityContext = createContext<TabBarVisibilityContextType | unde
 export function TabBarVisibilityProvider({ children }: { children: React.ReactNode }) {
     const [isVisible, setIsVisible] = useState(true);
     const [isWizardActive, setIsWizardActive] = useState(false);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
     const translateY = useRef(new Animated.Value(0)).current;
     const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -56,7 +59,14 @@ export function TabBarVisibilityProvider({ children }: { children: React.ReactNo
     }, [translateY, clearHideTimer]);
 
     // Show tab bar temporarily (with auto-hide after 3 seconds)
+    // BLOCKED when isAnalyzing is true to prevent progress reset
     const showTabBarTemporarily = useCallback(() => {
+        // Block tab bar interactions during analysis
+        if (isAnalyzing) {
+            console.log('[TabBar] Blocked: Analysis in progress');
+            return;
+        }
+
         clearHideTimer();
         setIsVisible(true);
         Animated.spring(translateY, {
@@ -76,9 +86,15 @@ export function TabBarVisibilityProvider({ children }: { children: React.ReactNo
                 tension: 40,
             }).start();
         }, 3000);
-    }, [translateY, clearHideTimer]);
+    }, [translateY, clearHideTimer, isAnalyzing]);
 
     const toggleTabBar = useCallback(() => {
+        // Block tab bar interactions during analysis
+        if (isAnalyzing) {
+            console.log('[TabBar] Blocked: Analysis in progress');
+            return;
+        }
+
         if (isVisible) {
             hideTabBar();
         } else {
@@ -88,7 +104,7 @@ export function TabBarVisibilityProvider({ children }: { children: React.ReactNo
                 showTabBar();
             }
         }
-    }, [isVisible, isWizardActive, hideTabBar, showTabBar, showTabBarTemporarily]);
+    }, [isVisible, isWizardActive, isAnalyzing, hideTabBar, showTabBar, showTabBarTemporarily]);
 
     // Cleanup timer on unmount
     useEffect(() => {
@@ -101,11 +117,13 @@ export function TabBarVisibilityProvider({ children }: { children: React.ReactNo
         <TabBarVisibilityContext.Provider
             value={{
                 isVisible,
+                isAnalyzing,
                 translateY,
                 hideTabBar,
                 showTabBar,
                 toggleTabBar,
                 showTabBarTemporarily,
+                setIsAnalyzing,
             }}
         >
             {children}

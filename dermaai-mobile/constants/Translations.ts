@@ -660,6 +660,24 @@ export const Translations = {
     totalCases: { tr: 'Toplam Vaka', en: 'Total Cases' },
     completedCases: { tr: 'Tamamlanan', en: 'Completed' },
     possibleDiagnosis: { tr: 'Olası Tanı', en: 'Possible Diagnosis' },
+
+    // Onboarding Tutorial
+    tutorialSwipe: {
+        tr: 'Diğer tanıları görmek için kaydırın',
+        en: 'Swipe to see other diagnoses',
+    },
+    tutorialAlternativeAI: {
+        tr: 'Alternatif AI sonuçlarını görüntüleyin',
+        en: 'View alternative AI results',
+    },
+    tutorialConfirm: {
+        tr: 'Beğendiğiniz tanıyı buradan onaylayın',
+        en: 'Confirm your preferred diagnosis here',
+    },
+    tutorialSkip: {
+        tr: 'Atlamak için dokunun',
+        en: 'Tap to skip',
+    },
 } as const;
 
 // Dynamic value translations (for database values)

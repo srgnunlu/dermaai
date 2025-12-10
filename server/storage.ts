@@ -102,6 +102,13 @@ export interface IStorage {
   getAnalyticsUserActivity(): Promise<
     Array<{ userId: string; email: string; casesCount: number; lastActive: Date | null }>
   >;
+  getAnalyticsAISelectionStats(): Promise<{
+    gemini: number;
+    openai: number;
+    total: number;
+    geminiPercentage: number;
+    openaiPercentage: number;
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -519,10 +526,10 @@ export class DatabaseStorage implements IStorage {
         // Combine cases with user information
         const casesWithUsers = allCases.map((caseRecord) => {
           // Ensure imageUrls is always an array
-          const imageUrls = caseRecord.imageUrls && Array.isArray(caseRecord.imageUrls) 
-            ? caseRecord.imageUrls 
+          const imageUrls = caseRecord.imageUrls && Array.isArray(caseRecord.imageUrls)
+            ? caseRecord.imageUrls
             : [];
-          
+
           return {
             ...caseRecord,
             imageUrls: imageUrls, // Explicitly ensure it's set
@@ -990,6 +997,50 @@ export class DatabaseStorage implements IStorage {
           }))
           .sort((a, b) => b.casesCount - a.casesCount)
           .slice(0, 20); // Top 20 active users
+      },
+      300 // 5 minutes cache
+    );
+  }
+
+  // AI Selection Statistics
+  async getAnalyticsAISelectionStats(): Promise<{
+    gemini: number;
+    openai: number;
+    total: number;
+    geminiPercentage: number;
+    openaiPercentage: number;
+  }> {
+    return cache.cached(
+      'analytics:ai-selection-stats',
+      async () => {
+        const allCases = await db.select().from(cases);
+
+        // Count only completed cases where user has made an AI selection
+        const completedCases = allCases.filter(c => c.status === 'completed');
+
+        let geminiCount = 0;
+        let openaiCount = 0;
+
+        for (const caseRecord of completedCases) {
+          const provider = caseRecord.selectedAnalysisProvider;
+          if (provider === 'gemini') {
+            geminiCount++;
+          } else if (provider === 'openai') {
+            openaiCount++;
+          }
+        }
+
+        const total = geminiCount + openaiCount;
+        const geminiPercentage = total > 0 ? Math.round((geminiCount / total) * 100) : 0;
+        const openaiPercentage = total > 0 ? Math.round((openaiCount / total) * 100) : 0;
+
+        return {
+          gemini: geminiCount,
+          openai: openaiCount,
+          total,
+          geminiPercentage,
+          openaiPercentage,
+        };
       },
       300 // 5 minutes cache
     );

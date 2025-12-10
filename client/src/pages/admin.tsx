@@ -35,6 +35,7 @@ import {
   Shield,
   UserX,
   Trash2,
+  BarChart3,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -234,6 +235,24 @@ export default function AdminPage() {
     openaiAllowFallback?: boolean;
   }>({
     queryKey: ['/api/admin/system-settings'],
+  });
+
+  // AI Selection Statistics
+  const { data: aiSelectionStats, isLoading: aiSelectionLoading } = useQuery<{
+    gemini: number;
+    openai: number;
+    total: number;
+    geminiPercentage: number;
+    openaiPercentage: number;
+  }>({
+    queryKey: ['/api/admin/analytics/ai-selection'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/analytics/ai-selection', {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch AI selection stats');
+      return response.json();
+    },
   });
 
   const updateSystemSettingsMutation = useMutation({
@@ -1273,6 +1292,79 @@ export default function AdminPage() {
                   data-testid="switch-openai-fallback"
                 />
               </div>
+            </CardContent>
+          </Card>
+
+          {/* AI Selection Statistics Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-cyan-600" />
+                AI Selection Statistics
+              </CardTitle>
+              <CardDescription>
+                Track which AI provider users prefer when confirming diagnoses
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {aiSelectionLoading ? (
+                <div className="space-y-4">
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                </div>
+              ) : (
+                <>
+                  {/* Primary AI (Gemini) */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                          Primary AI (Gemini)
+                        </Badge>
+                      </div>
+                      <span className="text-sm font-medium">
+                        {aiSelectionStats?.gemini || 0} selections ({aiSelectionStats?.geminiPercentage || 0}%)
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-purple-500 to-purple-600 transition-all duration-500"
+                        style={{ width: `${aiSelectionStats?.geminiPercentage || 0}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Alternative AI (OpenAI) */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          Alternative AI (OpenAI)
+                        </Badge>
+                      </div>
+                      <span className="text-sm font-medium">
+                        {aiSelectionStats?.openai || 0} selections ({aiSelectionStats?.openaiPercentage || 0}%)
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
+                        style={{ width: `${aiSelectionStats?.openaiPercentage || 0}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Total Summary */}
+                  <div className="pt-4 border-t">
+                    <div className="flex justify-between items-center text-sm text-muted-foreground">
+                      <span>Total Confirmed Diagnoses</span>
+                      <span className="font-semibold text-foreground">
+                        {aiSelectionStats?.total || 0} cases
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

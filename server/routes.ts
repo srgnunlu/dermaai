@@ -1653,6 +1653,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Selection Statistics - Track which AI provider users prefer
+  app.get('/api/admin/analytics/ai-selection', requireAdmin, async (_req, res) => {
+    try {
+      const stats = await storage.getAnalyticsAISelectionStats();
+      res.json(stats);
+    } catch (error) {
+      logger.error('Error fetching AI selection stats:', error);
+      res.status(500).json({ error: 'Failed to fetch AI selection statistics' });
+    }
+  });
+
   // Bulk operations
   app.post('/api/admin/bulk/delete-cases', requireAdmin, async (req, res) => {
     try {

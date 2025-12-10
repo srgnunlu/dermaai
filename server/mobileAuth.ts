@@ -237,6 +237,14 @@ export function setupMobileAuth(app: Express) {
                     lastName: user.lastName,
                     profileImageUrl: user.profileImageUrl,
                     role: user.role,
+                    // Profile fields
+                    phoneNumber: user.phoneNumber,
+                    medicalLicenseNumber: user.medicalLicenseNumber,
+                    specialization: user.specialization,
+                    hospital: user.hospital,
+                    yearsOfExperience: user.yearsOfExperience,
+                    isHealthProfessional: user.isHealthProfessional ?? false,
+                    isProfileComplete: user.isProfileComplete ?? false,
                 },
             });
         } catch (error) {
@@ -257,6 +265,7 @@ export function setupMobileAuth(app: Express) {
                 return res.status(404).json({ error: 'User not found' });
             }
 
+            // Return all user fields including profile data
             res.json({
                 id: user.id,
                 email: user.email,
@@ -264,8 +273,16 @@ export function setupMobileAuth(app: Express) {
                 lastName: user.lastName,
                 profileImageUrl: user.profileImageUrl,
                 role: user.role,
+                // Profile fields
+                phoneNumber: user.phoneNumber,
+                medicalLicenseNumber: user.medicalLicenseNumber,
+                specialization: user.specialization,
+                hospital: user.hospital,
+                yearsOfExperience: user.yearsOfExperience,
                 isHealthProfessional: user.isHealthProfessional ?? false,
                 isProfileComplete: user.isProfileComplete ?? false,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt,
             });
         } catch (error) {
             logger.error('[MOBILE_AUTH] Get user error:', error);

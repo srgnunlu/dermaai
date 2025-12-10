@@ -627,6 +627,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Extract language preference from request (default: 'en' for web, mobile can send 'tr')
       const language = (req.body.language === 'tr' ? 'tr' : 'en') as 'tr' | 'en';
 
+      // Check if this is a mobile request and get user's health professional status
+      const isMobileRequest = req.body.isMobileRequest === true;
+      let isHealthProfessional = false;
+      if (isMobileRequest) {
+        const currentUser = await storage.getUser(userId);
+        isHealthProfessional = currentUser?.isHealthProfessional === true;
+      }
+
       // Read system settings to decide which models to run
       const sys = await storage.getSystemSettings();
       const runGemini = sys.enableGemini !== false;
@@ -643,6 +651,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             lesionLocation: caseData.lesionLocation || undefined,
             medicalHistory: (caseData.medicalHistory as string[]) || undefined,
             language,
+            isHealthProfessional,
+            isMobileRequest,
           })
         );
       }
@@ -655,6 +665,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               lesionLocation: caseData.lesionLocation || undefined,
               medicalHistory: (caseData.medicalHistory as string[]) || undefined,
               language,
+              isHealthProfessional,
+              isMobileRequest,
             },
             {
               model: sys.openaiModel || undefined,

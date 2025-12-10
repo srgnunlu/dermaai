@@ -147,6 +147,7 @@ export function useAnalyzeCase() {
                 symptomDuration: patientData.symptomDuration,
                 medicalHistory: patientData.medicalHistory,
                 language, // Pass language preference for AI analysis output
+                isMobileRequest: true, // Flag for personalized AI responses based on user type
             };
 
             // Use longer timeout for AI analysis (2 minutes)

@@ -38,6 +38,8 @@ interface AnalysisContext {
   lesionLocation?: string;
   medicalHistory?: string[];
   language?: 'tr' | 'en';
+  isHealthProfessional?: boolean;
+  isMobileRequest?: boolean;
 }
 
 export async function analyzeWithGemini(
@@ -107,7 +109,48 @@ ALL OUTPUT MUST BE IN TURKISH LANGUAGE.
 - Keep medical accuracy while using Turkish terms`
       : '';
 
-    const systemPrompt = `You are an expert dermatologist AI assistant specializing in differential diagnosis of skin lesions.${languageInstruction}
+    // Audience-aware instructions for mobile app personalization
+    // Web requests (isMobileRequest undefined/false) maintain default professional language
+    let audienceInstruction = '';
+    if (context.isMobileRequest) {
+      if (context.isHealthProfessional) {
+        audienceInstruction = context.language === 'tr'
+          ? `\n\nHEDEF KİTLE: Sağlık Profesyoneli
+Bu analiz, hastasının vakasını inceleyen bir sağlık çalışanı içindir.
+- Kesin tıbbi terminoloji kullanın
+- Ayırıcı tanı mantığını dahil edin
+- Tedavi seçenekleri ve reçete önerileri sunun
+- Uygun olduğunda klinik kılavuzlara referans verin
+- Önerilerde "hastanız" olarak hitap edin`
+          : `\n\nTARGET AUDIENCE: Health Professional
+This analysis is for a healthcare professional reviewing their patient's case.
+- Use precise medical terminology
+- Include differential diagnosis reasoning
+- Provide treatment options and prescription recommendations
+- Reference clinical guidelines where appropriate
+- Address the patient as "your patient" in recommendations`;
+      } else {
+        audienceInstruction = context.language === 'tr'
+          ? `\n\nHEDEF KİTLE: Genel Kullanıcı
+Bu analiz, kendi cilt durumunu inceleyen normal bir kullanıcı içindir.
+- Basit, anlaşılır bir dil kullanın
+- Karmaşık tıbbi terimlerden kaçının
+- Durumları halkın anlayacağı şekilde açıklayın
+- Kişisel bakım önerilerine odaklanın
+- Uygun olduğunda bir dermatoloğa danışmayı önerin
+- Önerilerde "size" veya "siz" olarak hitap edin`
+          : `\n\nTARGET AUDIENCE: General Public
+This analysis is for a regular person examining their own skin condition.
+- Use simple, easy-to-understand language
+- Avoid complex medical jargon
+- Explain conditions in layman's terms
+- Focus on self-care recommendations
+- Recommend consulting a dermatologist when appropriate
+- Address the user directly as "you" in recommendations`;
+      }
+    }
+
+    const systemPrompt = `You are an expert dermatologist AI assistant specializing in differential diagnosis of skin lesions.${languageInstruction}${audienceInstruction}
 
 CRITICAL INSTRUCTIONS:
 1. FIRST verify the image shows an actual skin lesion or dermatological condition

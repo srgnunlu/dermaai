@@ -1,6 +1,7 @@
 /**
  * Diagnosis Tutorial Overlay
  * A 3-step onboarding tutorial for first-time users on the AI diagnosis results page
+ * Enhanced with glassmorphism styling, modern animations, and tap-to-advance navigation
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -14,7 +15,8 @@ import {
     Easing,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { ChevronLeft, ChevronUp, CheckCircle } from 'lucide-react-native';
+import { ChevronUp, CheckCircle, Hand } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Translations } from '@/constants/Translations';
 import { Spacing } from '@/constants/Spacing';
 import { markTutorialAsShown } from '@/lib/storage';
@@ -29,34 +31,60 @@ interface DiagnosisTutorialProps {
 
 type TutorialStep = 'swipe' | 'alternativeAI' | 'confirm';
 
-// Animated Hand for Swipe Gesture
+const STEPS: TutorialStep[] = ['swipe', 'alternativeAI', 'confirm'];
+
+// Modern Animated Hand for Swipe Gesture
 function SwipeHand({ opacity }: { opacity: Animated.Value }) {
     const translateX = useRef(new Animated.Value(0)).current;
+    const handScale = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
         const animation = Animated.loop(
             Animated.sequence([
-                Animated.timing(translateX, {
-                    toValue: -60,
-                    duration: 800,
-                    easing: Easing.inOut(Easing.ease),
-                    useNativeDriver: true,
-                }),
+                Animated.parallel([
+                    Animated.timing(translateX, {
+                        toValue: -50,
+                        duration: 700,
+                        easing: Easing.inOut(Easing.ease),
+                        useNativeDriver: true,
+                    }),
+                    Animated.sequence([
+                        Animated.timing(handScale, {
+                            toValue: 0.9,
+                            duration: 350,
+                            useNativeDriver: true,
+                        }),
+                        Animated.timing(handScale, {
+                            toValue: 1,
+                            duration: 350,
+                            useNativeDriver: true,
+                        }),
+                    ]),
+                ]),
                 Animated.timing(translateX, {
                     toValue: 0,
-                    duration: 600,
+                    duration: 500,
                     easing: Easing.inOut(Easing.ease),
                     useNativeDriver: true,
                 }),
+                Animated.delay(300),
             ])
         );
         animation.start();
         return () => animation.stop();
-    }, [translateX]);
+    }, [translateX, handScale]);
 
     return (
-        <Animated.View style={[styles.handContainer, { opacity, transform: [{ translateX }] }]}>
-            <Text style={styles.handEmoji}>👆</Text>
+        <Animated.View style={[styles.handContainer, { opacity, transform: [{ translateX }, { scale: handScale }] }]}>
+            <View style={styles.handIconWrapper}>
+                <LinearGradient
+                    colors={['rgba(8, 145, 178, 0.3)', 'rgba(8, 145, 178, 0.1)']}
+                    style={styles.handGlow}
+                />
+                <View style={styles.handIcon}>
+                    <Hand size={36} color="#0891B2" strokeWidth={1.5} />
+                </View>
+            </View>
         </Animated.View>
     );
 }
@@ -71,7 +99,7 @@ function PulsingUpArrow({ opacity }: { opacity: Animated.Value }) {
             Animated.parallel([
                 Animated.sequence([
                     Animated.timing(scale, {
-                        toValue: 1.2,
+                        toValue: 1.15,
                         duration: 600,
                         easing: Easing.inOut(Easing.ease),
                         useNativeDriver: true,
@@ -106,6 +134,10 @@ function PulsingUpArrow({ opacity }: { opacity: Animated.Value }) {
     return (
         <Animated.View style={[styles.arrowContainer, { opacity, transform: [{ scale }, { translateY }] }]}>
             <View style={styles.arrowBubble}>
+                <LinearGradient
+                    colors={['rgba(255, 255, 255, 0.95)', 'rgba(255, 255, 255, 0.85)']}
+                    style={styles.arrowGradient}
+                />
                 <ChevronUp size={28} color="#0891B2" strokeWidth={3} />
             </View>
         </Animated.View>
@@ -164,56 +196,42 @@ function PulsingCircle({ opacity }: { opacity: Animated.Value }) {
     );
 }
 
+// Glassmorphism Tooltip Component
+function GlassTooltip({ text, opacity }: { text: string; opacity: Animated.Value }) {
+    return (
+        <Animated.View style={[styles.glassTooltip, { opacity }]}>
+            <BlurView intensity={40} tint="light" style={styles.tooltipBlur}>
+                <LinearGradient
+                    colors={['rgba(255, 255, 255, 0.7)', 'rgba(255, 255, 255, 0.4)']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.tooltipGradient}
+                >
+                    <View style={styles.tooltipGlassHighlight} />
+                    <Text style={styles.tutorialText}>{text}</Text>
+                </LinearGradient>
+            </BlurView>
+        </Animated.View>
+    );
+}
+
 export function DiagnosisTutorial({ language, userId, onComplete }: DiagnosisTutorialProps) {
     const [currentStep, setCurrentStep] = useState<TutorialStep>('swipe');
+    const [currentStepIndex, setCurrentStepIndex] = useState(0);
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const stepOpacity = useRef(new Animated.Value(1)).current;
 
-    // Auto-progress through steps
+    // Fade in on mount
     useEffect(() => {
-        // Fade in
         Animated.timing(fadeAnim, {
             toValue: 1,
             duration: 400,
             useNativeDriver: true,
         }).start();
-
-        const stepDuration = 4000;
-        const steps: TutorialStep[] = ['swipe', 'alternativeAI', 'confirm'];
-        let stepIndex = 0;
-
-        const progressTimer = setInterval(() => {
-            stepIndex++;
-            if (stepIndex >= steps.length) {
-                clearInterval(progressTimer);
-                handleComplete();
-            } else {
-                // Fade out current, change step, fade in new
-                Animated.sequence([
-                    Animated.timing(stepOpacity, {
-                        toValue: 0,
-                        duration: 200,
-                        useNativeDriver: true,
-                    }),
-                ]).start(() => {
-                    setCurrentStep(steps[stepIndex]);
-                    Animated.timing(stepOpacity, {
-                        toValue: 1,
-                        duration: 200,
-                        useNativeDriver: true,
-                    }).start();
-                });
-            }
-        }, stepDuration);
-
-        return () => clearInterval(progressTimer);
-    }, []);
+    }, [fadeAnim]);
 
     const handleComplete = async () => {
-        // Mark as shown in storage (user-specific)
         await markTutorialAsShown(userId);
-
-        // Fade out
         Animated.timing(fadeAnim, {
             toValue: 0,
             duration: 300,
@@ -223,8 +241,27 @@ export function DiagnosisTutorial({ language, userId, onComplete }: DiagnosisTut
         });
     };
 
-    const handleSkip = () => {
-        handleComplete();
+    const handleTap = () => {
+        const nextIndex = currentStepIndex + 1;
+
+        if (nextIndex >= STEPS.length) {
+            handleComplete();
+        } else {
+            // Fade out current, change step, fade in new
+            Animated.timing(stepOpacity, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: true,
+            }).start(() => {
+                setCurrentStepIndex(nextIndex);
+                setCurrentStep(STEPS[nextIndex]);
+                Animated.timing(stepOpacity, {
+                    toValue: 1,
+                    duration: 200,
+                    useNativeDriver: true,
+                }).start();
+            });
+        }
     };
 
     const getStepContent = () => {
@@ -250,17 +287,16 @@ export function DiagnosisTutorial({ language, userId, onComplete }: DiagnosisTut
     const stepContent = getStepContent();
 
     return (
-        <TouchableWithoutFeedback onPress={handleSkip}>
+        <TouchableWithoutFeedback onPress={handleTap}>
             <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
+                {/* Spotlight overlay effect */}
+                <View style={styles.spotlightOverlay} />
+
                 {/* Step 1: Swipe Animation - Center of screen */}
                 {currentStep === 'swipe' && (
                     <View style={styles.swipeStep}>
                         <SwipeHand opacity={stepOpacity} />
-                        <Animated.View style={[styles.textBox, { opacity: stepOpacity }]}>
-                            <BlurView intensity={80} tint="light" style={styles.textBlur}>
-                                <Text style={styles.tutorialText}>{stepContent.text}</Text>
-                            </BlurView>
-                        </Animated.View>
+                        <GlassTooltip text={stepContent.text} opacity={stepOpacity} />
                     </View>
                 )}
 
@@ -268,9 +304,7 @@ export function DiagnosisTutorial({ language, userId, onComplete }: DiagnosisTut
                 {currentStep === 'alternativeAI' && (
                     <View style={styles.alternativeStep}>
                         <Animated.View style={[styles.textBoxTop, { opacity: stepOpacity }]}>
-                            <BlurView intensity={80} tint="light" style={styles.textBlur}>
-                                <Text style={styles.tutorialText}>{stepContent.text}</Text>
-                            </BlurView>
+                            <GlassTooltip text={stepContent.text} opacity={stepOpacity} />
                         </Animated.View>
                         <View style={styles.arrowWrapper}>
                             <PulsingUpArrow opacity={stepOpacity} />
@@ -285,29 +319,39 @@ export function DiagnosisTutorial({ language, userId, onComplete }: DiagnosisTut
                             <PulsingCircle opacity={stepOpacity} />
                         </View>
                         <Animated.View style={[styles.textBoxBottom, { opacity: stepOpacity }]}>
-                            <BlurView intensity={80} tint="light" style={styles.textBlur}>
-                                <Text style={styles.tutorialText}>{stepContent.text}</Text>
-                            </BlurView>
+                            <GlassTooltip text={stepContent.text} opacity={stepOpacity} />
                         </Animated.View>
                     </View>
                 )}
 
-                {/* Skip hint */}
+                {/* Tap to continue hint */}
                 <Animated.View style={[styles.skipHint, { opacity: fadeAnim }]}>
-                    <Text style={styles.skipText}>{Translations.tutorialSkip[language]}</Text>
+                    <BlurView intensity={30} tint="dark" style={styles.skipHintBlur}>
+                        <Text style={styles.skipText}>{Translations.tutorialTapToContinue[language]}</Text>
+                    </BlurView>
                 </Animated.View>
 
-                {/* Progress dots */}
-                <View style={styles.progressDots}>
-                    {['swipe', 'alternativeAI', 'confirm'].map((step, index) => (
-                        <View
-                            key={step}
-                            style={[
-                                styles.progressDot,
-                                currentStep === step && styles.progressDotActive,
-                            ]}
-                        />
-                    ))}
+                {/* Enhanced Progress dots with step indicator */}
+                <View style={styles.progressContainer}>
+                    <View style={styles.progressDots}>
+                        {STEPS.map((step, index) => (
+                            <View
+                                key={step}
+                                style={[
+                                    styles.progressDot,
+                                    currentStepIndex === index && styles.progressDotActive,
+                                    currentStepIndex > index && styles.progressDotCompleted,
+                                ]}
+                            >
+                                {currentStepIndex === index && (
+                                    <View style={styles.progressDotInner} />
+                                )}
+                            </View>
+                        ))}
+                    </View>
+                    <Text style={styles.stepIndicator}>
+                        {currentStepIndex + 1}/{STEPS.length}
+                    </Text>
                 </View>
             </Animated.View>
         </TouchableWithoutFeedback>
@@ -317,8 +361,13 @@ export function DiagnosisTutorial({ language, userId, onComplete }: DiagnosisTut
 const styles = StyleSheet.create({
     overlay: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0, 0, 0, 0.35)',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
         zIndex: 1000,
+    },
+
+    spotlightOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'transparent',
     },
 
     // Swipe step
@@ -329,11 +378,71 @@ const styles = StyleSheet.create({
         paddingBottom: 100,
     },
     handContainer: {
-        marginBottom: 20,
+        marginBottom: 24,
     },
-    handEmoji: {
-        fontSize: 64,
-        transform: [{ rotate: '-30deg' }],
+    handIconWrapper: {
+        width: 80,
+        height: 80,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    handGlow: {
+        position: 'absolute',
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+    },
+    handIcon: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#0891B2',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 12,
+        elevation: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.8)',
+    },
+
+    // Glass Tooltip
+    glassTooltip: {
+        marginHorizontal: Spacing.xl,
+        borderRadius: 20,
+        overflow: 'hidden',
+    },
+    tooltipBlur: {
+        borderRadius: 20,
+        overflow: 'hidden',
+    },
+    tooltipGradient: {
+        padding: Spacing.lg,
+        borderRadius: 20,
+        borderWidth: 1.5,
+        borderColor: 'rgba(255, 255, 255, 0.6)',
+        position: 'relative',
+        overflow: 'hidden',
+    },
+    tooltipGlassHighlight: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '50%',
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+    },
+    tutorialText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#0F172A',
+        textAlign: 'center',
+        lineHeight: 24,
+        letterSpacing: 0.3,
     },
 
     // Alternative AI step
@@ -343,22 +452,34 @@ const styles = StyleSheet.create({
     },
     arrowWrapper: {
         position: 'absolute',
-        top: 100,
-        right: SCREEN_WIDTH * 0.18,
+        top: 145,
+        right: SCREEN_WIDTH * 0.22,
     },
     arrowContainer: {},
     arrowBubble: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        width: 54,
+        height: 54,
+        borderRadius: 27,
         alignItems: 'center',
         justifyContent: 'center',
         shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 5,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.35,
+        shadowRadius: 12,
+        elevation: 8,
+        borderWidth: 1.5,
+        borderColor: 'rgba(255, 255, 255, 0.8)',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        overflow: 'hidden',
+    },
+    arrowGradient: {
+        ...StyleSheet.absoluteFillObject,
+        borderRadius: 27,
+    },
+    textBoxTop: {
+        position: 'absolute',
+        top: 210,
+        alignSelf: 'center',
     },
 
     // Confirm step
@@ -377,90 +498,94 @@ const styles = StyleSheet.create({
     },
     pulsingRing: {
         position: 'absolute',
-        width: 56,
-        height: 56,
-        borderRadius: 28,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
         borderWidth: 3,
         borderColor: '#0891B2',
     },
     confirmIcon: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
+        width: 52,
+        height: 52,
+        borderRadius: 26,
         backgroundColor: 'rgba(255, 255, 255, 0.95)',
         alignItems: 'center',
         justifyContent: 'center',
         shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 5,
-    },
-
-    // Text boxes
-    textBox: {
-        marginHorizontal: Spacing.xl,
-        borderRadius: 16,
-        overflow: 'hidden',
-    },
-    textBoxTop: {
-        position: 'absolute',
-        top: 160,
-        marginHorizontal: Spacing.xl,
-        borderRadius: 16,
-        overflow: 'hidden',
-        alignSelf: 'center',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.35,
+        shadowRadius: 12,
+        elevation: 8,
+        borderWidth: 1.5,
+        borderColor: 'rgba(255, 255, 255, 0.8)',
     },
     textBoxBottom: {
         position: 'absolute',
         bottom: 150,
         left: Spacing.xl,
         right: Spacing.xl + 70,
-        borderRadius: 16,
-        overflow: 'hidden',
-    },
-    textBlur: {
-        padding: Spacing.md,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.6)',
-    },
-    tutorialText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#0F172A',
-        textAlign: 'center',
-        lineHeight: 22,
     },
 
-    // Skip hint
+    // Skip/Continue hint
     skipHint: {
         position: 'absolute',
-        bottom: 40,
+        bottom: 55,
         alignSelf: 'center',
+    },
+    skipHintBlur: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        overflow: 'hidden',
     },
     skipText: {
-        fontSize: 13,
-        color: 'rgba(255, 255, 255, 0.7)',
+        fontSize: 14,
+        color: 'rgba(255, 255, 255, 0.9)',
         fontWeight: '500',
+        letterSpacing: 0.3,
     },
 
-    // Progress dots
-    progressDots: {
+    // Progress indicator
+    progressContainer: {
         position: 'absolute',
         bottom: 20,
-        flexDirection: 'row',
         alignSelf: 'center',
+        alignItems: 'center',
         gap: 8,
     },
+    progressDots: {
+        flexDirection: 'row',
+        gap: 10,
+    },
     progressDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: 'rgba(255, 255, 255, 0.4)',
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: 'rgba(255, 255, 255, 0.3)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.4)',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     progressDotActive: {
+        backgroundColor: 'rgba(8, 145, 178, 0.3)',
+        borderColor: '#0891B2',
+        width: 20,
+        borderRadius: 10,
+    },
+    progressDotCompleted: {
         backgroundColor: '#0891B2',
-        width: 16,
+        borderColor: '#0891B2',
+    },
+    progressDotInner: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: '#0891B2',
+    },
+    stepIndicator: {
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.7)',
+        fontWeight: '600',
     },
 });

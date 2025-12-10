@@ -18,7 +18,9 @@ import {
     ScrollView,
     Alert,
     ActivityIndicator,
+    Modal,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
@@ -107,24 +109,29 @@ interface DiagnosisResultsProps {
     caseData: AnalysisResponse;
     onNewAnalysis: () => void;
     onRequestSecondaryAnalysis?: () => void;
+    onConfirmSuccess?: () => void;
 }
 
 export function DiagnosisResults({
     caseData,
     onNewAnalysis,
     onRequestSecondaryAnalysis,
+    onConfirmSuccess,
 }: DiagnosisResultsProps) {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
     const { language } = useLanguage();
     const { user } = useAuth();
 
+    const router = useRouter();
     const [activeIndex, setActiveIndex] = useState(0);
     const [activeProvider, setActiveProvider] = useState<'gemini' | 'openai'>('gemini');
     const [isSelecting, setIsSelecting] = useState(false);
     const [isSelected, setIsSelected] = useState(false);
     const [showTutorial, setShowTutorial] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
     const flatListRef = useRef<FlatList>(null);
+    const successModalAnim = useRef(new Animated.Value(0)).current;
 
     // Check if tutorial should be shown (first-time user - now user-based)
     useEffect(() => {
@@ -178,13 +185,15 @@ export function DiagnosisResults({
             await api.selectAnalysisProvider(caseData.id, activeProvider);
             setIsSelected(true);
 
-            // Show success feedback
+            // Show success modal
             setTimeout(() => {
-                Alert.alert(
-                    '✓',
-                    Translations.diagnosisSelected[language],
-                    [{ text: Translations.ok[language] }]
-                );
+                setShowSuccessModal(true);
+                Animated.spring(successModalAnim, {
+                    toValue: 1,
+                    useNativeDriver: true,
+                    tension: 65,
+                    friction: 8,
+                }).start();
             }, 300);
         } catch (error) {
             console.error('Error selecting provider:', error);
@@ -195,6 +204,26 @@ export function DiagnosisResults({
         } finally {
             setIsSelecting(false);
         }
+    };
+
+    // Handle success modal confirm and navigate home
+    const handleSuccessConfirm = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        Animated.timing(successModalAnim, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+        }).start(() => {
+            setShowSuccessModal(false);
+            // Use callback if provided, otherwise try router
+            if (onConfirmSuccess) {
+                onConfirmSuccess();
+            } else {
+                setTimeout(() => {
+                    router.push('/(tabs)');
+                }, 100);
+            }
+        });
     };
 
     // Handle scroll with haptic feedback
@@ -419,6 +448,76 @@ export function DiagnosisResults({
                     onComplete={() => setShowTutorial(false)}
                 />
             )}
+
+            {/* Success Modal */}
+            <Modal
+                visible={showSuccessModal}
+                transparent
+                animationType="none"
+                statusBarTranslucent
+            >
+                <View style={styles.modalOverlay}>
+                    <Animated.View
+                        style={[
+                            styles.modalContainer,
+                            {
+                                transform: [
+                                    {
+                                        scale: successModalAnim.interpolate({
+                                            inputRange: [0, 1],
+                                            outputRange: [0.8, 1],
+                                        }),
+                                    },
+                                ],
+                                opacity: successModalAnim,
+                            },
+                        ]}
+                    >
+                        <BlurView intensity={60} tint="light" style={styles.modalBlur}>
+                            <View style={styles.modalContent}>
+                                {/* Glass Highlight */}
+                                <View style={styles.modalGlassHighlight} />
+
+                                {/* Success Icon */}
+                                <View style={styles.successIconWrapper}>
+                                    <LinearGradient
+                                        colors={['#10B981', '#059669']}
+                                        style={styles.successIconGradient}
+                                    >
+                                        <Check size={32} color="#FFFFFF" strokeWidth={3} />
+                                    </LinearGradient>
+                                </View>
+
+                                {/* Success Text */}
+                                <Text style={styles.modalTitle}>
+                                    {language === 'tr' ? 'Tanı Kaydedildi!' : 'Diagnosis Saved!'}
+                                </Text>
+                                <Text style={styles.modalSubtitle}>
+                                    {Translations.diagnosisSelected[language]}
+                                </Text>
+
+                                {/* Confirm Button */}
+                                <TouchableOpacity
+                                    style={styles.modalButton}
+                                    onPress={handleSuccessConfirm}
+                                    activeOpacity={0.8}
+                                >
+                                    <LinearGradient
+                                        colors={['#0E7490', '#0891B2', '#06B6D4']}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 0 }}
+                                        style={styles.modalButtonGradient}
+                                    >
+                                        <Text style={styles.modalButtonText}>
+                                            {Translations.ok[language]}
+                                        </Text>
+                                    </LinearGradient>
+                                </TouchableOpacity>
+                            </View>
+                        </BlurView>
+                    </Animated.View>
+                </View>
+            </Modal>
         </ImageBackground>
     );
 }
@@ -964,5 +1063,94 @@ const styles = StyleSheet.create({
     confirmButtonSelected: {
         backgroundColor: 'rgba(16, 185, 129, 0.15)',
         borderColor: 'rgba(16, 185, 129, 0.3)',
+    },
+
+    // Success Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalContainer: {
+        width: SCREEN_WIDTH * 0.85,
+        maxWidth: 340,
+        borderRadius: 28,
+        overflow: 'hidden',
+        shadowColor: '#0E7490',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.25,
+        shadowRadius: 24,
+        elevation: 15,
+    },
+    modalBlur: {
+        borderRadius: 28,
+        borderWidth: 2,
+        borderColor: 'rgba(255, 255, 255, 0.7)',
+        overflow: 'hidden',
+    },
+    modalContent: {
+        padding: Spacing.xl,
+        paddingTop: Spacing['2xl'],
+        paddingBottom: Spacing.xl,
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+        position: 'relative',
+    },
+    modalGlassHighlight: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '40%',
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+    },
+    successIconWrapper: {
+        marginBottom: Spacing.lg,
+        shadowColor: '#10B981',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.35,
+        shadowRadius: 12,
+        elevation: 8,
+    },
+    successIconGradient: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    modalTitle: {
+        fontSize: 22,
+        fontWeight: '700',
+        color: '#0F172A',
+        marginBottom: Spacing.xs,
+        textAlign: 'center',
+    },
+    modalSubtitle: {
+        fontSize: 15,
+        color: '#64748B',
+        textAlign: 'center',
+        marginBottom: Spacing.xl,
+        lineHeight: 22,
+    },
+    modalButton: {
+        width: '100%',
+        borderRadius: 16,
+        overflow: 'hidden',
+    },
+    modalButtonGradient: {
+        paddingVertical: Spacing.md + 2,
+        paddingHorizontal: Spacing.xl,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    modalButtonText: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#FFFFFF',
+        letterSpacing: 0.3,
     },
 });

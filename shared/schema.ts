@@ -33,6 +33,8 @@ export const users = pgTable(
     hospital: varchar('hospital'),
     yearsOfExperience: integer('years_of_experience'),
     phoneNumber: varchar('phone_number'),
+    isHealthProfessional: jsonb('is_health_professional').default(false).$type<boolean>(),
+    isProfileComplete: jsonb('is_profile_complete').default(false).$type<boolean>(),
     createdAt: timestamp('created_at').defaultNow(),
     updatedAt: timestamp('updated_at').defaultNow(),
   },
@@ -164,6 +166,8 @@ export const updateUserProfileSchema = createInsertSchema(users)
     hospital: true,
     yearsOfExperience: true,
     profileImageUrl: true,
+    isHealthProfessional: true,
+    isProfileComplete: true,
   })
   .partial();
 

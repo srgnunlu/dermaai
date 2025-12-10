@@ -203,6 +203,16 @@ export function DiagnosisWizard() {
             <DiagnosisResults
                 caseData={analysisResult}
                 onNewAnalysis={handleNewAnalysis}
+                onConfirmSuccess={() => {
+                    // Reset state and navigate to home
+                    setState(initialState);
+                    setIsAnalyzing(false);
+                    setTabBarAnalyzing(false);
+                    setAnalysisResult(null);
+                    setShowResults(false);
+                    showTabBar();
+                    router.push('/(tabs)');
+                }}
                 onRequestSecondaryAnalysis={() => {
                     // Check if OpenAI analysis exists
                     if (analysisResult.openaiAnalysis?.diagnoses && analysisResult.openaiAnalysis.diagnoses.length > 0) {

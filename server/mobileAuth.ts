@@ -264,6 +264,8 @@ export function setupMobileAuth(app: Express) {
                 lastName: user.lastName,
                 profileImageUrl: user.profileImageUrl,
                 role: user.role,
+                isHealthProfessional: user.isHealthProfessional ?? false,
+                isProfileComplete: user.isProfileComplete ?? false,
             });
         } catch (error) {
             logger.error('[MOBILE_AUTH] Get user error:', error);

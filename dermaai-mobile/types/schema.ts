@@ -16,6 +16,8 @@ export interface User {
     hospital: string | null;
     yearsOfExperience: number | null;
     phoneNumber: string | null;
+    isHealthProfessional: boolean | null;
+    isProfileComplete: boolean | null;
     createdAt: Date | null;
     updatedAt: Date | null;
 }
@@ -155,5 +157,7 @@ export interface UpdateProfileData {
     hospital?: string | null;
     yearsOfExperience?: number | null;
     profileImageUrl?: string | null;
+    isHealthProfessional?: boolean | null;
+    isProfileComplete?: boolean | null;
 }
 

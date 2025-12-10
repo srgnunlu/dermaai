@@ -678,6 +678,56 @@ export const Translations = {
         tr: 'Atlamak için dokunun',
         en: 'Tap to skip',
     },
+    tutorialTapToContinue: {
+        tr: 'Devam etmek için dokunun',
+        en: 'Tap to continue',
+    },
+
+    // Onboarding Modal
+    onboardingWelcome: {
+        tr: 'Hoş Geldiniz!',
+        en: 'Welcome!',
+    },
+    onboardingSubtitle: {
+        tr: 'Sizi daha iyi tanıyalım',
+        en: 'Let us get to know you better',
+    },
+    onboardingFirstName: {
+        tr: 'Ad',
+        en: 'First Name',
+    },
+    onboardingLastName: {
+        tr: 'Soyad',
+        en: 'Last Name',
+    },
+    onboardingProfessionQuestion: {
+        tr: 'Uygulamayı nasıl kullanacaksınız?',
+        en: 'How will you use this app?',
+    },
+    onboardingHealthProfessional: {
+        tr: 'Sağlık Profesyoneliyim',
+        en: 'I am a Health Professional',
+    },
+    onboardingHealthProfessionalDesc: {
+        tr: 'Hastalarımı analiz edeceğim',
+        en: 'I will analyze my patients',
+    },
+    onboardingRegularUser: {
+        tr: 'Kendi Sağlığımı Takip Ediyorum',
+        en: 'I am Tracking My Own Health',
+    },
+    onboardingRegularUserDesc: {
+        tr: 'Kendi cildimi kontrol edeceğim',
+        en: 'I will check my own skin',
+    },
+    onboardingStart: {
+        tr: 'Başlayalım',
+        en: 'Let\'s Start',
+    },
+    onboardingNameRequired: {
+        tr: 'Lütfen adınızı girin',
+        en: 'Please enter your name',
+    },
 } as const;
 
 // Dynamic value translations (for database values)

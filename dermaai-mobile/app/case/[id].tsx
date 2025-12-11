@@ -64,8 +64,10 @@ export default function CaseDetailScreen() {
     const insets = useSafeAreaInsets();
     const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
     const [isDeleting, setIsDeleting] = React.useState(false);
+    const [isDeleted, setIsDeleted] = React.useState(false);
 
-    const { caseData, isLoading, error } = useCase(id || '');
+    // Disable query when case is being deleted or already deleted
+    const { caseData, isLoading, error } = useCase(id || '', !isDeleted && !isDeleting);
     const { deleteCase } = useDeleteCase();
 
     const notSpecified = language === 'tr' ? 'Belirtilmedi' : 'Not specified';
@@ -449,6 +451,7 @@ export default function CaseDetailScreen() {
                                                 try {
                                                     setIsDeleting(true);
                                                     await deleteCase(id!);
+                                                    setIsDeleted(true); // Prevent query refetch
                                                     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                                                     router.back();
                                                 } catch (err) {

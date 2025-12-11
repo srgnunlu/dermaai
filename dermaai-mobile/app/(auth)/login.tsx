@@ -35,6 +35,7 @@ import { API_BASE_URL } from '@/constants/Config';
 import { saveTokens, saveUserData } from '@/lib/storage';
 import { queryClient } from '@/lib/queryClient';
 import { StatusBar } from 'expo-status-bar';
+import { LegalTextModal } from '@/components/ui/LegalTextModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -102,6 +103,8 @@ export default function LoginScreen() {
     const { language, toggleLanguage } = useLanguage();
     const { isAuthenticated, loginWithGoogle, isLoggingIn } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
+    const [legalModalVisible, setLegalModalVisible] = useState(false);
+    const [legalModalType, setLegalModalType] = useState<'privacy' | 'terms'>('privacy');
 
     // Animations
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -283,11 +286,13 @@ export default function LoginScreen() {
     };
 
     const handlePrivacyPolicy = () => {
-        router.push('/privacy-policy');
+        setLegalModalType('privacy');
+        setLegalModalVisible(true);
     };
 
     const handleTerms = () => {
-        router.push('/terms-of-service');
+        setLegalModalType('terms');
+        setLegalModalVisible(true);
     };
 
     const features = [
@@ -386,7 +391,6 @@ export default function LoginScreen() {
                 {/* Features with Glassmorphism */}
                 <View style={styles.featuresWrapper}>
                     <BlurView intensity={60} tint="light" style={styles.featuresCardBlur}>
-                        <View style={styles.featuresGlassHighlight} />
                         <View style={styles.featuresCard}>
                             {features.map((feature, index) => (
                                 <FeatureItem
@@ -497,6 +501,14 @@ export default function LoginScreen() {
                     </TouchableOpacity>
                 </Animated.View>
             </ScrollView>
+
+            {/* Legal Text Modal */}
+            <LegalTextModal
+                visible={legalModalVisible}
+                onClose={() => setLegalModalVisible(false)}
+                type={legalModalType}
+                language={language}
+            />
         </ImageBackground>
     );
 }
@@ -534,7 +546,7 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255, 255, 255, 0.5)',
         ...Platform.select({
             android: {
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
             },
             ios: {},
         }),
@@ -571,7 +583,7 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255, 255, 255, 0.6)',
         ...Platform.select({
             android: {
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
             },
             ios: {},
         }),
@@ -615,7 +627,7 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255, 255, 255, 0.4)',
         ...Platform.select({
             android: {
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
             },
             ios: {},
         }),
@@ -649,24 +661,17 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255, 255, 255, 0.6)',
         ...Platform.select({
             android: {
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
             },
             ios: {},
         }),
     },
-    featuresGlassHighlight: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: 40,
-        backgroundColor: 'rgba(255, 255, 255, 0.25)',
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        zIndex: 1,
-    },
+
     featuresCard: {
-        padding: Spacing.lg,
+        padding: Platform.select({
+            android: Spacing.lg,
+            ios: Spacing.lg,
+        }),
         backgroundColor: Platform.select({
             android: 'transparent',
             ios: 'rgba(255, 255, 255, 0.15)',
@@ -675,13 +680,19 @@ const styles = StyleSheet.create({
     featureItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: Spacing.md,
-        gap: Spacing.md,
+        paddingVertical: Platform.select({
+            android: Spacing.md,
+            ios: Spacing.md,
+        }),
+        gap: Platform.select({
+            android: Spacing.md,
+            ios: Spacing.md,
+        }),
     },
     featureIconContainer: {
-        width: 44,
-        height: 44,
-        borderRadius: 14,
+        width: Platform.select({ android: 44, ios: 44 }),
+        height: Platform.select({ android: 44, ios: 44 }),
+        borderRadius: Platform.select({ android: 16, ios: 14 }),
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: '#0891B2',
@@ -695,15 +706,16 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     featureTitle: {
-        fontSize: 15,
+        fontSize: Platform.select({ android: 16, ios: 15 }),
         fontWeight: '600',
         color: '#0F172A',
-        marginBottom: 2,
+        marginBottom: Platform.select({ android: 4, ios: 2 }),
     },
     featureDescription: {
-        fontSize: 13,
+        fontSize: Platform.select({ android: 14, ios: 13 }),
         color: '#64748B',
         fontWeight: '400',
+        lineHeight: Platform.select({ android: 20, ios: undefined }),
     },
 
     // Login Button
@@ -722,7 +734,7 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         ...Platform.select({
             android: {
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
             },
             ios: {},
         }),
@@ -742,7 +754,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        height: 60,
+        height: Platform.select({ android: 62, ios: 60 }),
         paddingHorizontal: 24,
         borderRadius: 28,
         gap: 12,
@@ -784,7 +796,7 @@ const styles = StyleSheet.create({
     },
     loginButtonText: {
         color: '#FFFFFF',
-        fontSize: 17,
+        fontSize: Platform.select({ android: 16, ios: 17 }),
         fontWeight: '700',
         letterSpacing: 0.3,
         textShadowColor: 'rgba(0, 0, 0, 0.1)',
@@ -806,18 +818,18 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255, 255, 255, 0.3)',
         ...Platform.select({
             android: {
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
             },
             ios: {},
         }),
     },
     disclaimer: {
-        fontSize: 12,
+        fontSize: Platform.select({ android: 13, ios: 12 }),
         color: '#64748B',
         textAlign: 'center',
-        lineHeight: 18,
-        paddingHorizontal: 20,
-        paddingVertical: 12,
+        lineHeight: Platform.select({ android: 20, ios: 18 }),
+        paddingHorizontal: Platform.select({ android: 24, ios: 20 }),
+        paddingVertical: Platform.select({ android: 14, ios: 12 }),
         backgroundColor: Platform.select({
             android: 'transparent',
             ios: 'rgba(255, 255, 255, 0.1)',
@@ -831,7 +843,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     footerLink: {
-        fontSize: 13,
+        fontSize: Platform.select({ android: 14, ios: 13 }),
         fontWeight: '600',
         color: '#0891B2',
     },

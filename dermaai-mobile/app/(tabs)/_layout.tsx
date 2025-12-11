@@ -71,25 +71,35 @@ export default function TabLayout() {
             transform: [{ translateY: translateY as any }],
           },
           tabBarBackground: () => (
-            <BlurView
-              intensity={Platform.OS === 'ios' ? 80 : 70}
-              tint={colorScheme === 'light' ? 'light' : 'dark'}
-              style={{
-                ...StyleSheet.absoluteFillObject,
-                borderRadius: Platform.select({ android: 36, ios: 34 }),
-                overflow: 'hidden',
-                backgroundColor: Platform.select({
-                  android: colorScheme === 'light'
-                    ? 'rgba(255, 255, 255, 0.25)'
-                    : 'rgba(30, 41, 59, 0.25)',
-                  ios: colorScheme === 'light'
+            Platform.OS === 'ios' ? (
+              <BlurView
+                intensity={80}
+                tint={colorScheme === 'light' ? 'light' : 'dark'}
+                style={{
+                  ...StyleSheet.absoluteFillObject,
+                  borderRadius: 34,
+                  overflow: 'hidden',
+                  backgroundColor: colorScheme === 'light'
                     ? 'rgba(255, 255, 255, 0.5)'
                     : 'rgba(30, 41, 59, 0.5)',
-                }),
-                borderWidth: 1.5,
-                borderColor: 'rgba(255, 255, 255, 0.6)',
-              }}
-            />
+                  borderWidth: 1.5,
+                  borderColor: 'rgba(255, 255, 255, 0.6)',
+                }}
+              />
+            ) : (
+              <View
+                style={{
+                  ...StyleSheet.absoluteFillObject,
+                  borderRadius: 36,
+                  overflow: 'hidden',
+                  backgroundColor: colorScheme === 'light'
+                    ? 'rgba(224, 247, 250, 0.85)'
+                    : 'rgba(30, 41, 59, 0.85)',
+                  borderWidth: 1.5,
+                  borderColor: 'rgba(255, 255, 255, 0.5)',
+                }}
+              />
+            )
           ),
           tabBarShowLabel: true,
           tabBarLabelStyle: {

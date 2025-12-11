@@ -425,11 +425,6 @@ export default function SettingsScreen() {
                             <Heart size={16} color="#0891B2" />
                         </View>
                         <Text style={styles.footerText}>Corio Scan © 2025</Text>
-                        <Text style={styles.footerSubtext}>
-                            {language === 'tr'
-                                ? 'Sağlık profesyonelleri için tasarlanmıştır'
-                                : 'Designed for healthcare professionals'}
-                        </Text>
                     </View>
                 </ScrollView>
             </View>

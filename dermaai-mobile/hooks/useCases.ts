@@ -62,11 +62,11 @@ export function useCases() {
     };
 }
 
-export function useCase(caseId: string) {
+export function useCase(caseId: string, enabled: boolean = true) {
     const { data, isLoading, error } = useQuery<Case>({
         queryKey: ['cases', caseId],
         queryFn: () => api.get<Case>(`/api/cases/${caseId}`),
-        enabled: !!caseId,
+        enabled: !!caseId && enabled,
     });
 
     return {
@@ -189,8 +189,12 @@ export function useDeleteCase() {
     const mutation = useMutation({
         mutationFn: async (caseId: string) => {
             await api.delete(`/api/cases/${caseId}`);
+            return caseId; // Return caseId to use in onSuccess
         },
-        onSuccess: () => {
+        onSuccess: (deletedCaseId: string) => {
+            // Remove the specific case from cache immediately
+            queryClient.removeQueries({ queryKey: ['cases', deletedCaseId] });
+            // Invalidate the cases list to refetch
             queryClient.invalidateQueries({ queryKey: ['cases'] });
         },
     });

@@ -14,6 +14,7 @@ import {
     KeyboardAvoidingView,
     Platform,
     ScrollView,
+    StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -169,7 +170,7 @@ export function PatientInfoStep({
                     <ChevronLeft size={24} color={colors.text} />
                 </TouchableOpacity>
                 <Text style={[styles.appName, { color: colors.textSecondary }]}>
-                    DermaAssist<Text style={{ color: colors.primary }}>AI</Text>
+                    Corio<Text style={{ color: colors.primary }}> Scan</Text>
                 </Text>
                 <TouchableOpacity onPress={onSkip} style={styles.skipButton}>
                     <Text style={[styles.skipText, { color: colors.primary }]}>
@@ -345,7 +346,10 @@ const styles = StyleSheet.create({
         paddingHorizontal: Spacing.base,
         fontSize: 16,
         color: '#1E293B',
-        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        backgroundColor: Platform.select({
+            android: 'rgba(255, 255, 255, 0.05)',
+            ios: 'rgba(255, 255, 255, 0.15)',
+        }),
     },
     chipsRow: {
         flexDirection: 'row',
@@ -357,7 +361,10 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.5)',
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: Platform.select({
+            android: 'rgba(255, 255, 255, 0.05)',
+            ios: 'rgba(255, 255, 255, 0.2)',
+        }),
     },
     chipSelected: {
         flexDirection: 'row',
@@ -379,7 +386,8 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
     },
     footer: {
-        padding: Spacing.xl,
+        padding: Platform.select({ android: Spacing.md, ios: Spacing.xl }),
+        paddingBottom: Platform.select({ android: 80, ios: Spacing.xl }),
     },
     footerButton: {
         width: '100%',

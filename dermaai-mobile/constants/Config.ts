@@ -9,7 +9,7 @@ export const API_TIMEOUT = 30000; // 30 seconds for normal requests
 export const ANALYSIS_TIMEOUT = 120000; // 120 seconds (2 min) for AI analysis
 
 // App Configuration
-export const APP_NAME = 'DermaAssistAI';
+export const APP_NAME = 'Corio Scan';
 export const APP_VERSION = '1.0.0';
 
 // Google OAuth Configuration
@@ -26,12 +26,13 @@ export const IMAGE_MAX_DIMENSION = 2048;
 
 // Storage Keys
 export const STORAGE_KEYS = {
-    ACCESS_TOKEN: 'dermaai_access_token',
-    REFRESH_TOKEN: 'dermaai_refresh_token',
-    USER_DATA: 'dermaai_user_data',
-    THEME: 'dermaai_theme',
-    TUTORIAL_SHOWN: 'dermaai_tutorial_shown',
+    ACCESS_TOKEN: 'corio_access_token',
+    REFRESH_TOKEN: 'corio_refresh_token',
+    USER_DATA: 'corio_user_data',
+    THEME: 'corio_theme',
+    TUTORIAL_SHOWN: 'corio_tutorial_shown',
 } as const;
+
 
 // Symptom Options (from web app)
 export const SYMPTOM_OPTIONS = [

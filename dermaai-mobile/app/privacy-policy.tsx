@@ -38,7 +38,7 @@ export default function PrivacyPolicyScreen() {
                 <Card>
                     <CardContent>
                         <Section title="Toplanan Veriler" colors={colors}>
-                            DermaAssistAI aşağıdaki verileri toplamaktadır:{'\n\n'}
+                            Corio Scan aşağıdaki verileri toplamaktadır:{'\n\n'}
                             • Kullanıcı hesap bilgileri (ad, e-posta){'\n'}
                             • Yüklenen lezyon görselleri{'\n'}
                             • Hasta demografik bilgileri{'\n'}
@@ -64,7 +64,7 @@ export default function PrivacyPolicyScreen() {
 
                         <Section title="Veri Paylaşımı" colors={colors}>
                             Verileriniz üçüncü taraflarla paylaşılmaz, ancak:{'\n\n'}
-                            • AI analizi için DermAI yapay zeka sistemi kullanılır{'\n'}
+                            • AI analizi için Corio AI sistemi kullanılır{'\n'}
                             • Yasal zorunluluklar durumunda paylaşılabilir{'\n'}
                             • Anonimleştirilmiş veriler araştırma amaçlı kullanılabilir
                         </Section>
@@ -85,7 +85,7 @@ export default function PrivacyPolicyScreen() {
 
                         <Section title="İletişim" colors={colors} isLast>
                             Gizlilik ile ilgili sorularınız için:{'\n\n'}
-                            📧 privacy@dermaassistai.com{'\n'}
+                            📧 privacy@corioscan.ai{'\n'}
                             📞 +90 212 XXX XX XX
                         </Section>
                     </CardContent>

@@ -17,7 +17,7 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-const LANGUAGE_STORAGE_KEY = 'dermaai_language';
+const LANGUAGE_STORAGE_KEY = 'corio_language';
 
 interface LanguageProviderProps {
     children: ReactNode;

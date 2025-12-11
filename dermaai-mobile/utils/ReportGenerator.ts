@@ -313,7 +313,7 @@ export const generateReportHtml = ({ caseData, language }: ReportGeneratorProps)
             <strong>⚠️ IMPORTANT:</strong> ${t.disclaimer}
         </div>
         <div class="signature">Corium Scan</div>
-        <div style="font-size: 12px; color: #999;">${t.generatedBy}: DermaAssist AI Mobile App</div>
+        <div style="font-size: 12px; color: #999;">${t.generatedBy}: Corio Scan Mobile App</div>
         <div style="font-size: 10px; color: #ccc; margin-top: 20px;">
             ${new Date().getFullYear()} © Corium Scan. All rights reserved.
         </div>

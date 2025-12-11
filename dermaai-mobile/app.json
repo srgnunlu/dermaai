@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "dermaai-mobile",
-    "slug": "dermaai-mobile",
+    "name": "Corio Scan",
+    "slug": "corio-scan",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "dermaai",
+    "scheme": "corioscan",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {

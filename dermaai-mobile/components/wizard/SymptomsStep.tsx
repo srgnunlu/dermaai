@@ -15,6 +15,7 @@ import {
     KeyboardAvoidingView,
     Platform,
     Dimensions,
+    StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -87,11 +88,12 @@ const getDurationOptions = (language: 'tr' | 'en') => [
     { id: 'years', label: language === 'tr' ? 'Yıllar' : 'Years' },
 ];
 
-// Calculate dimensions for 3-column grid
+// Calculate dimensions for 3-column grid - use percentage-based width
 const HORIZONTAL_PADDING = 24;
-const CARD_GAP = 8;
-const CARD_WIDTH = (SCREEN_WIDTH - (HORIZONTAL_PADDING * 2) - (CARD_GAP * 2)) / 3;
-const CARD_HEIGHT = 70;
+const CARD_GAP = 4;
+// Make cards slightly smaller to ensure 3 fit per row on all devices
+const CARD_WIDTH = Math.floor((SCREEN_WIDTH - (HORIZONTAL_PADDING * 2) - (CARD_GAP * 3)) / 3);
+const CARD_HEIGHT = 62;
 
 // Symptom card component
 const SymptomCard = ({
@@ -286,7 +288,7 @@ export function SymptomsStep({
                     <ChevronLeft size={24} color={colors.text} />
                 </TouchableOpacity>
                 <Text style={[styles.appName, { color: colors.textSecondary }]}>
-                    DermaAssist<Text style={{ color: colors.primary }}>AI</Text>
+                    Corio<Text style={{ color: colors.primary }}> Scan</Text>
                 </Text>
                 <View style={styles.headerRight} />
             </View>
@@ -306,9 +308,6 @@ export function SymptomsStep({
                     {/* Title */}
                     <Text style={[styles.title, { color: colors.text }]}>
                         {Translations.selectSymptoms[language]}
-                    </Text>
-                    <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                        {language === 'tr' ? 'Mevcut belirtileri seçin' : 'Select current symptoms'}
                     </Text>
 
                     {/* Symptoms Grid - 3 columns */}
@@ -457,7 +456,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: CARD_GAP,
-        marginBottom: Spacing.lg,
+        marginBottom: Spacing.md,
     },
     symptomCardWrapper: {
         width: CARD_WIDTH,
@@ -469,7 +468,10 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.6)',
-        backgroundColor: 'rgba(255, 255, 255, 0.4)',
+        backgroundColor: Platform.select({
+            android: 'rgba(255, 255, 255, 0.05)',
+            ios: 'rgba(255, 255, 255, 0.4)',
+        }),
     },
     symptomCard: {
         height: CARD_HEIGHT,
@@ -536,7 +538,10 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.6)',
-        backgroundColor: 'rgba(255, 255, 255, 0.4)',
+        backgroundColor: Platform.select({
+            android: 'rgba(255, 255, 255, 0.1)',
+            ios: 'rgba(255, 255, 255, 0.4)',
+        }),
     },
     durationChipSelected: {
         paddingHorizontal: Spacing.md,
@@ -563,7 +568,10 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.6)',
-        backgroundColor: 'rgba(255, 255, 255, 0.4)',
+        backgroundColor: Platform.select({
+            android: 'rgba(255, 255, 255, 0.05)',
+            ios: 'rgba(255, 255, 255, 0.4)',
+        }),
     },
     textArea: {
         minHeight: 60,
@@ -574,8 +582,11 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
     },
     footer: {
-        padding: Spacing.lg,
-        paddingBottom: Spacing.xl,
+        padding: Platform.select({ android: Spacing.md, ios: Spacing.lg }),
+        paddingBottom: Platform.select({
+            android: 80,
+            ios: Spacing.xl,
+        }),
     },
     footerButton: {
         width: '100%',

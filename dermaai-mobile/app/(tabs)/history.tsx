@@ -16,9 +16,12 @@ import {
     Modal,
     Dimensions,
     Animated,
-    SafeAreaView,
+    Platform,
+    Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
+import { GlassCard } from '@/components/ui/GlassCard';
 import { useRouter } from 'expo-router';
 import { format, isToday, isThisWeek, isThisMonth } from 'date-fns';
 import { tr, enUS } from 'date-fns/locale';
@@ -38,8 +41,9 @@ import { Typography } from '@/constants/Typography';
 import { Spacing } from '@/constants/Spacing';
 import { Translations } from '@/constants/Translations';
 import { useColorScheme } from '@/components/useColorScheme';
-import { useCases } from '@/hooks/useCases';
+import { useCases, useDeleteCase } from '@/hooks/useCases';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { SwipeableCaseCard } from '@/components/SwipeableCaseCard';
 import {
     ConfidenceBadge,
     LoadingSpinner,
@@ -75,6 +79,8 @@ export default function HistoryScreen() {
     const { language } = useLanguage();
 
     const { cases, isLoading, error, refetch } = useCases();
+    const { deleteCase, isDeleting } = useDeleteCase();
+    const insets = useSafeAreaInsets();
     const [filterModalVisible, setFilterModalVisible] = useState(false);
     const [filters, setFilters] = useState<FilterState>(initialFilterState);
     const [tempFilters, setTempFilters] = useState<FilterState>(initialFilterState);
@@ -161,6 +167,36 @@ export default function HistoryScreen() {
         router.push(`/case/${caseItem.id}`);
     }, [router]);
 
+    const handleDeleteCase = useCallback((caseItem: Case) => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        Alert.alert(
+            Translations.deleteCase[language],
+            Translations.deleteCaseConfirm[language],
+            [
+                {
+                    text: Translations.cancel[language],
+                    style: 'cancel',
+                },
+                {
+                    text: Translations.delete[language],
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await deleteCase(caseItem.id);
+                            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                        } catch (err) {
+                            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                            Alert.alert(
+                                Translations.error[language],
+                                Translations.deleteCaseError[language]
+                            );
+                        }
+                    },
+                },
+            ]
+        );
+    }, [language, deleteCase]);
+
     const openFilterModal = useCallback(() => {
         setTempFilters(filters);
         setFilterModalVisible(true);
@@ -184,14 +220,15 @@ export default function HistoryScreen() {
         filters.sort !== 'newest';
 
     const renderCaseItem = useCallback(({ item, index }: { item: Case; index: number }) => (
-        <CaseCard
+        <SwipeableCaseCard
             caseData={item}
             onPress={() => handleCasePress(item)}
+            onDelete={() => handleDeleteCase(item)}
             colors={colors}
             language={language}
             index={index}
         />
-    ), [handleCasePress, colors, language]);
+    ), [handleCasePress, handleDeleteCase, colors, language]);
 
     if (isLoading && cases.length === 0) {
         return (
@@ -257,7 +294,7 @@ export default function HistoryScreen() {
             style={styles.backgroundImage}
             resizeMode="cover"
         >
-            <SafeAreaView style={styles.container}>
+            <View style={[styles.container, { paddingTop: insets.top }]}>
                 {/* Custom Header Title */}
                 <View style={styles.headerTitleContainer}>
                     <Text style={styles.headerTitle}>
@@ -349,7 +386,7 @@ export default function HistoryScreen() {
                     locations={uniqueLocations}
                     language={language}
                 />
-            </SafeAreaView>
+            </View>
         </ImageBackground>
     );
 }
@@ -690,11 +727,6 @@ const styles = StyleSheet.create({
         marginTop: Spacing.md,
         borderRadius: 20,
         overflow: 'hidden',
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 12,
-        elevation: 6,
     },
     statsHeaderBlur: {
         borderRadius: 20,
@@ -705,7 +737,6 @@ const styles = StyleSheet.create({
     statsHeader: {
         flexDirection: 'row',
         padding: Spacing.lg,
-        backgroundColor: 'rgba(255, 255, 255, 0.15)',
     },
     statItem: {
         flex: 1,
@@ -734,11 +765,6 @@ const styles = StyleSheet.create({
         marginTop: Spacing.md,
         borderRadius: 14,
         overflow: 'hidden',
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
     },
     filterBarBlur: {
         borderRadius: 14,
@@ -751,7 +777,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         padding: Spacing.md,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: Platform.select({
+            android: 'transparent',
+            ios: 'rgba(255, 255, 255, 0.2)',
+        }),
         gap: 8,
     },
     filterButtonText: {
@@ -780,11 +809,7 @@ const styles = StyleSheet.create({
     caseCardWrapper: {
         borderRadius: 18,
         overflow: 'hidden',
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 12,
-        elevation: 5,
+        // marginBottom: Spacing.md, 
     },
     caseCardBlur: {
         borderRadius: 18,
@@ -795,7 +820,10 @@ const styles = StyleSheet.create({
     caseCard: {
         flexDirection: 'row',
         padding: Spacing.md,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: Platform.select({
+            android: 'transparent',
+            ios: 'rgba(255, 255, 255, 0.2)',
+        }),
         alignItems: 'center',
     },
     imageContainer: {
@@ -803,7 +831,10 @@ const styles = StyleSheet.create({
         height: 64,
         borderRadius: 12,
         overflow: 'hidden',
-        backgroundColor: 'rgba(255, 255, 255, 0.3)',
+        backgroundColor: Platform.select({
+            android: 'rgba(255, 255, 255, 0.1)',
+            ios: 'rgba(255, 255, 255, 0.3)',
+        }),
     },
     caseImage: {
         width: '100%',

@@ -182,3 +182,22 @@ export function useGenerateReport() {
         error: mutation.error,
     };
 }
+
+export function useDeleteCase() {
+    const queryClient = useQueryClient();
+
+    const mutation = useMutation({
+        mutationFn: async (caseId: string) => {
+            await api.delete(`/api/cases/${caseId}`);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['cases'] });
+        },
+    });
+
+    return {
+        deleteCase: mutation.mutateAsync,
+        isDeleting: mutation.isPending,
+        error: mutation.error,
+    };
+}

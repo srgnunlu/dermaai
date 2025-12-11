@@ -12,6 +12,8 @@ import {
     TouchableOpacity,
     Animated,
     Dimensions,
+    Platform,
+    StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -222,7 +224,7 @@ export function LesionLocationStep({
                     <ChevronLeft size={24} color={colors.text} />
                 </TouchableOpacity>
                 <Text style={[styles.appName, { color: colors.textSecondary }]}>
-                    DermaAssist<Text style={{ color: colors.primary }}>AI</Text>
+                    Corio<Text style={{ color: colors.primary }}> Scan</Text>
                 </Text>
                 <View style={styles.headerRight} />
             </View>
@@ -349,7 +351,10 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.6)',
-        backgroundColor: 'rgba(255, 255, 255, 0.4)',
+        backgroundColor: Platform.select({
+            android: 'rgba(255, 255, 255, 0.05)',
+            ios: 'rgba(255, 255, 255, 0.4)',
+        }),
     },
     locationCard: {
         height: CARD_HEIGHT,
@@ -423,8 +428,8 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     footer: {
-        padding: Spacing.lg,
-        paddingBottom: Spacing.xl,
+        padding: Platform.select({ android: Spacing.md, ios: Spacing.lg }),
+        paddingBottom: Platform.select({ android: 80, ios: Spacing.xl }),
     },
     footerButton: {
         width: '100%',

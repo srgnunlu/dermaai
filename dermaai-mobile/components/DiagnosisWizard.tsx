@@ -10,6 +10,8 @@ import {
     Animated,
     Dimensions,
     SafeAreaView,
+    Platform,
+    StatusBar,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Colors } from '@/constants/Colors';
@@ -411,7 +413,10 @@ const styles = StyleSheet.create({
     },
     progressWrapper: {
         paddingHorizontal: Spacing.lg,
-        paddingTop: Spacing.sm,
+        paddingTop: Platform.select({
+            android: (StatusBar.currentHeight || 24) + Spacing.sm,
+            ios: Spacing.sm,
+        }),
         paddingBottom: Spacing.xs,
     },
     progressBlur: {

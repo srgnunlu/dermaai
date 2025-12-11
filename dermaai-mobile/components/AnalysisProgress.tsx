@@ -13,6 +13,7 @@ import {
     Dimensions,
     Image,
     ImageBackground,
+    Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -492,7 +493,7 @@ export function AnalysisProgress({
                     {/* Header Title */}
                     <View style={styles.headerSection}>
                         <Text style={styles.headerTitle}>
-                            DermAssist<Text style={styles.headerTitleAccent}>AI</Text>
+                            Corio<Text style={styles.headerTitleAccent}> Scan</Text>
                         </Text>
                         <Text style={styles.headerSubtitle}>
                             {language === 'tr' ? 'Yapay Zeka Analizi' : 'AI Analysis'}
@@ -628,8 +629,8 @@ export function AnalysisProgress({
                                 {/* Disclaimer */}
                                 <Text style={styles.disclaimer}>
                                     {language === 'tr'
-                                        ? 'DermAI yapay zeka sistemi analiz ediyor...\nBu işlem 30-60 saniye sürebilir.'
-                                        : 'DermAI system is analyzing...\nThis may take 30-60 seconds.'}
+                                        ? 'Corio AI sistemi analiz ediyor...\nBu işlem 30-60 saniye sürebilir.'
+                                        : 'Corio AI system is analyzing...\nThis may take 30-60 seconds.'}
                                 </Text>
                             </View>
                         </BlurView>
@@ -695,14 +696,13 @@ const styles = StyleSheet.create({
     },
     imageFrameGlass: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: Platform.select({
+            android: 'rgba(255, 255, 255, 0.05)',
+            ios: 'rgba(255, 255, 255, 0.2)',
+        }),
     },
     imageGlow: {
         borderRadius: 24,
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 0 },
-        shadowRadius: 35,
-        elevation: 20,
     },
     imageContainer: {
         width: IMAGE_SIZE,
@@ -858,11 +858,6 @@ const styles = StyleSheet.create({
     // Info card with enhanced glassmorphism
     infoCardWrapper: {
         width: '100%',
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.15,
-        shadowRadius: 20,
-        elevation: 10,
         borderRadius: 24,
     },
     infoCardBlur: {
@@ -884,7 +879,10 @@ const styles = StyleSheet.create({
     },
     infoCard: {
         padding: Spacing.xl,
-        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+        backgroundColor: Platform.select({
+            android: 'rgba(255, 255, 255, 0.05)',
+            ios: 'rgba(255, 255, 255, 0.25)',
+        }),
         alignItems: 'center',
     },
     iconRow: {
@@ -897,11 +895,6 @@ const styles = StyleSheet.create({
         marginRight: Spacing.md,
         borderRadius: 16,
         overflow: 'hidden',
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 4,
     },
     iconBlur: {
         borderRadius: 16,
@@ -1006,11 +999,6 @@ const styles = StyleSheet.create({
     stageIndicatorActive: {
         backgroundColor: '#0891B2',
         borderColor: '#0891B2',
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.5,
-        shadowRadius: 4,
-        elevation: 3,
     },
     disclaimer: {
         fontSize: 12,

@@ -1,9 +1,9 @@
 /**
  * Settings Screen
- * Premium glassmorphism design with AI preferences, notifications, and privacy settings
+ * Premium glassmorphism design with notifications, privacy, account management
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -13,61 +13,99 @@ import {
     TouchableOpacity,
     Alert,
     ImageBackground,
-    SafeAreaView,
+    Platform,
+    Linking,
+    Modal,
+    Pressable,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GlassCard } from '@/components/ui/GlassCard';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import {
-    Brain,
     Bell,
     Shield,
     Info,
     ChevronRight,
-    Sparkles,
     BellRing,
     Volume2,
     Lock,
-    Save,
     FileText,
     Scale,
     Heart,
+    Globe,
+    LogOut,
+    Trash2,
+    Mail,
+    Star,
+    User,
+    Check,
+    X,
 } from 'lucide-react-native';
-import { Colors } from '@/constants/Colors';
-import { Typography } from '@/constants/Typography';
 import { Spacing } from '@/constants/Spacing';
 import { Translations } from '@/constants/Translations';
-import { useColorScheme } from '@/components/useColorScheme';
 import { APP_VERSION } from '@/constants/Config';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/hooks/useAuth';
+
+const SETTINGS_STORAGE_KEY = 'corio_settings';
 
 interface SettingsState {
-    useGemini: boolean;
-    useOpenAI: boolean;
-    confidenceThreshold: number;
     analysisNotifications: boolean;
     urgentAlerts: boolean;
     soundEnabled: boolean;
     anonymizeData: boolean;
-    autoSaveCases: boolean;
 }
 
-export default function SettingsScreen() {
-    const colorScheme = useColorScheme() ?? 'light';
-    const colors = Colors[colorScheme];
-    const router = useRouter();
-    const { language } = useLanguage();
+const defaultSettings: SettingsState = {
+    analysisNotifications: true,
+    urgentAlerts: true,
+    soundEnabled: false,
+    anonymizeData: false,
+};
 
-    const [settings, setSettings] = useState<SettingsState>({
-        useGemini: true,
-        useOpenAI: true,
-        confidenceThreshold: 50,
-        analysisNotifications: true,
-        urgentAlerts: true,
-        soundEnabled: false,
-        anonymizeData: false,
-        autoSaveCases: true,
-    });
+export default function SettingsScreen() {
+    const router = useRouter();
+    const { language, setLanguage } = useLanguage();
+    const { logout } = useAuth();
+    const insets = useSafeAreaInsets();
+
+    const [settings, setSettings] = useState<SettingsState>(defaultSettings);
+    const [isLoaded, setIsLoaded] = useState(false);
+    const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
+
+    // Load settings from AsyncStorage on mount
+    useEffect(() => {
+        const loadSettings = async () => {
+            try {
+                const savedSettings = await AsyncStorage.getItem(SETTINGS_STORAGE_KEY);
+                if (savedSettings) {
+                    setSettings({ ...defaultSettings, ...JSON.parse(savedSettings) });
+                }
+            } catch (error) {
+                console.error('Failed to load settings:', error);
+            } finally {
+                setIsLoaded(true);
+            }
+        };
+        loadSettings();
+    }, []);
+
+    // Save settings to AsyncStorage whenever they change
+    useEffect(() => {
+        if (isLoaded) {
+            const saveSettings = async () => {
+                try {
+                    await AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+                } catch (error) {
+                    console.error('Failed to save settings:', error);
+                }
+            };
+            saveSettings();
+        }
+    }, [settings, isLoaded]);
 
     const updateSetting = <K extends keyof SettingsState>(
         key: K,
@@ -77,13 +115,120 @@ export default function SettingsScreen() {
         setSettings(prev => ({ ...prev, [key]: value }));
     };
 
+    const handleAnonymizeToggle = (value: boolean) => {
+        if (value) {
+            // Show warning when enabling anonymization
+            Alert.alert(
+                language === 'tr' ? '⚠️ Dikkat' : '⚠️ Warning',
+                language === 'tr'
+                    ? 'Bu özelliği açarsanız, yapılan analizler geçmiş taramalarınızda kaydedilmeyecek ve tekrar görüntüleyemeyeceksiniz. Devam etmek istiyor musunuz?'
+                    : 'If you enable this feature, your analyses will not be saved to your history and you won\'t be able to view them again. Do you want to continue?',
+                [
+                    {
+                        text: language === 'tr' ? 'İptal' : 'Cancel',
+                        style: 'cancel',
+                    },
+                    {
+                        text: language === 'tr' ? 'Evet, Aç' : 'Yes, Enable',
+                        style: 'destructive',
+                        onPress: () => updateSetting('anonymizeData', true),
+                    },
+                ]
+            );
+        } else {
+            updateSetting('anonymizeData', false);
+        }
+    };
+
+    const handleLanguageChange = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        setIsLanguageModalVisible(true);
+    };
+
+    const selectLanguage = (lang: 'tr' | 'en') => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        setLanguage(lang);
+        setIsLanguageModalVisible(false);
+    };
+
+    const handleLogout = () => {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        Alert.alert(
+            language === 'tr' ? 'Çıkış Yap' : 'Logout',
+            language === 'tr'
+                ? 'Hesabınızdan çıkış yapmak istediğinize emin misiniz?'
+                : 'Are you sure you want to logout?',
+            [
+                { text: language === 'tr' ? 'İptal' : 'Cancel', style: 'cancel' },
+                {
+                    text: language === 'tr' ? 'Çıkış Yap' : 'Logout',
+                    style: 'destructive',
+                    onPress: async () => {
+                        await logout();
+                        router.replace('/(auth)/login');
+                    },
+                },
+            ]
+        );
+    };
+
+    const handleDeleteAccount = () => {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert(
+            language === 'tr' ? '⚠️ Hesabı Sil' : '⚠️ Delete Account',
+            language === 'tr'
+                ? 'Bu işlem geri alınamaz! Hesabınız ve tüm verileriniz kalıcı olarak silinecektir. Devam etmek istiyor musunuz?'
+                : 'This action cannot be undone! Your account and all your data will be permanently deleted. Do you want to continue?',
+            [
+                { text: language === 'tr' ? 'İptal' : 'Cancel', style: 'cancel' },
+                {
+                    text: language === 'tr' ? 'Hesabı Sil' : 'Delete Account',
+                    style: 'destructive',
+                    onPress: () => {
+                        // TODO: Implement account deletion API call
+                        Alert.alert(
+                            language === 'tr' ? 'Bilgi' : 'Info',
+                            language === 'tr'
+                                ? 'Hesap silme işlemi için lütfen destek ekibimizle iletişime geçin.'
+                                : 'Please contact our support team to delete your account.'
+                        );
+                    },
+                },
+            ]
+        );
+    };
+
+    const handleContactSupport = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        Linking.openURL('mailto:support@corioscan.ai?subject=Corio%20Scan%20Support');
+    };
+
+    const handleRateApp = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        // TODO: Replace with actual App Store / Play Store URL
+        const storeUrl = Platform.select({
+            ios: 'https://apps.apple.com/app/idXXXXXXXXXX',
+            android: 'https://play.google.com/store/apps/details?id=com.corio.scan',
+        });
+        if (storeUrl) {
+            Linking.openURL(storeUrl).catch(() => {
+                Alert.alert(
+                    language === 'tr' ? 'Bilgi' : 'Info',
+                    language === 'tr'
+                        ? 'Uygulama henüz mağazada yayınlanmadı.'
+                        : 'The app is not yet published on the store.'
+                );
+            });
+        }
+    };
+
     return (
         <ImageBackground
             source={require('@/assets/images/home-bg.png')}
             style={styles.backgroundImage}
             resizeMode="cover"
         >
-            <SafeAreaView style={styles.container}>
+            <View style={[styles.container, { paddingTop: insets.top }]}>
                 {/* Header Title */}
                 <View style={styles.headerTitleContainer}>
                     <Text style={styles.headerTitle}>
@@ -96,41 +241,23 @@ export default function SettingsScreen() {
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    {/* AI Preferences Section */}
+                    {/* General Section */}
                     <View style={styles.sectionWrapper}>
                         <View style={styles.sectionHeader}>
-                            <Brain size={20} color="#0891B2" />
+                            <Globe size={20} color="#0891B2" />
                             <Text style={styles.sectionTitle}>
-                                {language === 'tr' ? 'AI Tercihleri' : 'AI Preferences'}
+                                {language === 'tr' ? 'Genel' : 'General'}
                             </Text>
                         </View>
                         <View style={styles.cardWrapper}>
-                            <BlurView intensity={65} tint="light" style={styles.cardBlur}>
-                                <View style={styles.card}>
-                                    <SettingToggleRow
-                                        icon={<Sparkles size={20} color="#8B5CF6" />}
-                                        title={language === 'tr' ? 'DermAI Analizi' : 'DermAI Analysis'}
-                                        subtitle={language === 'tr' ? 'Yapay zeka destekli tanı analizi' : 'AI-powered diagnosis analysis'}
-                                        value={settings.useGemini}
-                                        onValueChange={(v) => updateSetting('useGemini', v)}
-                                    />
-                                    <View style={styles.divider} />
-                                    <SettingNavRow
-                                        icon={<Brain size={20} color="#0891B2" />}
-                                        title={language === 'tr' ? 'Güven Eşiği' : 'Confidence Threshold'}
-                                        subtitle={language === 'tr'
-                                            ? `Minimum %${settings.confidenceThreshold} güven`
-                                            : `Minimum ${settings.confidenceThreshold}% confidence`}
-                                        onPress={() => {
-                                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                                            Alert.alert(
-                                                language === 'tr' ? 'Güven Eşiği' : 'Confidence Threshold',
-                                                language === 'tr' ? 'Bu özellik yakında eklenecek.' : 'This feature is coming soon.'
-                                            );
-                                        }}
-                                    />
-                                </View>
-                            </BlurView>
+                            <GlassCard style={styles.cardBlur} innerStyle={styles.card}>
+                                <SettingNavRow
+                                    icon={<Globe size={20} color="#0891B2" />}
+                                    title={language === 'tr' ? 'Dil' : 'Language'}
+                                    subtitle={language === 'tr' ? 'Türkçe' : 'English'}
+                                    onPress={handleLanguageChange}
+                                />
+                            </GlassCard>
                         </View>
                     </View>
 
@@ -143,33 +270,31 @@ export default function SettingsScreen() {
                             </Text>
                         </View>
                         <View style={styles.cardWrapper}>
-                            <BlurView intensity={65} tint="light" style={styles.cardBlur}>
-                                <View style={styles.card}>
-                                    <SettingToggleRow
-                                        icon={<BellRing size={20} color="#10B981" />}
-                                        title={language === 'tr' ? 'Analiz Bildirimleri' : 'Analysis Notifications'}
-                                        subtitle={language === 'tr' ? 'Analiz tamamlandığında bildirim al' : 'Get notified when analysis is complete'}
-                                        value={settings.analysisNotifications}
-                                        onValueChange={(v) => updateSetting('analysisNotifications', v)}
-                                    />
-                                    <View style={styles.divider} />
-                                    <SettingToggleRow
-                                        icon={<Bell size={20} color="#F59E0B" />}
-                                        title={language === 'tr' ? 'Acil Uyarılar' : 'Urgent Alerts'}
-                                        subtitle={language === 'tr' ? 'Acil durumlar için anlık bildirim' : 'Instant notifications for urgent cases'}
-                                        value={settings.urgentAlerts}
-                                        onValueChange={(v) => updateSetting('urgentAlerts', v)}
-                                    />
-                                    <View style={styles.divider} />
-                                    <SettingToggleRow
-                                        icon={<Volume2 size={20} color="#6366F1" />}
-                                        title={language === 'tr' ? 'Ses' : 'Sound'}
-                                        subtitle={language === 'tr' ? 'Bildirim sesi aç' : 'Enable notification sound'}
-                                        value={settings.soundEnabled}
-                                        onValueChange={(v) => updateSetting('soundEnabled', v)}
-                                    />
-                                </View>
-                            </BlurView>
+                            <GlassCard style={styles.cardBlur} innerStyle={styles.card}>
+                                <SettingToggleRow
+                                    icon={<BellRing size={20} color="#10B981" />}
+                                    title={language === 'tr' ? 'Analiz Bildirimleri' : 'Analysis Notifications'}
+                                    subtitle={language === 'tr' ? 'Analiz tamamlandığında bildirim al' : 'Get notified when analysis is complete'}
+                                    value={settings.analysisNotifications}
+                                    onValueChange={(v) => updateSetting('analysisNotifications', v)}
+                                />
+                                <View style={styles.divider} />
+                                <SettingToggleRow
+                                    icon={<Bell size={20} color="#F59E0B" />}
+                                    title={language === 'tr' ? 'Acil Uyarılar' : 'Urgent Alerts'}
+                                    subtitle={language === 'tr' ? 'Acil durumlar için anlık bildirim' : 'Instant notifications for urgent cases'}
+                                    value={settings.urgentAlerts}
+                                    onValueChange={(v) => updateSetting('urgentAlerts', v)}
+                                />
+                                <View style={styles.divider} />
+                                <SettingToggleRow
+                                    icon={<Volume2 size={20} color="#6366F1" />}
+                                    title={language === 'tr' ? 'Ses' : 'Sound'}
+                                    subtitle={language === 'tr' ? 'Bildirim sesi aç' : 'Enable notification sound'}
+                                    value={settings.soundEnabled}
+                                    onValueChange={(v) => updateSetting('soundEnabled', v)}
+                                />
+                            </GlassCard>
                         </View>
                     </View>
 
@@ -182,25 +307,42 @@ export default function SettingsScreen() {
                             </Text>
                         </View>
                         <View style={styles.cardWrapper}>
-                            <BlurView intensity={65} tint="light" style={styles.cardBlur}>
-                                <View style={styles.card}>
-                                    <SettingToggleRow
-                                        icon={<Lock size={20} color="#EF4444" />}
-                                        title={language === 'tr' ? 'Veri Anonimleştirme' : 'Data Anonymization'}
-                                        subtitle={language === 'tr' ? 'Hasta verilerini anonimleştir' : 'Anonymize patient data'}
-                                        value={settings.anonymizeData}
-                                        onValueChange={(v) => updateSetting('anonymizeData', v)}
-                                    />
-                                    <View style={styles.divider} />
-                                    <SettingToggleRow
-                                        icon={<Save size={20} color="#0891B2" />}
-                                        title={language === 'tr' ? 'Otomatik Kaydetme' : 'Auto-Save'}
-                                        subtitle={language === 'tr' ? 'Vakaları otomatik kaydet' : 'Auto-save cases'}
-                                        value={settings.autoSaveCases}
-                                        onValueChange={(v) => updateSetting('autoSaveCases', v)}
-                                    />
-                                </View>
-                            </BlurView>
+                            <GlassCard style={styles.cardBlur} innerStyle={styles.card}>
+                                <SettingToggleRow
+                                    icon={<Lock size={20} color="#EF4444" />}
+                                    title={language === 'tr' ? 'Veri Anonimleştirme' : 'Data Anonymization'}
+                                    subtitle={language === 'tr' ? 'Vakalarınız geçmişe kaydedilmez' : 'Your cases won\'t be saved to history'}
+                                    value={settings.anonymizeData}
+                                    onValueChange={handleAnonymizeToggle}
+                                />
+                            </GlassCard>
+                        </View>
+                    </View>
+
+                    {/* Support Section */}
+                    <View style={styles.sectionWrapper}>
+                        <View style={styles.sectionHeader}>
+                            <Mail size={20} color="#0891B2" />
+                            <Text style={styles.sectionTitle}>
+                                {language === 'tr' ? 'Destek' : 'Support'}
+                            </Text>
+                        </View>
+                        <View style={styles.cardWrapper}>
+                            <GlassCard style={styles.cardBlur} innerStyle={styles.card}>
+                                <SettingNavRow
+                                    icon={<Mail size={20} color="#0891B2" />}
+                                    title={language === 'tr' ? 'İletişim' : 'Contact Us'}
+                                    subtitle="support@corioscan.ai"
+                                    onPress={handleContactSupport}
+                                />
+                                <View style={styles.divider} />
+                                <SettingNavRow
+                                    icon={<Star size={20} color="#F59E0B" />}
+                                    title={language === 'tr' ? 'Uygulamayı Değerlendir' : 'Rate the App'}
+                                    subtitle={language === 'tr' ? 'Görüşleriniz bizim için önemli' : 'Your feedback matters'}
+                                    onPress={handleRateApp}
+                                />
+                            </GlassCard>
                         </View>
                     </View>
 
@@ -213,42 +355,67 @@ export default function SettingsScreen() {
                             </Text>
                         </View>
                         <View style={styles.cardWrapper}>
-                            <BlurView intensity={65} tint="light" style={styles.cardBlur}>
-                                <View style={styles.card}>
-                                    <SettingInfoRow
-                                        icon={<Sparkles size={20} color="#0891B2" />}
-                                        title={language === 'tr' ? 'Uygulama Versiyonu' : 'App Version'}
-                                        value={`v${APP_VERSION}`}
-                                    />
-                                    <View style={styles.divider} />
-                                    <SettingNavRow
-                                        icon={<FileText size={20} color="#0891B2" />}
-                                        title={language === 'tr' ? 'Tıbbi Uyarı' : 'Medical Disclaimer'}
-                                        onPress={() => {
-                                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                                            router.push('/medical-disclaimer');
-                                        }}
-                                    />
-                                    <View style={styles.divider} />
-                                    <SettingNavRow
-                                        icon={<Shield size={20} color="#0891B2" />}
-                                        title={Translations.privacyPolicy[language]}
-                                        onPress={() => {
-                                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                                            router.push('/privacy-policy');
-                                        }}
-                                    />
-                                    <View style={styles.divider} />
-                                    <SettingNavRow
-                                        icon={<Scale size={20} color="#0891B2" />}
-                                        title={Translations.termsOfService[language]}
-                                        onPress={() => {
-                                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                                            router.push('/terms-of-service');
-                                        }}
-                                    />
-                                </View>
-                            </BlurView>
+                            <GlassCard style={styles.cardBlur} innerStyle={styles.card}>
+                                <SettingInfoRow
+                                    icon={<Info size={20} color="#0891B2" />}
+                                    title={language === 'tr' ? 'Uygulama Versiyonu' : 'App Version'}
+                                    value={`v${APP_VERSION}`}
+                                />
+                                <View style={styles.divider} />
+                                <SettingNavRow
+                                    icon={<FileText size={20} color="#0891B2" />}
+                                    title={language === 'tr' ? 'Tıbbi Uyarı' : 'Medical Disclaimer'}
+                                    onPress={() => {
+                                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                        router.push('/medical-disclaimer');
+                                    }}
+                                />
+                                <View style={styles.divider} />
+                                <SettingNavRow
+                                    icon={<Shield size={20} color="#0891B2" />}
+                                    title={Translations.privacyPolicy[language]}
+                                    onPress={() => {
+                                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                        router.push('/privacy-policy');
+                                    }}
+                                />
+                                <View style={styles.divider} />
+                                <SettingNavRow
+                                    icon={<Scale size={20} color="#0891B2" />}
+                                    title={Translations.termsOfService[language]}
+                                    onPress={() => {
+                                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                        router.push('/terms-of-service');
+                                    }}
+                                />
+                            </GlassCard>
+                        </View>
+                    </View>
+
+                    {/* Account Section */}
+                    <View style={styles.sectionWrapper}>
+                        <View style={styles.sectionHeader}>
+                            <User size={20} color="#0891B2" />
+                            <Text style={styles.sectionTitle}>
+                                {language === 'tr' ? 'Hesap' : 'Account'}
+                            </Text>
+                        </View>
+                        <View style={styles.cardWrapper}>
+                            <GlassCard style={styles.cardBlur} innerStyle={styles.card}>
+                                <SettingActionRow
+                                    icon={<LogOut size={20} color="#F59E0B" />}
+                                    title={language === 'tr' ? 'Çıkış Yap' : 'Logout'}
+                                    titleColor="#F59E0B"
+                                    onPress={handleLogout}
+                                />
+                                <View style={styles.divider} />
+                                <SettingActionRow
+                                    icon={<Trash2 size={20} color="#EF4444" />}
+                                    title={language === 'tr' ? 'Hesabı Sil' : 'Delete Account'}
+                                    titleColor="#EF4444"
+                                    onPress={handleDeleteAccount}
+                                />
+                            </GlassCard>
                         </View>
                     </View>
 
@@ -257,7 +424,7 @@ export default function SettingsScreen() {
                         <View style={styles.footerLogoContainer}>
                             <Heart size={16} color="#0891B2" />
                         </View>
-                        <Text style={styles.footerText}>DermaAssistAI © 2024</Text>
+                        <Text style={styles.footerText}>Corio Scan © 2025</Text>
                         <Text style={styles.footerSubtext}>
                             {language === 'tr'
                                 ? 'Sağlık profesyonelleri için tasarlanmıştır'
@@ -265,7 +432,92 @@ export default function SettingsScreen() {
                         </Text>
                     </View>
                 </ScrollView>
-            </SafeAreaView>
+            </View>
+
+            {/* Language Selection Modal */}
+            <Modal
+                visible={isLanguageModalVisible}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setIsLanguageModalVisible(false)}
+            >
+                <Pressable
+                    style={styles.modalOverlay}
+                    onPress={() => setIsLanguageModalVisible(false)}
+                >
+                    <Pressable style={styles.modalContainer} onPress={(e) => e.stopPropagation()}>
+                        <BlurView intensity={80} tint="light" style={styles.modalBlur}>
+                            <View style={styles.modalContent}>
+                                {/* Modal Header */}
+                                <View style={styles.modalHeader}>
+                                    <Text style={styles.modalTitle}>
+                                        {language === 'tr' ? 'Dil Seçimi' : 'Language Selection'}
+                                    </Text>
+                                    <Text style={styles.modalSubtitle}>
+                                        {language === 'tr' ? 'Uygulama dilini seçin' : 'Select app language'}
+                                    </Text>
+                                </View>
+
+                                {/* Language Options */}
+                                <View style={styles.languageOptions}>
+                                    {/* Turkish Option */}
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.languageOption,
+                                            language === 'tr' && styles.languageOptionSelected,
+                                        ]}
+                                        onPress={() => selectLanguage('tr')}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Text style={styles.languageFlag}>🇹🇷</Text>
+                                        <Text style={[
+                                            styles.languageText,
+                                            language === 'tr' && styles.languageTextSelected,
+                                        ]}>Türkçe</Text>
+                                        {language === 'tr' && (
+                                            <View style={styles.checkIcon}>
+                                                <Check size={18} color="#FFFFFF" />
+                                            </View>
+                                        )}
+                                    </TouchableOpacity>
+
+                                    {/* English Option */}
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.languageOption,
+                                            language === 'en' && styles.languageOptionSelected,
+                                        ]}
+                                        onPress={() => selectLanguage('en')}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Text style={styles.languageFlag}>🇬🇧</Text>
+                                        <Text style={[
+                                            styles.languageText,
+                                            language === 'en' && styles.languageTextSelected,
+                                        ]}>English</Text>
+                                        {language === 'en' && (
+                                            <View style={styles.checkIcon}>
+                                                <Check size={18} color="#FFFFFF" />
+                                            </View>
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
+
+                                {/* Cancel Button */}
+                                <TouchableOpacity
+                                    style={styles.cancelButton}
+                                    onPress={() => setIsLanguageModalVisible(false)}
+                                    activeOpacity={0.7}
+                                >
+                                    <Text style={styles.cancelButtonText}>
+                                        {language === 'tr' ? 'İptal' : 'Cancel'}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        </BlurView>
+                    </Pressable>
+                </Pressable>
+            </Modal>
         </ImageBackground>
     );
 }
@@ -353,6 +605,31 @@ function SettingInfoRow({
     );
 }
 
+// Setting action row component (for logout, delete account, etc.)
+function SettingActionRow({
+    icon,
+    title,
+    titleColor,
+    onPress,
+}: {
+    icon: React.ReactNode;
+    title: string;
+    titleColor?: string;
+    onPress: () => void;
+}) {
+    return (
+        <TouchableOpacity style={styles.settingRow} onPress={onPress} activeOpacity={0.7}>
+            <View style={styles.settingIconContainer}>
+                {icon}
+            </View>
+            <View style={styles.settingText}>
+                <Text style={[styles.settingTitle, titleColor ? { color: titleColor } : null]}>{title}</Text>
+            </View>
+            <ChevronRight size={20} color="#94A3B8" />
+        </TouchableOpacity>
+    );
+}
+
 const styles = StyleSheet.create({
     backgroundImage: {
         flex: 1,
@@ -404,12 +681,6 @@ const styles = StyleSheet.create({
     // Card
     cardWrapper: {
         borderRadius: 18,
-        overflow: 'hidden',
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 12,
-        elevation: 5,
     },
     cardBlur: {
         borderRadius: 18,
@@ -419,7 +690,10 @@ const styles = StyleSheet.create({
     },
     card: {
         padding: Spacing.md,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: Platform.select({
+            android: 'transparent',
+            ios: 'rgba(255, 255, 255, 0.2)',
+        }),
     },
     divider: {
         height: 1,
@@ -438,7 +712,10 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 10,
-        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+        backgroundColor: Platform.select({
+            android: 'transparent',
+            ios: 'rgba(255, 255, 255, 0.5)',
+        }),
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: Spacing.md,
@@ -486,5 +763,105 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#94A3B8',
         marginTop: 4,
+    },
+
+    // Language Modal
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: Spacing.lg,
+    },
+    modalContainer: {
+        width: '100%',
+        maxWidth: 340,
+        borderRadius: 24,
+        overflow: 'hidden',
+    },
+    modalBlur: {
+        borderRadius: 24,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.6)',
+    },
+    modalContent: {
+        padding: Spacing.xl,
+        backgroundColor: Platform.select({
+            android: 'rgba(255, 255, 255, 0.95)',
+            ios: 'rgba(255, 255, 255, 0.3)',
+        }),
+    },
+    modalHeader: {
+        alignItems: 'center',
+        marginBottom: Spacing.lg,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#0F172A',
+        marginBottom: 4,
+    },
+    modalSubtitle: {
+        fontSize: 14,
+        color: '#64748B',
+    },
+    languageOptions: {
+        gap: 12,
+        marginBottom: Spacing.lg,
+    },
+    languageOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: Spacing.md,
+        borderRadius: 16,
+        backgroundColor: Platform.select({
+            android: 'rgba(255, 255, 255, 0.8)',
+            ios: 'rgba(255, 255, 255, 0.5)',
+        }),
+        borderWidth: 2,
+        borderColor: 'transparent',
+    },
+    languageOptionSelected: {
+        borderColor: '#0891B2',
+        backgroundColor: Platform.select({
+            android: 'rgba(8, 145, 178, 0.1)',
+            ios: 'rgba(8, 145, 178, 0.15)',
+        }),
+    },
+    languageFlag: {
+        fontSize: 28,
+        marginRight: Spacing.md,
+    },
+    languageText: {
+        flex: 1,
+        fontSize: 17,
+        fontWeight: '600',
+        color: '#0F172A',
+    },
+    languageTextSelected: {
+        color: '#0891B2',
+    },
+    checkIcon: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: '#0891B2',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    cancelButton: {
+        alignItems: 'center',
+        paddingVertical: Spacing.md,
+        borderRadius: 14,
+        backgroundColor: Platform.select({
+            android: 'rgba(0, 0, 0, 0.05)',
+            ios: 'rgba(0, 0, 0, 0.05)',
+        }),
+    },
+    cancelButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#64748B',
     },
 });

@@ -358,11 +358,6 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         borderWidth: 1.5,
         borderColor: 'rgba(255, 255, 255, 0.6)',
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.25,
-        shadowRadius: 20,
-        elevation: 15,
     },
     card: {
         padding: 28,
@@ -387,11 +382,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignSelf: 'center',
         marginBottom: 20,
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.4,
-        shadowRadius: 12,
-        elevation: 8,
     },
     title: {
         fontSize: 28,
@@ -496,11 +486,6 @@ const styles = StyleSheet.create({
     submitButtonWrapper: {
         borderRadius: 24,
         overflow: 'hidden',
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-        elevation: 8,
     },
     submitButton: {
         flexDirection: 'row',

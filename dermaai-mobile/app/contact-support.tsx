@@ -46,7 +46,7 @@ export default function ContactSupportScreen() {
     };
 
     const handleEmail = () => {
-        Linking.openURL('mailto:support@dermaassistai.com');
+        Linking.openURL('mailto:support@corioscan.ai');
     };
 
     const handlePhone = () => {
@@ -86,7 +86,7 @@ export default function ContactSupportScreen() {
                             <ContactButton
                                 icon={<Mail size={20} color={colors.primary} />}
                                 label="E-posta"
-                                value="support@dermaassistai.com"
+                                value="support@corioscan.ai"
                                 onPress={handleEmail}
                                 colors={colors}
                             />

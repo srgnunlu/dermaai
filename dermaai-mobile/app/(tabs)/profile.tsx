@@ -13,10 +13,12 @@ import {
     Image,
     Alert,
     ImageBackground,
-    SafeAreaView,
     ActivityIndicator,
+    Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
+import { GlassCard } from '@/components/ui/GlassCard';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
@@ -26,11 +28,7 @@ import {
     Building2,
     Award,
     Calendar,
-    LogOut,
     Edit2,
-    ChevronRight,
-    Shield,
-    HelpCircle,
     Activity,
     TrendingUp,
     FileCheck,
@@ -57,9 +55,10 @@ export default function ProfileScreen() {
     const colors = Colors[colorScheme];
     const router = useRouter();
 
-    const { user, isLoading: authLoading, logout, updateProfile, isUpdatingProfile, refetch } = useAuth();
+    const { user, isLoading: authLoading, updateProfile, isUpdatingProfile, refetch } = useAuth();
     const { cases } = useCases();
     const { language } = useLanguage();
+    const insets = useSafeAreaInsets();
 
     // State for edit modal and photo upload
     const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -72,26 +71,6 @@ export default function ProfileScreen() {
         }
     }, [isEditModalVisible]);
 
-    const handleLogout = () => {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        Alert.alert(
-            Translations.logout[language],
-            language === 'tr'
-                ? 'Hesabınızdan çıkış yapmak istediğinize emin misiniz?'
-                : 'Are you sure you want to logout?',
-            [
-                { text: Translations.cancel[language], style: 'cancel' },
-                {
-                    text: Translations.logout[language],
-                    style: 'destructive',
-                    onPress: async () => {
-                        await logout();
-                        router.replace('/(auth)/login');
-                    },
-                },
-            ]
-        );
-    };
 
     const handleEditProfile = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -223,7 +202,7 @@ export default function ProfileScreen() {
                 style={styles.backgroundImage}
                 resizeMode="cover"
             >
-                <SafeAreaView style={[styles.container, styles.centered]}>
+                <View style={[styles.container, styles.centered, { paddingTop: insets.top }]}>
                     <EmptyState
                         emoji="👤"
                         title={language === 'tr' ? 'Giriş yapın' : 'Login required'}
@@ -233,7 +212,7 @@ export default function ProfileScreen() {
                         actionLabel={language === 'tr' ? 'Giriş Yap' : 'Login'}
                         onAction={() => router.replace('/(auth)/login')}
                     />
-                </SafeAreaView>
+                </View>
             </ImageBackground>
         );
     }
@@ -259,7 +238,7 @@ export default function ProfileScreen() {
             style={styles.backgroundImage}
             resizeMode="cover"
         >
-            <SafeAreaView style={styles.container}>
+            <View style={[styles.container, { paddingTop: insets.top }]}>
                 {/* Header Title */}
                 <View style={styles.headerTitleContainer}>
                     <Text style={styles.headerTitle}>
@@ -274,59 +253,57 @@ export default function ProfileScreen() {
                 >
                     {/* Profile Header Card */}
                     <View style={styles.profileCardWrapper}>
-                        <BlurView intensity={75} tint="light" style={styles.profileCardBlur}>
-                            <View style={styles.profileCard}>
-                                {/* Avatar - Tappable to change photo */}
-                                <TouchableOpacity
-                                    style={styles.avatarSection}
-                                    onPress={handleAvatarPress}
-                                    activeOpacity={0.8}
-                                    disabled={isUploadingPhoto}
-                                >
-                                    {user.profileImageUrl ? (
-                                        <Image
-                                            source={{ uri: user.profileImageUrl }}
-                                            style={styles.avatar}
-                                        />
-                                    ) : (
-                                        <View style={styles.avatarPlaceholder}>
-                                            <Text style={styles.avatarText}>{initials}</Text>
-                                        </View>
-                                    )}
-                                    {/* Camera/Loading overlay */}
-                                    <View style={styles.avatarOverlay}>
-                                        {isUploadingPhoto ? (
-                                            <ActivityIndicator size="small" color="#FFFFFF" />
-                                        ) : (
-                                            <Camera size={16} color="#FFFFFF" />
-                                        )}
+                        <GlassCard style={styles.profileCardBlur} innerStyle={styles.profileCard}>
+                            {/* Avatar - Tappable to change photo */}
+                            <TouchableOpacity
+                                style={styles.avatarSection}
+                                onPress={handleAvatarPress}
+                                activeOpacity={0.8}
+                                disabled={isUploadingPhoto}
+                            >
+                                {user.profileImageUrl ? (
+                                    <Image
+                                        source={{ uri: user.profileImageUrl }}
+                                        style={styles.avatar}
+                                    />
+                                ) : (
+                                    <View style={styles.avatarPlaceholder}>
+                                        <Text style={styles.avatarText}>{initials}</Text>
                                     </View>
-                                    {/* Edit button for profile info */}
-                                    <TouchableOpacity
-                                        style={styles.editButton}
-                                        onPress={handleEditProfile}
-                                        activeOpacity={0.7}
-                                    >
-                                        <Edit2 size={14} color="#FFFFFF" />
-                                    </TouchableOpacity>
-                                </TouchableOpacity>
-
-                                {/* User Info */}
-                                <Text style={styles.userName}>{fullName}</Text>
-                                <Text style={styles.userEmail}>{user.email}</Text>
-
-                                {/* Role Badge */}
-                                <View style={styles.roleBadge}>
-                                    <Text style={styles.roleBadgeText}>
-                                        {user.role === 'admin'
-                                            ? (language === 'tr' ? '👨‍⚕️ Yönetici' : '👨‍⚕️ Admin')
-                                            : user.isHealthProfessional
-                                                ? (language === 'tr' ? '🩺 Doktor' : '🩺 Doctor')
-                                                : (language === 'tr' ? '👤 Kullanıcı' : '👤 User')}
-                                    </Text>
+                                )}
+                                {/* Camera/Loading overlay */}
+                                <View style={styles.avatarOverlay}>
+                                    {isUploadingPhoto ? (
+                                        <ActivityIndicator size="small" color="#FFFFFF" />
+                                    ) : (
+                                        <Camera size={16} color="#FFFFFF" />
+                                    )}
                                 </View>
+                                {/* Edit button for profile info */}
+                                <TouchableOpacity
+                                    style={styles.editButton}
+                                    onPress={handleEditProfile}
+                                    activeOpacity={0.7}
+                                >
+                                    <Edit2 size={14} color="#FFFFFF" />
+                                </TouchableOpacity>
+                            </TouchableOpacity>
+
+                            {/* User Info */}
+                            <Text style={styles.userName}>{fullName}</Text>
+                            <Text style={styles.userEmail}>{user.email}</Text>
+
+                            {/* Role Badge */}
+                            <View style={styles.roleBadge}>
+                                <Text style={styles.roleBadgeText}>
+                                    {user.role === 'admin'
+                                        ? (language === 'tr' ? '👨‍⚕️ Yönetici' : '👨‍⚕️ Admin')
+                                        : user.isHealthProfessional
+                                            ? (language === 'tr' ? '🩺 Doktor' : '🩺 Doctor')
+                                            : (language === 'tr' ? '👤 Kullanıcı' : '👤 User')}
+                                </Text>
                             </View>
-                        </BlurView>
+                        </GlassCard>
                     </View>
 
                     {/* Statistics Card */}
@@ -335,27 +312,25 @@ export default function ProfileScreen() {
                             {language === 'tr' ? '📊 İstatistikler' : '📊 Statistics'}
                         </Text>
                         <View style={styles.statsCardWrapper}>
-                            <BlurView intensity={65} tint="light" style={styles.statsCardBlur}>
-                                <View style={styles.statsCard}>
-                                    <StatItem
-                                        icon={<FileCheck size={22} color="#0891B2" />}
-                                        value={totalCases.toString()}
-                                        label={language === 'tr' ? 'Toplam Vaka' : 'Total Cases'}
-                                    />
-                                    <View style={styles.statDivider} />
-                                    <StatItem
-                                        icon={<Activity size={22} color="#10B981" />}
-                                        value={completedCases.toString()}
-                                        label={language === 'tr' ? 'Tamamlanan' : 'Completed'}
-                                    />
-                                    <View style={styles.statDivider} />
-                                    <StatItem
-                                        icon={<TrendingUp size={22} color="#8B5CF6" />}
-                                        value={`%${avgConfidence}`}
-                                        label={language === 'tr' ? 'Ort. Güven' : 'Avg. Conf.'}
-                                    />
-                                </View>
-                            </BlurView>
+                            <GlassCard style={styles.statsCardBlur} innerStyle={styles.statsCard}>
+                                <StatItem
+                                    icon={<FileCheck size={22} color="#0891B2" />}
+                                    value={totalCases.toString()}
+                                    label={language === 'tr' ? 'Toplam Vaka' : 'Total Cases'}
+                                />
+                                <View style={styles.statDivider} />
+                                <StatItem
+                                    icon={<Activity size={22} color="#10B981" />}
+                                    value={completedCases.toString()}
+                                    label={language === 'tr' ? 'Tamamlanan' : 'Completed'}
+                                />
+                                <View style={styles.statDivider} />
+                                <StatItem
+                                    icon={<TrendingUp size={22} color="#8B5CF6" />}
+                                    value={`%${avgConfidence}`}
+                                    label={language === 'tr' ? 'Ort. Güven' : 'Avg. Conf.'}
+                                />
+                            </GlassCard>
                         </View>
                     </View>
 
@@ -412,52 +387,6 @@ export default function ProfileScreen() {
                             </View>
                         </View>
                     )}
-
-                    {/* Quick Actions Card */}
-                    <View style={styles.sectionWrapper}>
-                        <Text style={styles.sectionTitle}>
-                            {language === 'tr' ? '⚡ Hızlı İşlemler' : '⚡ Quick Actions'}
-                        </Text>
-                        <View style={styles.actionsCardWrapper}>
-                            <BlurView intensity={60} tint="light" style={styles.actionsCardBlur}>
-                                <View style={styles.actionsCard}>
-                                    <ActionRow
-                                        icon={<HelpCircle size={20} color="#0891B2" />}
-                                        label={Translations.contactSupport[language]}
-                                        onPress={() => {
-                                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                                            router.push('/contact-support');
-                                        }}
-                                    />
-                                    <View style={styles.actionDivider} />
-                                    <ActionRow
-                                        icon={<Shield size={20} color="#0891B2" />}
-                                        label={Translations.privacyPolicy[language]}
-                                        onPress={() => {
-                                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                                            router.push('/privacy-policy');
-                                        }}
-                                    />
-                                </View>
-                            </BlurView>
-                        </View>
-                    </View>
-
-                    {/* Logout Button */}
-                    <TouchableOpacity
-                        style={styles.logoutButtonWrapper}
-                        onPress={handleLogout}
-                        activeOpacity={0.8}
-                    >
-                        <BlurView intensity={60} tint="light" style={styles.logoutButtonBlur}>
-                            <View style={styles.logoutButton}>
-                                <LogOut size={20} color="#EF4444" />
-                                <Text style={styles.logoutButtonText}>
-                                    {Translations.logout[language]}
-                                </Text>
-                            </View>
-                        </BlurView>
-                    </TouchableOpacity>
                 </ScrollView>
 
                 {/* Edit Profile Modal */}
@@ -466,7 +395,7 @@ export default function ProfileScreen() {
                     onClose={() => setIsEditModalVisible(false)}
                     isHealthProfessional={user.isHealthProfessional === true}
                 />
-            </SafeAreaView>
+            </View>
         </ImageBackground>
     );
 }
@@ -513,31 +442,6 @@ function InfoRow({
     );
 }
 
-// Action row component
-function ActionRow({
-    icon,
-    label,
-    onPress,
-}: {
-    icon: React.ReactNode;
-    label: string;
-    onPress: () => void;
-}) {
-    return (
-        <TouchableOpacity
-            style={styles.actionRow}
-            onPress={onPress}
-            activeOpacity={0.7}
-        >
-            <View style={styles.actionRowLeft}>
-                {icon}
-                <Text style={styles.actionLabel}>{label}</Text>
-            </View>
-            <ChevronRight size={18} color="#94A3B8" />
-        </TouchableOpacity>
-    );
-}
-
 const styles = StyleSheet.create({
     backgroundImage: {
         flex: 1,
@@ -577,11 +481,6 @@ const styles = StyleSheet.create({
         marginBottom: Spacing.lg,
         borderRadius: 24,
         overflow: 'hidden',
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.2,
-        shadowRadius: 20,
-        elevation: 10,
     },
     profileCardBlur: {
         borderRadius: 24,
@@ -592,7 +491,10 @@ const styles = StyleSheet.create({
     profileCard: {
         padding: Spacing.xl,
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: Platform.select({
+            android: 'transparent',
+            ios: 'rgba(255, 255, 255, 0.2)',
+        }),
     },
     avatarSection: {
         position: 'relative',
@@ -645,11 +547,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         borderWidth: 3,
         borderColor: '#FFFFFF',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-        elevation: 4,
     },
     userName: {
         fontSize: 22,
@@ -691,11 +588,6 @@ const styles = StyleSheet.create({
     statsCardWrapper: {
         borderRadius: 20,
         overflow: 'hidden',
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 12,
-        elevation: 5,
     },
     statsCardBlur: {
         borderRadius: 20,
@@ -706,7 +598,10 @@ const styles = StyleSheet.create({
     statsCard: {
         flexDirection: 'row',
         padding: Spacing.lg,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: Platform.select({
+            android: 'transparent',
+            ios: 'rgba(255, 255, 255, 0.2)',
+        }),
     },
     statItem: {
         flex: 1,
@@ -716,7 +611,10 @@ const styles = StyleSheet.create({
         width: 44,
         height: 44,
         borderRadius: 12,
-        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+        backgroundColor: Platform.select({
+            android: 'transparent',
+            ios: 'rgba(255, 255, 255, 0.5)',
+        }),
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 8,
@@ -742,11 +640,6 @@ const styles = StyleSheet.create({
     infoCardWrapper: {
         borderRadius: 18,
         overflow: 'hidden',
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 12,
-        elevation: 5,
     },
     infoCardBlur: {
         borderRadius: 18,
@@ -756,7 +649,10 @@ const styles = StyleSheet.create({
     },
     infoCard: {
         padding: Spacing.lg,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: Platform.select({
+            android: 'transparent',
+            ios: 'rgba(255, 255, 255, 0.2)',
+        }),
     },
     infoRow: {
         flexDirection: 'row',
@@ -785,78 +681,5 @@ const styles = StyleSheet.create({
         height: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.06)',
         marginVertical: 4,
-    },
-
-    // Actions Card
-    actionsCardWrapper: {
-        borderRadius: 18,
-        overflow: 'hidden',
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 12,
-        elevation: 5,
-    },
-    actionsCardBlur: {
-        borderRadius: 18,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.5)',
-    },
-    actionsCard: {
-        padding: Spacing.md,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    },
-    actionRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingVertical: Spacing.md,
-        paddingHorizontal: Spacing.sm,
-    },
-    actionRowLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    actionLabel: {
-        fontSize: 15,
-        color: '#0F172A',
-        fontWeight: '500',
-    },
-    actionDivider: {
-        height: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.06)',
-    },
-
-    // Logout Button
-    logoutButtonWrapper: {
-        marginTop: Spacing.md,
-        borderRadius: 18,
-        overflow: 'hidden',
-        shadowColor: '#EF4444',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 12,
-        elevation: 5,
-    },
-    logoutButtonBlur: {
-        borderRadius: 18,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: 'rgba(239, 68, 68, 0.2)',
-    },
-    logoutButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 16,
-        backgroundColor: 'rgba(254, 226, 226, 0.6)',
-        gap: 10,
-    },
-    logoutButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#EF4444',
     },
 });

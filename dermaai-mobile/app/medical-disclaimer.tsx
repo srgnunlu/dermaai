@@ -38,7 +38,7 @@ export default function MedicalDisclaimerScreen() {
                 <Card>
                     <CardContent>
                         <Section title="Amaç ve Kapsam" colors={colors}>
-                            DermaAssistAI, yapay zeka destekli bir dermatolojik tanı destek sistemidir.
+                            Corio Scan, yapay zeka destekli bir dermatolojik tanı destek sistemidir.
                             Bu uygulama, sağlık profesyonellerine tanı sürecinde yardımcı olmak amacıyla
                             geliştirilmiştir ve kesinlikle tıbbi tanı koymak veya tedavi önermek için
                             kullanılmamalıdır.
@@ -72,7 +72,7 @@ export default function MedicalDisclaimerScreen() {
                         </Section>
 
                         <Section title="Sorumluluk Reddi" colors={colors} isLast>
-                            DermaAssistAI ve geliştiricileri, bu uygulamanın kullanımından kaynaklanan
+                            Corio Scan ve geliştiricileri, bu uygulamanın kullanımından kaynaklanan
                             herhangi bir yanlış tanı, tedavi gecikmesi veya diğer tıbbi sorunlardan
                             sorumlu tutulamaz. Tüm tıbbi kararlar yetkili sağlık profesyonelleri
                             tarafından verilmelidir.

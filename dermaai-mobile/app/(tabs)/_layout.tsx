@@ -22,11 +22,12 @@ function TabBarIcon({
   color: string;
   focused: boolean;
 }) {
+  const iconSize = Platform.select({ android: 28, ios: 26 }) || 26;
   return (
     <View style={styles.iconWrapper}>
       {focused && <View style={styles.activeBackground} />}
       <Icon
-        size={26}
+        size={iconSize}
         color={focused ? '#0891B2' : '#6B7280'}
         strokeWidth={focused ? 2.2 : 1.8}
       />
@@ -52,12 +53,12 @@ export default function TabLayout() {
           tabBarInactiveTintColor: inactiveColor,
           tabBarStyle: {
             position: 'absolute',
-            bottom: 32,
+            bottom: Platform.select({ android: 28, ios: 32 }),
             left: 0,
             right: 0,
-            marginHorizontal: 24,
-            height: 68,
-            borderRadius: 34,
+            marginHorizontal: Platform.select({ android: 20, ios: 24 }),
+            height: Platform.select({ android: 72, ios: 68 }),
+            borderRadius: Platform.select({ android: 36, ios: 34 }),
             backgroundColor: 'transparent',
             borderTopWidth: 0,
             elevation: 0,
@@ -71,15 +72,20 @@ export default function TabLayout() {
           },
           tabBarBackground: () => (
             <BlurView
-              intensity={Platform.OS === 'ios' ? 80 : 50}
+              intensity={Platform.OS === 'ios' ? 80 : 70}
               tint={colorScheme === 'light' ? 'light' : 'dark'}
               style={{
                 ...StyleSheet.absoluteFillObject,
-                borderRadius: 34,
+                borderRadius: Platform.select({ android: 36, ios: 34 }),
                 overflow: 'hidden',
-                backgroundColor: colorScheme === 'light'
-                  ? 'rgba(255, 255, 255, 0.5)'
-                  : 'rgba(30, 41, 59, 0.5)',
+                backgroundColor: Platform.select({
+                  android: colorScheme === 'light'
+                    ? 'rgba(255, 255, 255, 0.25)'
+                    : 'rgba(30, 41, 59, 0.25)',
+                  ios: colorScheme === 'light'
+                    ? 'rgba(255, 255, 255, 0.5)'
+                    : 'rgba(30, 41, 59, 0.5)',
+                }),
                 borderWidth: 1.5,
                 borderColor: 'rgba(255, 255, 255, 0.6)',
               }}
@@ -87,15 +93,15 @@ export default function TabLayout() {
           ),
           tabBarShowLabel: true,
           tabBarLabelStyle: {
-            fontSize: 11,
+            fontSize: Platform.select({ android: 12, ios: 11 }),
             fontWeight: '600',
-            marginBottom: 8,
-            marginTop: -4,
+            marginBottom: Platform.select({ android: 10, ios: 8 }),
+            marginTop: Platform.select({ android: -2, ios: -4 }),
           },
           tabBarItemStyle: {
-            height: 68,
-            paddingTop: 10,
-            paddingBottom: 6,
+            height: Platform.select({ android: 72, ios: 68 }),
+            paddingTop: Platform.select({ android: 12, ios: 10 }),
+            paddingBottom: Platform.select({ android: 8, ios: 6 }),
             justifyContent: 'center',
           },
           headerStyle: {
@@ -180,19 +186,21 @@ export default function TabLayout() {
   );
 }
 
+const iconWrapperSize = Platform.select({ android: 42, ios: 38 }) || 38;
+
 const styles = StyleSheet.create({
   iconWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 38,
-    height: 38,
+    width: iconWrapperSize,
+    height: iconWrapperSize,
     position: 'relative',
   },
   activeBackground: {
     position: 'absolute',
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: iconWrapperSize,
+    height: iconWrapperSize,
+    borderRadius: iconWrapperSize / 2,
     backgroundColor: '#E0F7FA',
     opacity: 0.9,
   },

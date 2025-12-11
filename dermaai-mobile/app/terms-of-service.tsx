@@ -38,13 +38,13 @@ export default function TermsOfServiceScreen() {
                 <Card>
                     <CardContent>
                         <Section title="1. Kabul" colors={colors}>
-                            DermaAssistAI uygulamasını kullanarak bu kullanım şartlarını kabul
+                            Corio Scan uygulamasını kullanarak bu kullanım şartlarını kabul
                             etmiş sayılırsınız. Bu şartları kabul etmiyorsanız uygulamayı
                             kullanmayınız.
                         </Section>
 
                         <Section title="2. Hizmet Tanımı" colors={colors}>
-                            DermaAssistAI, yapay zeka destekli bir dermatolojik tanı destek
+                            Corio Scan, yapay zeka destekli bir dermatolojik tanı destek
                             sistemidir. Sağlık profesyonellerine tanı sürecinde yardımcı olmak
                             amacıyla geliştirilmiştir.
                         </Section>
@@ -63,7 +63,7 @@ export default function TermsOfServiceScreen() {
                         </Section>
 
                         <Section title="5. Fikri Mülkiyet" colors={colors}>
-                            Uygulama ve içeriğindeki tüm fikri mülkiyet hakları DermaAssistAI'ye
+                            Uygulama ve içeriğindeki tüm fikri mülkiyet hakları Corio'ye
                             aittir. İzinsiz kopyalama, dağıtım veya değiştirme yasaktır.
                         </Section>
 
@@ -75,7 +75,7 @@ export default function TermsOfServiceScreen() {
                         </Section>
 
                         <Section title="7. Hizmet Değişiklikleri" colors={colors}>
-                            DermaAssistAI, hizmeti değiştirme, askıya alma veya sonlandırma
+                            Corio, hizmeti değiştirme, askıya alma veya sonlandırma
                             hakkını saklı tutar. Önemli değişiklikler e-posta ile bildirilir.
                         </Section>
 
@@ -92,7 +92,7 @@ export default function TermsOfServiceScreen() {
 
                         <Section title="10. İletişim" colors={colors} isLast>
                             Kullanım şartları ile ilgili sorularınız için:{'\n\n'}
-                            📧 legal@dermaassistai.com{'\n'}
+                            📧 legal@corioscan.ai{'\n'}
                             📞 +90 212 XXX XX XX
                         </Section>
                     </CardContent>

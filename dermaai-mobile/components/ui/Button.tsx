@@ -336,11 +336,7 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     gradientContainer: {
-        shadowColor: '#0E7490',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
+        // Shadow removed to prevent Android artifacts
     },
     fullWidth: {
         width: '100%',

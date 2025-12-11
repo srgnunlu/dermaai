@@ -14,6 +14,8 @@ import {
     ScrollView,
     Image,
     Dimensions,
+    Platform,
+    StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -141,7 +143,11 @@ const RecentScanCard = ({
                     },
                 ]}
             >
-                <BlurView intensity={60} tint="light" style={styles.scanCardBlur}>
+                <BlurView
+                    intensity={Platform.OS === 'ios' ? 60 : 30}
+                    tint="light"
+                    style={styles.scanCardBlur}
+                >
                     <View style={styles.scanCard}>
                         <View style={styles.scanImagePlaceholder}>
                             {scan.imageUrl ? (
@@ -189,7 +195,11 @@ const TipCard = ({
 
     return (
         <View style={styles.tipCardWrapper}>
-            <BlurView intensity={70} tint="light" style={styles.tipCardBlur}>
+            <BlurView
+                intensity={Platform.OS === 'ios' ? 70 : 30}
+                tint="light"
+                style={styles.tipCardBlur}
+            >
                 <View style={styles.tipCard}>
                     <View style={styles.tipIconContainer}>
                         <Icon size={24} color="#FFFFFF" strokeWidth={2.5} />
@@ -339,7 +349,7 @@ export function WelcomeStep({
                 {/* Header with Language Toggle */}
                 <View style={styles.header}>
                     <Text style={[styles.appName, { color: colors.textSecondary }]}>
-                        DermaAssist<Text style={{ color: colors.primary }}>AI</Text>
+                        Corio<Text style={{ color: colors.primary }}> Scan</Text>
                     </Text>
                     {/* Language Toggle Button - Glassmorphism Style */}
                     <TouchableOpacity
@@ -528,7 +538,10 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingHorizontal: Spacing.xl,
-        paddingTop: Spacing.lg,
+        paddingTop: Platform.select({
+            android: (StatusBar.currentHeight || 24) + Spacing['2xl'],
+            ios: Spacing.lg,
+        }),
         paddingBottom: Spacing['4xl'],
     },
     header: {
@@ -548,11 +561,6 @@ const styles = StyleSheet.create({
         right: 0,
         borderRadius: 12,
         overflow: 'hidden',
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 6,
-        elevation: 4,
     },
     languageToggleBlur: {
         borderRadius: 12,
@@ -563,7 +571,10 @@ const styles = StyleSheet.create({
     languageToggleInner: {
         paddingHorizontal: 10,
         paddingVertical: 6,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: Platform.select({
+            android: 'rgba(255, 255, 255, 0.05)',
+            ios: 'rgba(255, 255, 255, 0.2)',
+        }),
     },
     languageToggleText: {
         fontSize: 12,
@@ -583,11 +594,11 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     greetingHello: {
-        fontSize: 28,
+        fontSize: Platform.select({ android: 30, ios: 28 }),
         fontWeight: '400',
     },
     greetingName: {
-        fontSize: 32,
+        fontSize: Platform.select({ android: 36, ios: 32 }),
         fontWeight: '700',
         marginTop: -4,
     },
@@ -607,11 +618,6 @@ const styles = StyleSheet.create({
         width: '100%',
         borderRadius: 36,
         overflow: 'hidden',
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.2,
-        shadowRadius: 12,
-        elevation: 8,
     },
     blurContainer: {
         borderRadius: 36,
@@ -636,10 +642,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        height: 80,
-        paddingHorizontal: 32,
-        borderRadius: 36,
-        gap: 16,
+        height: Platform.select({ android: 88, ios: 80 }),
+        paddingHorizontal: Platform.select({ android: 36, ios: 32 }),
+        borderRadius: Platform.select({ android: 40, ios: 36 }),
+        gap: Platform.select({ android: 18, ios: 16 }),
         borderWidth: 1.5,
         borderColor: 'rgba(255, 255, 255, 0.5)',
         overflow: 'hidden',
@@ -657,9 +663,9 @@ const styles = StyleSheet.create({
         width: 160,
     },
     iconCircle: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
+        width: Platform.select({ android: 48, ios: 44 }),
+        height: Platform.select({ android: 48, ios: 44 }),
+        borderRadius: Platform.select({ android: 24, ios: 22 }),
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
         alignItems: 'center',
         justifyContent: 'center',
@@ -668,7 +674,7 @@ const styles = StyleSheet.create({
     },
     startButtonText: {
         color: '#FFFFFF',
-        fontSize: 20,
+        fontSize: Platform.select({ android: 22, ios: 20 }),
         fontWeight: '700',
         letterSpacing: 0.5,
         textShadowColor: 'rgba(0, 0, 0, 0.1)',
@@ -691,17 +697,16 @@ const styles = StyleSheet.create({
         width: (SCREEN_WIDTH - 80) / 3,
         borderRadius: 16,
         overflow: 'hidden',
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 10,
-        elevation: 5,
     },
     scanCardBlur: {
         borderRadius: 16,
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.5)',
+        backgroundColor: Platform.select({
+            android: 'rgba(255, 255, 255, 0.2)',
+            ios: 'transparent',
+        }),
     },
     scanCardHighlight: {
         position: 'absolute',
@@ -715,7 +720,10 @@ const styles = StyleSheet.create({
         zIndex: 1,
     },
     scanCard: {
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        backgroundColor: Platform.select({
+            android: 'transparent',
+            ios: 'rgba(255, 255, 255, 0.1)',
+        }),
     },
     scanImagePlaceholder: {
         aspectRatio: 1,
@@ -749,11 +757,6 @@ const styles = StyleSheet.create({
         color: '#1A5F5A',
     },
     tipCardWrapper: {
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.15,
-        shadowRadius: 16,
-        elevation: 8,
         borderRadius: 20,
         overflow: 'hidden',
     },
@@ -762,6 +765,10 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.5)',
+        backgroundColor: Platform.select({
+            android: 'rgba(255, 255, 255, 0.2)',
+            ios: 'transparent',
+        }),
     },
     tipCardHighlight: {
         position: 'absolute',
@@ -776,48 +783,41 @@ const styles = StyleSheet.create({
     },
     tipCard: {
         flexDirection: 'row',
-        padding: 22,
+        padding: Platform.select({ android: 26, ios: 22 }),
         gap: Spacing.lg,
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        backgroundColor: Platform.select({
+            android: 'transparent',
+            ios: 'rgba(255, 255, 255, 0.15)',
+        }),
     },
     tipIconContainer: {
-        width: 52,
-        height: 52,
-        borderRadius: 16,
+        width: Platform.select({ android: 58, ios: 52 }),
+        height: Platform.select({ android: 58, ios: 52 }),
+        borderRadius: Platform.select({ android: 18, ios: 16 }),
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: '#0891B2',
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
-        elevation: 4,
     },
     tipContent: {
         flex: 1,
     },
     tipTitle: {
-        fontSize: 17,
+        fontSize: Platform.select({ android: 18, ios: 17 }),
         fontWeight: '700',
         marginBottom: 6,
         color: '#0F172A',
     },
     tipText: {
-        fontSize: 14,
+        fontSize: Platform.select({ android: 15, ios: 14 }),
         fontWeight: '500',
-        lineHeight: 20,
+        lineHeight: Platform.select({ android: 22, ios: 20 }),
         color: '#334155',
     },
     // Empty State Styles
     emptyStateWrapper: {
         borderRadius: 20,
         overflow: 'hidden',
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 12,
-        elevation: 5,
     },
     emptyStateBlur: {
         borderRadius: 20,

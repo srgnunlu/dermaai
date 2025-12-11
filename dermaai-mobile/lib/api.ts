@@ -122,6 +122,11 @@ class ApiClient {
                 throw new Error(errorData.message || errorData.error);
             }
 
+            // Handle 204 No Content responses
+            if (response.status === 204) {
+                return {} as T;
+            }
+
             // Handle empty responses
             const text = await response.text();
             if (!text) return {} as T;

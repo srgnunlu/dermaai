@@ -1,5 +1,5 @@
 /**
- * Login screen for DermaAssistAI
+ * Login screen for Corio Scan
  * Premium Glassmorphism Design with Google OAuth login
  */
 
@@ -15,6 +15,7 @@ import {
     Animated,
     Easing,
     Dimensions,
+    Platform,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -189,7 +190,7 @@ export default function LoginScreen() {
 
     // Setup redirect URI for server-based OAuth flow
     const redirectUri = AuthSession.makeRedirectUri({
-        scheme: 'dermaai',
+        scheme: 'corioscan',
         path: 'oauth',
     });
 
@@ -365,7 +366,7 @@ export default function LoginScreen() {
                     </View>
 
                     <Text style={styles.appName}>
-                        DermaAssist<Text style={styles.appNameHighlight}>AI</Text>
+                        Corio<Text style={styles.appNameHighlight}> Scan</Text>
                     </Text>
 
                     <View style={styles.taglineWrapper}>
@@ -525,22 +526,26 @@ const styles = StyleSheet.create({
     languageToggleWrapper: {
         borderRadius: 12,
         overflow: 'hidden',
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 6,
-        elevation: 4,
     },
     languageToggleBlur: {
         borderRadius: 12,
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.5)',
+        ...Platform.select({
+            android: {
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            },
+            ios: {},
+        }),
     },
     languageToggleInner: {
         paddingHorizontal: 14,
         paddingVertical: 8,
-        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+        backgroundColor: Platform.select({
+            android: 'transparent',
+            ios: 'rgba(255, 255, 255, 0.25)',
+        }),
     },
     languageToggleText: {
         fontSize: 13,
@@ -557,11 +562,6 @@ const styles = StyleSheet.create({
     },
     logoWrapper: {
         marginBottom: Spacing.lg,
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 20,
-        elevation: 15,
         borderRadius: 50,
     },
     logoBlur: {
@@ -569,6 +569,12 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         borderWidth: 2,
         borderColor: 'rgba(255, 255, 255, 0.6)',
+        ...Platform.select({
+            android: {
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            },
+            ios: {},
+        }),
     },
     logoGlassHighlight: {
         position: 'absolute',
@@ -607,6 +613,12 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.4)',
+        ...Platform.select({
+            android: {
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            },
+            ios: {},
+        }),
     },
     taglineInner: {
         flexDirection: 'row',
@@ -614,7 +626,10 @@ const styles = StyleSheet.create({
         gap: 6,
         paddingHorizontal: 16,
         paddingVertical: 8,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: Platform.select({
+            android: 'transparent',
+            ios: 'rgba(255, 255, 255, 0.2)',
+        }),
     },
     tagline: {
         fontSize: 13,
@@ -625,11 +640,6 @@ const styles = StyleSheet.create({
     // Features Card
     featuresWrapper: {
         marginBottom: Spacing['2xl'],
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.15,
-        shadowRadius: 16,
-        elevation: 8,
         borderRadius: 24,
     },
     featuresCardBlur: {
@@ -637,6 +647,12 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         borderWidth: 1.5,
         borderColor: 'rgba(255, 255, 255, 0.6)',
+        ...Platform.select({
+            android: {
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            },
+            ios: {},
+        }),
     },
     featuresGlassHighlight: {
         position: 'absolute',
@@ -651,7 +667,10 @@ const styles = StyleSheet.create({
     },
     featuresCard: {
         padding: Spacing.lg,
-        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        backgroundColor: Platform.select({
+            android: 'transparent',
+            ios: 'rgba(255, 255, 255, 0.15)',
+        }),
     },
     featureItem: {
         flexDirection: 'row',
@@ -697,15 +716,16 @@ const styles = StyleSheet.create({
         width: '100%',
         borderRadius: 28,
         overflow: 'hidden',
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.25,
-        shadowRadius: 12,
-        elevation: 8,
     },
     loginButtonBlur: {
         borderRadius: 28,
         overflow: 'hidden',
+        ...Platform.select({
+            android: {
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            },
+            ios: {},
+        }),
     },
     loginButtonGlassHighlight: {
         position: 'absolute',
@@ -784,6 +804,12 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.3)',
+        ...Platform.select({
+            android: {
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            },
+            ios: {},
+        }),
     },
     disclaimer: {
         fontSize: 12,
@@ -792,7 +818,10 @@ const styles = StyleSheet.create({
         lineHeight: 18,
         paddingHorizontal: 20,
         paddingVertical: 12,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        backgroundColor: Platform.select({
+            android: 'transparent',
+            ios: 'rgba(255, 255, 255, 0.1)',
+        }),
     },
 
     // Footer

@@ -557,6 +557,22 @@ export const Translations = {
         tr: 'Sil',
         en: 'Delete',
     },
+    deleteCase: {
+        tr: 'Vakayı Sil',
+        en: 'Delete Case',
+    },
+    deleteCaseConfirm: {
+        tr: 'Bu vakayı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.',
+        en: 'Are you sure you want to delete this case? This action cannot be undone.',
+    },
+    deleteCaseSuccess: {
+        tr: 'Vaka başarıyla silindi',
+        en: 'Case deleted successfully',
+    },
+    deleteCaseError: {
+        tr: 'Vaka silinirken bir hata oluştu',
+        en: 'Failed to delete case',
+    },
     loading: {
         tr: 'Yükleniyor...',
         en: 'Loading...',

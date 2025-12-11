@@ -13,11 +13,12 @@ import {
     TouchableOpacity,
     Alert,
     ImageBackground,
-    SafeAreaView,
     Dimensions,
     Share,
     ActivityIndicator,
+    Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { format } from 'date-fns';
@@ -36,6 +37,7 @@ import {
     AlertTriangle,
     ChevronRight,
     Download,
+    Trash2,
 } from 'lucide-react-native';
 import { Colors, getConfidenceColor } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
@@ -43,7 +45,7 @@ import { Spacing } from '@/constants/Spacing';
 import { Translations, translateValue } from '@/constants/Translations';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useCase } from '@/hooks/useCases';
+import { useCase, useDeleteCase } from '@/hooks/useCases';
 import {
     ConfidenceBadge,
     LoadingSpinner,
@@ -59,9 +61,12 @@ export default function CaseDetailScreen() {
     const router = useRouter();
     const { id } = useLocalSearchParams<{ id: string }>();
     const { language } = useLanguage();
+    const insets = useSafeAreaInsets();
     const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
+    const [isDeleting, setIsDeleting] = React.useState(false);
 
     const { caseData, isLoading, error } = useCase(id || '');
+    const { deleteCase } = useDeleteCase();
 
     const notSpecified = language === 'tr' ? 'Belirtilmedi' : 'Not specified';
 
@@ -88,7 +93,7 @@ export default function CaseDetailScreen() {
                 resizeMode="cover"
             >
                 <Stack.Screen options={{ headerShown: false }} />
-                <SafeAreaView style={[styles.container, styles.centered]}>
+                <View style={[styles.container, styles.centered, { paddingTop: insets.top }]}>
                     <EmptyState
                         emoji="❌"
                         title={language === 'tr' ? 'Vaka bulunamadı' : 'Case not found'}
@@ -98,7 +103,7 @@ export default function CaseDetailScreen() {
                         actionLabel={Translations.back[language]}
                         onAction={() => router.back()}
                     />
-                </SafeAreaView>
+                </View>
             </ImageBackground>
         );
     }
@@ -243,7 +248,7 @@ export default function CaseDetailScreen() {
             resizeMode="cover"
         >
             <Stack.Screen options={{ headerShown: false }} />
-            <SafeAreaView style={styles.container}>
+            <View style={[styles.container, { paddingTop: insets.top }]}>
                 {/* Custom Header */}
                 <View style={styles.customHeader}>
                     <TouchableOpacity
@@ -423,6 +428,61 @@ export default function CaseDetailScreen() {
                     )}
 
 
+                    {/* Delete Button */}
+                    <View style={styles.deleteButtonWrapper}>
+                        <TouchableOpacity
+                            style={styles.deleteButtonTouchable}
+                            onPress={() => {
+                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                Alert.alert(
+                                    Translations.deleteCase[language],
+                                    Translations.deleteCaseConfirm[language],
+                                    [
+                                        {
+                                            text: Translations.cancel[language],
+                                            style: 'cancel',
+                                        },
+                                        {
+                                            text: Translations.delete[language],
+                                            style: 'destructive',
+                                            onPress: async () => {
+                                                try {
+                                                    setIsDeleting(true);
+                                                    await deleteCase(id!);
+                                                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                                                    router.back();
+                                                } catch (err) {
+                                                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                                                    Alert.alert(
+                                                        Translations.error[language],
+                                                        Translations.deleteCaseError[language]
+                                                    );
+                                                } finally {
+                                                    setIsDeleting(false);
+                                                }
+                                            },
+                                        },
+                                    ]
+                                );
+                            }}
+                            activeOpacity={0.7}
+                            disabled={isDeleting}
+                        >
+                            <BlurView intensity={60} tint="light" style={styles.deleteButtonBlur}>
+                                <View style={[styles.deleteButtonContent, isDeleting && styles.deleteButtonDisabled]}>
+                                    {isDeleting ? (
+                                        <ActivityIndicator size="small" color="#FFFFFF" />
+                                    ) : (
+                                        <Trash2 size={20} color="#FFFFFF" />
+                                    )}
+                                    <Text style={styles.deleteButtonText}>
+                                        {Translations.deleteCase[language]}
+                                    </Text>
+                                </View>
+                            </BlurView>
+                        </TouchableOpacity>
+                    </View>
+
                     {/* Disclaimer */}
                     <View style={styles.disclaimerWrapper}>
                         <BlurView intensity={50} tint="light" style={styles.disclaimerBlur}>
@@ -435,7 +495,7 @@ export default function CaseDetailScreen() {
                         </BlurView>
                     </View>
                 </ScrollView>
-            </SafeAreaView>
+            </View>
         </ImageBackground>
     );
 }
@@ -564,10 +624,13 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.5)',
         borderRadius: 20,
+        backgroundColor: Platform.select({
+            android: 'rgba(255, 255, 255, 0.2)',
+            ios: 'rgba(255, 255, 255, 0.2)',
+        }),
     },
     headerTitle: {
         fontSize: 17,
@@ -594,10 +657,13 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.25)',
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.5)',
         borderRadius: 18,
+        backgroundColor: Platform.select({
+            android: 'rgba(255, 255, 255, 0.2)',
+            ios: 'rgba(255, 255, 255, 0.25)',
+        }),
     },
 
     // Scroll
@@ -614,23 +680,27 @@ const styles = StyleSheet.create({
         marginBottom: Spacing.lg,
         borderRadius: 20,
         overflow: 'hidden',
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.2,
-        shadowRadius: 16,
-        elevation: 8,
     },
     heroCardBlur: {
         borderRadius: 20,
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.5)',
+        ...Platform.select({
+            android: {
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            },
+            ios: {},
+        }),
     },
     heroCard: {
         flexDirection: 'row',
         alignItems: 'center',
         padding: Spacing.lg,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: Platform.select({
+            android: 'transparent',
+            ios: 'rgba(255, 255, 255, 0.2)',
+        }),
     },
     heroIconContainer: {
         width: 56,
@@ -640,11 +710,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: Spacing.md,
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
     },
     heroContent: {
         flex: 1,
@@ -686,11 +751,6 @@ const styles = StyleSheet.create({
     imageWrapper: {
         borderRadius: 16,
         overflow: 'hidden',
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 10,
-        elevation: 5,
     },
     imageBlur: {
         borderRadius: 16,
@@ -708,21 +768,25 @@ const styles = StyleSheet.create({
     infoCardWrapper: {
         borderRadius: 18,
         overflow: 'hidden',
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 12,
-        elevation: 5,
     },
     infoCardBlur: {
         borderRadius: 18,
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.5)',
+        ...Platform.select({
+            android: {
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            },
+            ios: {},
+        }),
     },
     infoCard: {
         padding: Spacing.lg,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: Platform.select({
+            android: 'transparent',
+            ios: 'rgba(255, 255, 255, 0.2)',
+        }),
     },
     infoRow: {
         flexDirection: 'row',
@@ -757,21 +821,25 @@ const styles = StyleSheet.create({
     symptomsCardWrapper: {
         borderRadius: 18,
         overflow: 'hidden',
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 12,
-        elevation: 5,
     },
     symptomsCardBlur: {
         borderRadius: 18,
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.5)',
+        ...Platform.select({
+            android: {
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            },
+            ios: {},
+        }),
     },
     symptomsCard: {
         padding: Spacing.lg,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: Platform.select({
+            android: 'transparent',
+            ios: 'rgba(255, 255, 255, 0.2)',
+        }),
     },
     symptomsChipContainer: {
         flexDirection: 'row',
@@ -804,11 +872,6 @@ const styles = StyleSheet.create({
         marginBottom: Spacing.md,
         borderRadius: 18,
         overflow: 'hidden',
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 12,
-        elevation: 5,
     },
     diagnosisCardFirst: {
         shadowOpacity: 0.18,
@@ -818,10 +881,19 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.5)',
+        ...Platform.select({
+            android: {
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            },
+            ios: {},
+        }),
     },
     diagnosisCard: {
         padding: Spacing.lg,
-        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+        backgroundColor: Platform.select({
+            android: 'transparent',
+            ios: 'rgba(255, 255, 255, 0.25)',
+        }),
     },
     diagnosisHeader: {
         flexDirection: 'row',
@@ -918,11 +990,6 @@ const styles = StyleSheet.create({
     reportButtonWrapper: {
         borderRadius: 24,
         overflow: 'hidden',
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.2,
-        shadowRadius: 14,
-        elevation: 6,
     },
     reportButtonBlur: {
         borderRadius: 24,
@@ -969,11 +1036,6 @@ const styles = StyleSheet.create({
         maxWidth: 140,
         borderRadius: 16,
         overflow: 'hidden',
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.12,
-        shadowRadius: 8,
-        elevation: 3,
     },
     quickActionBlur: {
         borderRadius: 16,
@@ -1020,5 +1082,39 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#92400E',
         lineHeight: 18,
+    },
+
+    // Delete Button
+    deleteButtonWrapper: {
+        marginBottom: Spacing.lg,
+        borderRadius: 20,
+        overflow: 'hidden',
+    },
+    deleteButtonTouchable: {
+        borderRadius: 20,
+        overflow: 'hidden',
+    },
+    deleteButtonBlur: {
+        borderRadius: 20,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(239, 68, 68, 0.3)',
+    },
+    deleteButtonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 16,
+        paddingHorizontal: 24,
+        backgroundColor: 'rgba(239, 68, 68, 0.85)',
+        gap: 10,
+    },
+    deleteButtonDisabled: {
+        opacity: 0.6,
+    },
+    deleteButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#FFFFFF',
     },
 });

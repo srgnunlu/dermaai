@@ -329,11 +329,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         borderRadius: 16,
         padding: Spacing.lg,
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-        elevation: 4,
     },
     fieldDivider: {
         height: 1,

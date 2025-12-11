@@ -795,6 +795,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete case endpoint (user-facing)
+  app.delete('/api/cases/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const caseId = req.params.id;
+
+      // Verify case exists and belongs to user
+      const existingCase = await storage.getCase(caseId, userId);
+      if (!existingCase) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      const success = await storage.deleteCase(caseId);
+
+      if (success) {
+        res.status(204).send();
+      } else {
+        res.status(500).json({ error: 'Failed to delete case' });
+      }
+    } catch (error) {
+      logger.error('Error deleting case:', error);
+      res.status(500).json({ error: 'Failed to delete case' });
+    }
+  });
+
   // Select AI provider for case diagnosis (mobile endpoint)
   app.patch('/api/mobile/cases/:id/select-provider', isAuthenticated, async (req: any, res) => {
     try {

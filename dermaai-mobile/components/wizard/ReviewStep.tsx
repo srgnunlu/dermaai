@@ -12,7 +12,9 @@ import {
     Image,
     Animated,
     ScrollView,
+    Platform,
     Easing,
+    StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -179,7 +181,7 @@ export function ReviewStep({
                     <ChevronLeft size={24} color={colors.text} />
                 </TouchableOpacity>
                 <Text style={[styles.appName, { color: colors.textSecondary }]}>
-                    DermaAssist<Text style={{ color: colors.primary }}>AI</Text>
+                    Corio<Text style={{ color: colors.primary }}> Scan</Text>
                 </Text>
                 <View style={styles.headerRight} />
             </View>
@@ -393,7 +395,10 @@ const styles = StyleSheet.create({
     },
     section: {
         padding: Spacing.md,
-        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        backgroundColor: Platform.select({
+            android: 'rgba(255, 255, 255, 0.05)',
+            ios: 'rgba(255, 255, 255, 0.15)',
+        }),
     },
     sectionHeader: {
         flexDirection: 'row',
@@ -483,7 +488,8 @@ const styles = StyleSheet.create({
         lineHeight: 18,
     },
     footer: {
-        padding: Spacing.xl,
+        padding: Platform.select({ android: Spacing.md, ios: Spacing.xl }),
+        paddingBottom: Platform.select({ android: 80, ios: Spacing.xl }),
     },
     footerButton: {
         width: '100%',

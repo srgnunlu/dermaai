@@ -16,6 +16,8 @@ import {
     ScrollView,
     Modal,
     Dimensions,
+    Platform,
+    StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -268,7 +270,7 @@ export function ImageUploadStep({
                     <ChevronLeft size={24} color={colors.text} />
                 </TouchableOpacity>
                 <Text style={[styles.appName, { color: colors.textSecondary }]}>
-                    DermaAssist<Text style={{ color: colors.primary }}>AI</Text>
+                    Corio<Text style={{ color: colors.primary }}> Scan</Text>
                 </Text>
                 <View style={styles.headerRight} />
             </View>
@@ -506,6 +508,12 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.5)',
+        ...Platform.select({
+            android: {
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            },
+            ios: {},
+        }),
     },
     galleryButton: {
         flexDirection: 'row',
@@ -513,7 +521,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         paddingVertical: 16,
         gap: Spacing.sm,
-        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        backgroundColor: Platform.select({
+            android: 'transparent',
+            ios: 'rgba(255, 255, 255, 0.15)',
+        }),
     },
     galleryButtonText: {
         fontSize: 16,
@@ -584,19 +595,23 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderStyle: 'dashed',
         borderColor: 'rgba(8, 145, 178, 0.3)',
+        ...Platform.select({
+            android: {
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            },
+            ios: {},
+        }),
     },
     addPlaceholderContent: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        backgroundColor: Platform.select({
+            android: 'transparent',
+            ios: 'rgba(255, 255, 255, 0.1)',
+        }),
     },
     tipsCardWrapper: {
-        shadowColor: '#0891B2',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 12,
-        elevation: 6,
         borderRadius: 16,
         overflow: 'hidden',
     },
@@ -605,13 +620,22 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.5)',
+        ...Platform.select({
+            android: {
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            },
+            ios: {},
+        }),
     },
     tipsCard: {
         flexDirection: 'row',
         padding: Spacing.lg,
         gap: Spacing.md,
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        backgroundColor: Platform.select({
+            android: 'transparent',
+            ios: 'rgba(255, 255, 255, 0.15)',
+        }),
     },
     tipIconBg: {
         width: 40,
@@ -636,7 +660,8 @@ const styles = StyleSheet.create({
         color: '#334155',
     },
     footer: {
-        padding: Spacing.xl,
+        padding: Platform.select({ android: Spacing.md, ios: Spacing.xl }),
+        paddingBottom: Platform.select({ android: 80, ios: Spacing.xl }),
     },
     footerButton: {
         width: '100%',

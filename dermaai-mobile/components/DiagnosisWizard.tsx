@@ -84,6 +84,7 @@ export function DiagnosisWizard() {
     const { hideTabBar, showTabBar, setIsAnalyzing: setTabBarAnalyzing } = useTabBarVisibility();
 
     const [state, setState] = useState<WizardState>(initialState);
+    const [isProcessing, setIsProcessing] = useState(false); // Entire upload+analysis process
     const [isAnalyzing, setIsAnalyzing] = useState(false); // Analysis phase (after upload)
     const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
     const [showResults, setShowResults] = useState(false);
@@ -166,7 +167,8 @@ export function DiagnosisWizard() {
 
     // Handle analysis start (hybrid approach: sync upload, async analysis)
     const handleStartAnalysis = useCallback(async () => {
-        // Don't set isAnalyzing yet - upload screen will show first via isUploading from hook
+        // Set isProcessing immediately - prevents wizard from showing during any transition
+        setIsProcessing(true);
         setTabBarAnalyzing(true); // Block tab bar interactions
 
         try {
@@ -196,6 +198,7 @@ export function DiagnosisWizard() {
             setPendingCaseId(result.id);
         } catch (error) {
             console.error('Analysis error:', error);
+            setIsProcessing(false);
             setIsAnalyzing(false);
             setTabBarAnalyzing(false); // Re-enable tab bar interactions
 
@@ -210,6 +213,7 @@ export function DiagnosisWizard() {
     // Handle new analysis
     const handleNewAnalysis = useCallback(() => {
         setState(initialState);
+        setIsProcessing(false);
         setIsAnalyzing(false);
         setTabBarAnalyzing(false); // Re-enable tab bar interactions
         setAnalysisResult(null);
@@ -278,8 +282,8 @@ export function DiagnosisWizard() {
     }
 
     // Show upload progress (critical phase - user must stay in app)
-    // Also show during transition (pendingCaseId exists but isAnalyzing not yet true)
-    if (isUploading || (pendingCaseId && !isAnalyzing)) {
+    // isProcessing is true from start, isAnalyzing becomes true when upload completes
+    if (isProcessing && !isAnalyzing) {
         return (
             <View style={styles.uploadContainer}>
                 <BlurView intensity={80} tint="light" style={styles.uploadCard}>

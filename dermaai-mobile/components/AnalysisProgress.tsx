@@ -283,7 +283,7 @@ const DetectionMarker = ({
 export function AnalysisProgress({
     isActive,
     onComplete,
-    duration = 40,
+    duration = 45,
     imageUris = [],
 }: AnalysisProgressProps) {
     const colorScheme = useColorScheme() ?? 'light';

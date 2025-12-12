@@ -84,14 +84,13 @@ export function DiagnosisWizard() {
     const { hideTabBar, showTabBar, setIsAnalyzing: setTabBarAnalyzing } = useTabBarVisibility();
 
     const [state, setState] = useState<WizardState>(initialState);
-    const [isUploading, setIsUploading] = useState(false); // Upload phase
     const [isAnalyzing, setIsAnalyzing] = useState(false); // Analysis phase (after upload)
     const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
     const [showResults, setShowResults] = useState(false);
     const [pendingCaseId, setPendingCaseId] = useState<string | null>(null);
 
     const slideAnim = useRef(new Animated.Value(0)).current;
-    const { analyze, isUploading: hookIsUploading } = useAnalyzeCase();
+    const { analyze, isUploading, uploadComplete } = useAnalyzeCase();
     const { language } = useLanguage();
 
     // Poll for analysis completion when pendingCaseId is set
@@ -158,10 +157,17 @@ export function DiagnosisWizard() {
         setState(prev => ({ ...prev, [key]: value }));
     }, []);
 
+    // When upload completes, switch to analysis phase
+    useEffect(() => {
+        if (uploadComplete && pendingCaseId && !isAnalyzing) {
+            setIsAnalyzing(true);
+        }
+    }, [uploadComplete, pendingCaseId, isAnalyzing]);
+
     // Handle analysis start (hybrid approach: sync upload, async analysis)
     const handleStartAnalysis = useCallback(async () => {
-        setIsAnalyzing(true);
-        setTabBarAnalyzing(true); // Block tab bar interactions during analysis
+        // Don't set isAnalyzing yet - upload screen will show first via isUploading from hook
+        setTabBarAnalyzing(true); // Block tab bar interactions
 
         try {
             const patientData: PatientData = {
@@ -177,7 +183,8 @@ export function DiagnosisWizard() {
             };
 
             // This uploads images synchronously, then submits for async analysis
-            // Returns immediately with caseId after images are uploaded
+            // During upload: isUploading=true (from hook) → upload screen shows
+            // After upload: uploadComplete=true → useEffect sets isAnalyzing=true → analysis screen shows
             const result = await analyze({
                 patientData,
                 imageUrls: state.images,

@@ -67,7 +67,7 @@ export default function CaseDetailScreen() {
     const [isDeleted, setIsDeleted] = React.useState(false);
 
     // Disable query when case is being deleted or already deleted
-    const { caseData, isLoading, error } = useCase(id || '', !isDeleted && !isDeleting);
+    const { caseData, isLoading, error, isAnalyzing } = useCase(id || '', !isDeleted && !isDeleting);
     const { deleteCase } = useDeleteCase();
 
     const notSpecified = language === 'tr' ? 'Belirtilmedi' : 'Not specified';
@@ -304,6 +304,27 @@ export default function CaseDetailScreen() {
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
+                    {/* Analyzing Banner */}
+                    {isAnalyzing && (
+                        <View style={styles.analyzingBannerWrapper}>
+                            <BlurView intensity={80} tint="light" style={styles.analyzingBannerBlur}>
+                                <View style={styles.analyzingBanner}>
+                                    <ActivityIndicator size="small" color="#0891B2" />
+                                    <View style={styles.analyzingTextContainer}>
+                                        <Text style={styles.analyzingTitle}>
+                                            {language === 'tr' ? '🔬 Analiz Devam Ediyor...' : '🔬 Analyzing...'}
+                                        </Text>
+                                        <Text style={styles.analyzingSubtitle}>
+                                            {language === 'tr'
+                                                ? 'AI sonuçları hazırlanıyor. Sayfa otomatik güncellenecek.'
+                                                : 'AI results being prepared. Page will update automatically.'}
+                                        </Text>
+                                    </View>
+                                </View>
+                            </BlurView>
+                        </View>
+                    )}
+
                     {/* Top Diagnosis Hero Card */}
                     {topDiagnosis && (
                         <View style={styles.heroCardWrapper}>
@@ -605,6 +626,49 @@ const styles = StyleSheet.create({
     centered: {
         justifyContent: 'center',
         alignItems: 'center',
+    },
+
+    // Analyzing Banner
+    analyzingBannerWrapper: {
+        marginBottom: Spacing.lg,
+        borderRadius: 16,
+        overflow: 'hidden',
+    },
+    analyzingBannerBlur: {
+        borderRadius: 16,
+        overflow: 'hidden',
+        borderWidth: 2,
+        borderColor: '#0891B2',
+        ...Platform.select({
+            android: {
+                backgroundColor: 'rgba(8, 145, 178, 0.1)',
+            },
+            ios: {},
+        }),
+    },
+    analyzingBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: Spacing.lg,
+        backgroundColor: Platform.select({
+            android: 'transparent',
+            ios: 'rgba(8, 145, 178, 0.1)',
+        }),
+    },
+    analyzingTextContainer: {
+        flex: 1,
+        marginLeft: Spacing.md,
+    },
+    analyzingTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#0891B2',
+        marginBottom: 4,
+    },
+    analyzingSubtitle: {
+        fontSize: 13,
+        color: '#64748B',
+        lineHeight: 18,
     },
 
     // Custom Header

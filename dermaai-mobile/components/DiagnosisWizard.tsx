@@ -12,6 +12,7 @@ import {
     SafeAreaView,
     Platform,
     StatusBar,
+    Alert,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Colors } from '@/constants/Colors';
@@ -138,10 +139,10 @@ export function DiagnosisWizard() {
         setState(prev => ({ ...prev, [key]: value }));
     }, []);
 
-    // Handle analysis start
+    // Handle analysis start (fire-and-forget)
     const handleStartAnalysis = useCallback(async () => {
         setIsAnalyzing(true);
-        setTabBarAnalyzing(true); // Block tab bar interactions during analysis
+        setTabBarAnalyzing(true); // Block tab bar interactions during upload
 
         try {
             const patientData: PatientData = {
@@ -156,20 +157,55 @@ export function DiagnosisWizard() {
                 medicalHistory: state.medicalHistory,
             };
 
+            // This returns immediately after images are uploaded
+            // Analysis runs in background on server
             const result = await analyze({
                 patientData,
                 imageUrls: state.images,
                 language, // Pass current language for localized AI responses
             });
 
-            setAnalysisResult(result);
-            setShowResults(true);
+            // Show success message
+            Alert.alert(
+                language === 'tr' ? '✅ Analiz Başlatıldı' : '✅ Analysis Started',
+                result.message || (language === 'tr'
+                    ? 'Analiz arka planda devam ediyor. Tamamlandığında bildirim alacaksınız.'
+                    : 'Analysis is running in background. You will receive a notification when complete.'),
+                [
+                    {
+                        text: language === 'tr' ? 'Sonuçları Gör' : 'View Results',
+                        onPress: () => {
+                            // Reset wizard and navigate to case detail
+                            setState(initialState);
+                            setIsAnalyzing(false);
+                            setTabBarAnalyzing(false);
+                            showTabBar();
+                            router.push(`/case/${result.caseId}`);
+                        },
+                    },
+                    {
+                        text: language === 'tr' ? 'Yeni Analiz' : 'New Analysis',
+                        style: 'cancel',
+                        onPress: () => {
+                            setState(initialState);
+                            setIsAnalyzing(false);
+                            setTabBarAnalyzing(false);
+                        },
+                    },
+                ]
+            );
         } catch (error) {
             console.error('Analysis error:', error);
             setIsAnalyzing(false);
             setTabBarAnalyzing(false); // Re-enable tab bar interactions
+
+            // Show error alert
+            Alert.alert(
+                language === 'tr' ? 'Hata' : 'Error',
+                error instanceof Error ? error.message : (language === 'tr' ? 'Bir hata oluştu' : 'An error occurred')
+            );
         }
-    }, [state, analyze, setTabBarAnalyzing]);
+    }, [state, analyze, setTabBarAnalyzing, language, router, showTabBar]);
 
     // Handle new analysis
     const handleNewAnalysis = useCallback(() => {

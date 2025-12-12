@@ -821,6 +821,160 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Fire-and-forget case submission for mobile (returns immediately, analyzes in background)
+  app.post('/api/cases/submit', isAuthenticated, async (req: any, res) => {
+    try {
+      const caseData = insertCaseSchema.parse(req.body);
+      const userId = req.user.id;
+
+      // Handle image URLs
+      let imageUrls: string[] = [];
+      if (caseData.imageUrls && Array.isArray(caseData.imageUrls) && caseData.imageUrls.length > 0) {
+        imageUrls = (caseData.imageUrls as string[]).slice(0, 3);
+      } else if (caseData.imageUrl) {
+        imageUrls = [caseData.imageUrl];
+      } else {
+        return res.status(400).json({ error: 'At least one image is required' });
+      }
+
+      // Create case record with status 'analyzing'
+      const caseDataToStore = {
+        ...caseData,
+        imageUrl: imageUrls[0],
+        imageUrls: imageUrls,
+      };
+
+      const newCase = await storage.createCase(caseDataToStore, userId);
+
+      // Update case status to 'analyzing'
+      await storage.updateCase(newCase.id, userId, { status: 'analyzing' });
+
+      // Extract language preference
+      const language = (req.body.language === 'tr' ? 'tr' : 'en') as 'tr' | 'en';
+
+      // Return immediately - don't wait for analysis
+      res.json({
+        id: newCase.id,
+        caseId: newCase.caseId,
+        status: 'analyzing',
+        message: language === 'tr'
+          ? 'Analiz başlatıldı. Tamamlandığında bildirim alacaksınız.'
+          : 'Analysis started. You will receive a notification when complete.',
+      });
+
+      // Run analysis in background (fire-and-forget)
+      // This code runs AFTER response is sent
+      setImmediate(async () => {
+        try {
+          logger.info(`[Background] Starting analysis for case ${newCase.caseId}`);
+
+          const isMobileRequest = req.body.isMobileRequest === true;
+          let isHealthProfessional = false;
+          if (isMobileRequest) {
+            const currentUser = await storage.getUser(userId);
+            isHealthProfessional = currentUser?.isHealthProfessional === true;
+          }
+
+          const symptomsString = Array.isArray(caseData.symptoms)
+            ? caseData.symptoms.join(', ')
+            : caseData.symptoms || '';
+
+          const sys = await storage.getSystemSettings();
+          const runGemini = sys.enableGemini !== false;
+          const runOpenAI = sys.enableOpenAI !== false;
+
+          if (!runGemini && !runOpenAI) {
+            logger.error(`[Background] Analysis disabled for case ${newCase.caseId}`);
+            await storage.updateCase(newCase.id, userId, { status: 'failed' });
+            return;
+          }
+
+          const tasks: Promise<any>[] = [];
+          if (runGemini) {
+            tasks.push(
+              analyzeWithGemini(imageUrls, symptomsString, {
+                lesionLocation: caseData.lesionLocation || undefined,
+                medicalHistory: (caseData.medicalHistory as string[]) || undefined,
+                language,
+                isHealthProfessional,
+                isMobileRequest,
+              })
+            );
+          }
+          if (runOpenAI) {
+            tasks.push(
+              analyzeWithOpenAI(
+                imageUrls,
+                symptomsString,
+                {
+                  lesionLocation: caseData.lesionLocation || undefined,
+                  medicalHistory: (caseData.medicalHistory as string[]) || undefined,
+                  language,
+                  isHealthProfessional,
+                  isMobileRequest,
+                },
+                {
+                  model: sys.openaiModel || undefined,
+                  allowFallback: sys.openaiAllowFallback !== false,
+                }
+              )
+            );
+          }
+
+          const settled = await Promise.allSettled(tasks);
+
+          let geminiResult: PromiseSettledResult<any> = { status: 'rejected', reason: 'Not run' } as any;
+          let openaiResult: PromiseSettledResult<any> = { status: 'rejected', reason: 'Not run' } as any;
+          let idx = 0;
+          if (runGemini) geminiResult = settled[idx++];
+          if (runOpenAI) openaiResult = settled[idx++];
+
+          let geminiAnalysis = null;
+          let openaiAnalysis = null;
+
+          if (geminiResult.status === 'fulfilled' && !(geminiResult.value as any).error) {
+            geminiAnalysis = geminiResult.value;
+          }
+          if (openaiResult.status === 'fulfilled' && !(openaiResult.value as any).error) {
+            openaiAnalysis = openaiResult.value;
+          }
+
+          // Update case with results
+          await storage.updateCase(newCase.id, userId, {
+            geminiAnalysis,
+            openaiAnalysis,
+            finalDiagnoses: null,
+            status: 'completed',
+          });
+
+          logger.info(`[Background] Analysis completed for case ${newCase.caseId}`);
+
+          // Send push notification
+          try {
+            const userTokens = await storage.getUserPushTokens(userId);
+            if (userTokens.length > 0) {
+              const tokens = userTokens.map((t) => t.token);
+              await sendAnalysisCompleteNotification(tokens, newCase.caseId, language);
+              logger.info(`[Background] Push notification sent for case ${newCase.caseId}`);
+            }
+          } catch (pushError) {
+            logger.error('[Background] Push notification failed:', pushError);
+          }
+        } catch (bgError) {
+          logger.error(`[Background] Analysis failed for case ${newCase.caseId}:`, bgError);
+          try {
+            await storage.updateCase(newCase.id, userId, { status: 'failed' });
+          } catch (updateError) {
+            logger.error('[Background] Failed to update case status:', updateError);
+          }
+        }
+      });
+    } catch (error) {
+      logger.error('Error submitting case:', error);
+      res.status(500).json({ error: 'Failed to submit case' });
+    }
+  });
+
   app.get('/api/cases', isAuthenticated, async (req: any, res) => {
     try {
       // Only return cases owned by the authenticated user

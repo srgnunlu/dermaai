@@ -626,11 +626,15 @@ export function AnalysisProgress({
                                     ))}
                                 </View>
 
-                                {/* Disclaimer */}
+                                {/* Disclaimer with background awareness warning */}
                                 <Text style={styles.disclaimer}>
-                                    {language === 'tr'
-                                        ? 'Corio AI sistemi analiz ediyor...\nBu işlem 30-60 saniye sürebilir.'
-                                        : 'Corio AI system is analyzing...\nThis may take 30-60 seconds.'}
+                                    {progress < 20
+                                        ? (language === 'tr'
+                                            ? '⚠️ Görseller yükleniyor...\nLütfen bu aşamada uygulamadan çıkmayın.'
+                                            : '⚠️ Uploading images...\nPlease do not leave the app during this step.')
+                                        : (language === 'tr'
+                                            ? '✅ Görseller yüklendi! Artık uygulamadan çıkabilirsiniz.\nTamamlandığında bildirim alacaksınız.'
+                                            : '✅ Images uploaded! You can now leave the app.\nYou will receive a notification when complete.')}
                                 </Text>
                             </View>
                         </BlurView>

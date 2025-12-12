@@ -2,6 +2,7 @@
  * Cases hook for managing patient cases
  */
 
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import type { Case, PatientData, Patient, AnalysisResponse } from '@/types/schema';
@@ -94,17 +95,23 @@ interface SubmitResponse {
 
 export function useAnalyzeCase() {
     const queryClient = useQueryClient();
+    const [uploadComplete, setUploadComplete] = useState(false);
 
     const mutation = useMutation({
         mutationFn: async ({
             patientData,
             imageUrls,
-            language = 'en'
+            language = 'en',
+            onUploadComplete,
         }: {
             patientData: PatientData;
             imageUrls: string[];
             language?: 'tr' | 'en';
+            onUploadComplete?: () => void;
         }): Promise<SubmitResponse> => {
+            // Reset upload state
+            setUploadComplete(false);
+
             // First create patient (quick operation)
             const patient = await api.post<Patient>('/api/patients', patientData);
 
@@ -153,6 +160,10 @@ export function useAnalyzeCase() {
                     : 'No images were uploaded.');
             }
 
+            // Upload complete! User can now safely leave the app
+            setUploadComplete(true);
+            onUploadComplete?.();
+
             // Submit case for ASYNC analysis (fire-and-forget)
             // This returns immediately - analysis runs in background on server
             // Server will send push notification when complete
@@ -179,9 +190,14 @@ export function useAnalyzeCase() {
     return {
         analyze: mutation.mutateAsync,
         isAnalyzing: mutation.isPending,
+        isUploading: mutation.isPending && !uploadComplete,
+        uploadComplete,
         error: mutation.error,
         data: mutation.data,
-        reset: mutation.reset,
+        reset: () => {
+            mutation.reset();
+            setUploadComplete(false);
+        },
     };
 }
 

@@ -6,6 +6,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
     View,
+    Text,
     StyleSheet,
     Animated,
     Dimensions,
@@ -83,13 +84,14 @@ export function DiagnosisWizard() {
     const { hideTabBar, showTabBar, setIsAnalyzing: setTabBarAnalyzing } = useTabBarVisibility();
 
     const [state, setState] = useState<WizardState>(initialState);
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isUploading, setIsUploading] = useState(false); // Upload phase
+    const [isAnalyzing, setIsAnalyzing] = useState(false); // Analysis phase (after upload)
     const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
     const [showResults, setShowResults] = useState(false);
     const [pendingCaseId, setPendingCaseId] = useState<string | null>(null);
 
     const slideAnim = useRef(new Animated.Value(0)).current;
-    const { analyze } = useAnalyzeCase();
+    const { analyze, isUploading: hookIsUploading } = useAnalyzeCase();
     const { language } = useLanguage();
 
     // Poll for analysis completion when pendingCaseId is set
@@ -268,7 +270,32 @@ export function DiagnosisWizard() {
         );
     }
 
-    // Show analysis progress
+    // Show upload progress (critical phase - user must stay in app)
+    if (isUploading) {
+        return (
+            <View style={styles.uploadContainer}>
+                <BlurView intensity={80} tint="light" style={styles.uploadCard}>
+                    <View style={styles.uploadContent}>
+                        <View style={styles.uploadSpinner}>
+                            <View style={styles.spinnerOuter}>
+                                <View style={styles.spinnerInner} />
+                            </View>
+                        </View>
+                        <Text style={styles.uploadTitle}>
+                            {language === 'tr' ? '⚠️ Görseller Yükleniyor' : '⚠️ Uploading Images'}
+                        </Text>
+                        <Text style={styles.uploadWarning}>
+                            {language === 'tr'
+                                ? 'Lütfen bu aşamada uygulamadan çıkmayın!\nYükleme tamamlandığında devam edebilirsiniz.'
+                                : 'Please do not leave the app during this step!\nYou can continue once upload is complete.'}
+                        </Text>
+                    </View>
+                </BlurView>
+            </View>
+        );
+    }
+
+    // Show analysis progress (user can leave after upload)
     if (isAnalyzing) {
         return (
             <AnalysisProgress
@@ -484,4 +511,63 @@ const styles = StyleSheet.create({
     stepContainer: {
         flex: 1,
     },
+    // Upload screen styles
+    uploadContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: Spacing.xl,
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
+    },
+    uploadCard: {
+        borderRadius: 24,
+        overflow: 'hidden',
+        borderWidth: 1.5,
+        borderColor: 'rgba(255, 255, 255, 0.6)',
+        width: '100%',
+        maxWidth: 340,
+    },
+    uploadContent: {
+        padding: Spacing.xl,
+        alignItems: 'center',
+        backgroundColor: Platform.select({
+            android: 'rgba(255, 255, 255, 0.5)',
+            ios: 'rgba(255, 255, 255, 0.2)',
+        }),
+    },
+    uploadSpinner: {
+        marginBottom: Spacing.lg,
+    },
+    spinnerOuter: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        borderWidth: 3,
+        borderColor: 'rgba(8, 145, 178, 0.2)',
+        borderTopColor: '#0891B2',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    spinnerInner: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        borderWidth: 2,
+        borderColor: 'rgba(8, 145, 178, 0.1)',
+        borderTopColor: '#06B6D4',
+    },
+    uploadTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#1E293B',
+        marginBottom: Spacing.md,
+        textAlign: 'center',
+    },
+    uploadWarning: {
+        fontSize: 14,
+        color: '#64748B',
+        textAlign: 'center',
+        lineHeight: 22,
+    },
 });
+

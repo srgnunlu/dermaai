@@ -139,10 +139,10 @@ export function DiagnosisWizard() {
         setState(prev => ({ ...prev, [key]: value }));
     }, []);
 
-    // Handle analysis start (fire-and-forget)
+    // Handle analysis start
     const handleStartAnalysis = useCallback(async () => {
         setIsAnalyzing(true);
-        setTabBarAnalyzing(true); // Block tab bar interactions during upload
+        setTabBarAnalyzing(true); // Block tab bar interactions during analysis
 
         try {
             const patientData: PatientData = {
@@ -157,23 +157,14 @@ export function DiagnosisWizard() {
                 medicalHistory: state.medicalHistory,
             };
 
-            // This returns immediately after images are uploaded
-            // Analysis runs in background on server
             const result = await analyze({
                 patientData,
                 imageUrls: state.images,
                 language, // Pass current language for localized AI responses
             });
 
-            // Reset wizard state
-            setState(initialState);
-            setIsAnalyzing(false);
-            setTabBarAnalyzing(false);
-            showTabBar();
-
-            // Navigate directly to case detail page (no popup)
-            // Use internal id for API compatibility
-            router.push(`/case/${result.id}`);
+            setAnalysisResult(result);
+            setShowResults(true);
         } catch (error) {
             console.error('Analysis error:', error);
             setIsAnalyzing(false);
@@ -185,7 +176,7 @@ export function DiagnosisWizard() {
                 error instanceof Error ? error.message : (language === 'tr' ? 'Bir hata oluştu' : 'An error occurred')
             );
         }
-    }, [state, analyze, setTabBarAnalyzing, language, router, showTabBar]);
+    }, [state, analyze, setTabBarAnalyzing, language]);
 
     // Handle new analysis
     const handleNewAnalysis = useCallback(() => {

@@ -125,9 +125,9 @@ function RootLayoutNav() {
       const data = response.notification.request.content.data;
       console.log('[Notification] Tapped:', data);
 
-      // Navigate to case detail if caseId is present
+      // Navigate to results page if caseId is present
       if (data?.caseId && isAuthenticated) {
-        router.push(`/case/${data.caseId}`);
+        router.push(`/results/${data.caseId}`);
       }
     });
 
@@ -154,6 +154,13 @@ function RootLayoutNav() {
         <Stack.Screen name="privacy-policy" options={{ headerShown: true, title: 'Gizlilik Politikası' }} />
         <Stack.Screen name="terms-of-service" options={{ headerShown: true, title: 'Kullanım Şartları' }} />
         <Stack.Screen name="contact-support" options={{ headerShown: true, title: 'Destek' }} />
+        <Stack.Screen
+          name="results/[id]"
+          options={{
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
     </ThemeProvider>

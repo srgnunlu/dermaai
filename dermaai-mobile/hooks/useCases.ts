@@ -4,7 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import type { Case, PatientData, Patient } from '@/types/schema';
+import type { Case, PatientData, Patient, AnalysisResponse } from '@/types/schema';
 
 // Retry helper with exponential backoff
 async function withRetry<T>(
@@ -75,7 +75,6 @@ export function useCase(caseId: string, enabled: boolean = true) {
             return false; // Stop polling when completed
         },
     });
-
     return {
         caseData: data,
         isLoading,
@@ -83,14 +82,6 @@ export function useCase(caseId: string, enabled: boolean = true) {
         refetch,
         isAnalyzing: data?.status === 'analyzing',
     };
-}
-
-// Response type for fire-and-forget submission
-interface SubmitResponse {
-    id: string;
-    caseId: string;
-    status: 'analyzing';
-    message: string;
 }
 
 export function useAnalyzeCase() {
@@ -105,7 +96,7 @@ export function useAnalyzeCase() {
             patientData: PatientData;
             imageUrls: string[];
             language?: 'tr' | 'en';
-        }): Promise<SubmitResponse> => {
+        }) => {
             // First create patient
             const patient = await api.post<Patient>('/api/patients', patientData);
 
@@ -154,8 +145,9 @@ export function useAnalyzeCase() {
                     : 'No images were uploaded.');
             }
 
-            // Submit case using fire-and-forget endpoint
-            // This returns immediately - analysis runs in background
+            // Analyze the case with uploaded server URLs
+            // This waits for the analysis to complete (synchronous)
+            // Push notification is sent by backend when done
             const caseData = {
                 patientId: patient.id,
                 imageUrls: uploadedUrls,
@@ -168,11 +160,10 @@ export function useAnalyzeCase() {
                 isMobileRequest: true, // Flag for personalized AI responses based on user type
             };
 
-            // Use the fire-and-forget submit endpoint (returns immediately)
-            return api.post<SubmitResponse>('/api/cases/submit', caseData);
+            // Use longer timeout for AI analysis (2 minutes)
+            return api.postWithTimeout<AnalysisResponse>('/api/cases/analyze', caseData, 120000);
         },
         onSuccess: () => {
-            // Invalidate cases to show the new "analyzing" case
             queryClient.invalidateQueries({ queryKey: ['cases'] });
         },
     });

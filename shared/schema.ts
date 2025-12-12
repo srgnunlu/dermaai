@@ -243,3 +243,34 @@ export const updateSystemSettingsSchema = z.object({
 
 export type SystemSettings = typeof systemSettings.$inferSelect;
 export type UpdateSystemSettings = z.infer<typeof updateSystemSettingsSchema>;
+
+// Push notification tokens for mobile devices
+export const pushTokens = pgTable(
+  'push_tokens',
+  {
+    id: varchar('id')
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    token: text('token').notNull(),
+    platform: text('platform'), // 'ios' | 'android'
+    deviceId: text('device_id'), // Optional unique device identifier
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow(),
+  },
+  (table) => [
+    index('idx_push_tokens_user_id').on(table.userId),
+    index('idx_push_tokens_token').on(table.token),
+  ]
+);
+
+export const insertPushTokenSchema = createInsertSchema(pushTokens).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertPushToken = z.infer<typeof insertPushTokenSchema>;
+export type PushToken = typeof pushTokens.$inferSelect;

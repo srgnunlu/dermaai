@@ -49,6 +49,14 @@ import { Translations } from '@/constants/Translations';
 import { APP_VERSION } from '@/constants/Config';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
+import {
+    requestNotificationPermissions,
+    checkNotificationPermissions,
+    scheduleSkinCheckReminder,
+    cancelSkinCheckReminder,
+    cancelAllNotifications,
+    unregisterPushToken,
+} from '@/lib/notifications';
 
 const SETTINGS_STORAGE_KEY = 'corio_settings';
 
@@ -57,6 +65,7 @@ interface SettingsState {
     urgentAlerts: boolean;
     soundEnabled: boolean;
     anonymizeData: boolean;
+    notificationPermissionGranted: boolean;
 }
 
 const defaultSettings: SettingsState = {
@@ -64,6 +73,7 @@ const defaultSettings: SettingsState = {
     urgentAlerts: true,
     soundEnabled: false,
     anonymizeData: false,
+    notificationPermissionGranted: false,
 };
 
 export default function SettingsScreen() {
@@ -75,8 +85,9 @@ export default function SettingsScreen() {
     const [settings, setSettings] = useState<SettingsState>(defaultSettings);
     const [isLoaded, setIsLoaded] = useState(false);
     const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
+    const [isCheckingPermission, setIsCheckingPermission] = useState(false);
 
-    // Load settings from AsyncStorage on mount
+    // Load settings from AsyncStorage on mount and check notification permission
     useEffect(() => {
         const loadSettings = async () => {
             try {
@@ -84,6 +95,9 @@ export default function SettingsScreen() {
                 if (savedSettings) {
                     setSettings({ ...defaultSettings, ...JSON.parse(savedSettings) });
                 }
+                // Check current notification permission status
+                const hasPermission = await checkNotificationPermissions();
+                setSettings(prev => ({ ...prev, notificationPermissionGranted: hasPermission }));
             } catch (error) {
                 console.error('Failed to load settings:', error);
             } finally {
@@ -113,6 +127,46 @@ export default function SettingsScreen() {
     ) => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setSettings(prev => ({ ...prev, [key]: value }));
+    };
+
+    // Handle notification toggle with permission request
+    const handleNotificationToggle = async (key: 'analysisNotifications' | 'urgentAlerts', value: boolean) => {
+        if (value && !settings.notificationPermissionGranted) {
+            // Need to request permission first
+            setIsCheckingPermission(true);
+            const granted = await requestNotificationPermissions();
+            setIsCheckingPermission(false);
+
+            if (!granted) {
+                Alert.alert(
+                    language === 'tr' ? 'Bildirim İzni Gerekli' : 'Notification Permission Required',
+                    language === 'tr'
+                        ? 'Bildirimleri etkinleştirmek için cihaz ayarlarından izin vermeniz gerekiyor.'
+                        : 'You need to grant permission in device settings to enable notifications.',
+                    [
+                        { text: language === 'tr' ? 'İptal' : 'Cancel', style: 'cancel' },
+                        {
+                            text: language === 'tr' ? 'Ayarlar' : 'Settings',
+                            onPress: () => Linking.openSettings(),
+                        },
+                    ]
+                );
+                return;
+            }
+
+            setSettings(prev => ({ ...prev, notificationPermissionGranted: true }));
+        }
+
+        updateSetting(key, value);
+
+        // If enabling analysis notifications, schedule skin check reminder
+        if (key === 'analysisNotifications') {
+            if (value) {
+                await scheduleSkinCheckReminder(20, 0, language);
+            } else {
+                await cancelSkinCheckReminder();
+            }
+        }
     };
 
     const handleAnonymizeToggle = (value: boolean) => {
@@ -164,6 +218,8 @@ export default function SettingsScreen() {
                     text: language === 'tr' ? 'Çıkış Yap' : 'Logout',
                     style: 'destructive',
                     onPress: async () => {
+                        // Unregister push token before logout
+                        await unregisterPushToken();
                         await logout();
                         router.replace('/(auth)/login');
                     },
@@ -276,7 +332,8 @@ export default function SettingsScreen() {
                                     title={language === 'tr' ? 'Analiz Bildirimleri' : 'Analysis Notifications'}
                                     subtitle={language === 'tr' ? 'Analiz tamamlandığında bildirim al' : 'Get notified when analysis is complete'}
                                     value={settings.analysisNotifications}
-                                    onValueChange={(v) => updateSetting('analysisNotifications', v)}
+                                    onValueChange={(v) => handleNotificationToggle('analysisNotifications', v)}
+                                    disabled={isCheckingPermission}
                                 />
                                 <View style={styles.divider} />
                                 <SettingToggleRow
@@ -284,7 +341,8 @@ export default function SettingsScreen() {
                                     title={language === 'tr' ? 'Acil Uyarılar' : 'Urgent Alerts'}
                                     subtitle={language === 'tr' ? 'Acil durumlar için anlık bildirim' : 'Instant notifications for urgent cases'}
                                     value={settings.urgentAlerts}
-                                    onValueChange={(v) => updateSetting('urgentAlerts', v)}
+                                    onValueChange={(v) => handleNotificationToggle('urgentAlerts', v)}
+                                    disabled={isCheckingPermission}
                                 />
                                 <View style={styles.divider} />
                                 <SettingToggleRow
@@ -524,15 +582,17 @@ function SettingToggleRow({
     subtitle,
     value,
     onValueChange,
+    disabled = false,
 }: {
     icon: React.ReactNode;
     title: string;
     subtitle?: string;
     value: boolean;
     onValueChange: (value: boolean) => void;
+    disabled?: boolean;
 }) {
     return (
-        <View style={styles.settingRow}>
+        <View style={[styles.settingRow, disabled && { opacity: 0.5 }]}>
             <View style={styles.settingIconContainer}>
                 {icon}
             </View>
@@ -546,6 +606,7 @@ function SettingToggleRow({
                 trackColor={{ false: '#E2E8F0', true: '#0891B2' }}
                 thumbColor="#FFFFFF"
                 ios_backgroundColor="#E2E8F0"
+                disabled={disabled}
             />
         </View>
     );

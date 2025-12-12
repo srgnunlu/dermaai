@@ -10,11 +10,14 @@ import {
   type UpdateUserProfile,
   type SystemSettings,
   type UpdateSystemSettings,
+  type PushToken,
+  type InsertPushToken,
   patients,
   cases,
   users,
   userSettings,
   systemSettings,
+  pushTokens,
 } from '@shared/schema';
 import { db } from './db';
 import { eq } from 'drizzle-orm';
@@ -109,6 +112,12 @@ export interface IStorage {
     geminiPercentage: number;
     openaiPercentage: number;
   }>;
+
+  // Push notification token operations
+  savePushToken(userId: string, token: string, platform?: string, deviceId?: string): Promise<PushToken>;
+  getUserPushTokens(userId: string): Promise<PushToken[]>;
+  deletePushToken(token: string): Promise<boolean>;
+  deleteUserPushTokens(userId: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1044,6 +1053,79 @@ export class DatabaseStorage implements IStorage {
       },
       300 // 5 minutes cache
     );
+  }
+
+  // Push notification token operations
+  async savePushToken(
+    userId: string,
+    token: string,
+    platform?: string,
+    deviceId?: string
+  ): Promise<PushToken> {
+    // First, check if this token already exists
+    const [existingToken] = await db
+      .select()
+      .from(pushTokens)
+      .where(eq(pushTokens.token, token));
+
+    if (existingToken) {
+      // Update existing token (might be for a different user after logout/login)
+      const [updatedToken] = await db
+        .update(pushTokens)
+        .set({
+          userId,
+          platform: platform || existingToken.platform,
+          deviceId: deviceId || existingToken.deviceId,
+          updatedAt: new Date(),
+        })
+        .where(eq(pushTokens.id, existingToken.id))
+        .returning();
+      return updatedToken;
+    }
+
+    // Create new token
+    const [newToken] = await db
+      .insert(pushTokens)
+      .values({
+        userId,
+        token,
+        platform,
+        deviceId,
+      })
+      .returning();
+
+    return newToken;
+  }
+
+  async getUserPushTokens(userId: string): Promise<PushToken[]> {
+    return await db
+      .select()
+      .from(pushTokens)
+      .where(eq(pushTokens.userId, userId));
+  }
+
+  async deletePushToken(token: string): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(pushTokens)
+        .where(eq(pushTokens.token, token));
+      return result.rowCount ? result.rowCount > 0 : false;
+    } catch (error) {
+      logger.error('Error deleting push token:', error);
+      return false;
+    }
+  }
+
+  async deleteUserPushTokens(userId: string): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(pushTokens)
+        .where(eq(pushTokens.userId, userId));
+      return result.rowCount ? result.rowCount > 0 : false;
+    } catch (error) {
+      logger.error('Error deleting user push tokens:', error);
+      return false;
+    }
   }
 }
 

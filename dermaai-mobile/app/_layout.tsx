@@ -15,6 +15,7 @@ import { queryClient } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
 import { TabBarVisibilityProvider } from '@/contexts/TabBarVisibilityContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
+import { registerPushTokenWithBackend } from '@/lib/notifications';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -106,6 +107,16 @@ function RootLayoutNav() {
       router.replace('/(tabs)');
     }
   }, [isAuthenticated, isLoading, segments]);
+
+  // Register push token when user is authenticated
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      // Register push token in background (don't block app startup)
+      registerPushTokenWithBackend().catch((err) => {
+        console.log('Failed to register push token:', err);
+      });
+    }
+  }, [isAuthenticated, isLoading]);
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>

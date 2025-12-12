@@ -22,6 +22,7 @@ import { sanitizeCSVFormula, formatSymptomsForCSV, mapDurationToTurkish } from '
 import { sanitizeTextForPDF } from './utils/pdf';
 import { lookupCaseWithAuth } from './utils/caseHelpers';
 import { mergeAnalysesWithoutConsensus } from './utils/aiAnalysis';
+import { sendAnalysisCompleteNotification } from './pushNotifications';
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -90,6 +91,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.status(400).json({ error: 'Invalid settings data' });
+    }
+  });
+
+  // Push notification token routes
+  app.post('/api/push-tokens', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { token, platform, deviceId } = req.body;
+
+      if (!token) {
+        return res.status(400).json({ error: 'Push token is required' });
+      }
+
+      const savedToken = await storage.savePushToken(userId, token, platform, deviceId);
+      logger.info(`Push token registered for user ${userId}`);
+      res.json({ success: true, tokenId: savedToken.id });
+    } catch (error) {
+      logger.error('Error registering push token:', error);
+      res.status(500).json({ error: 'Failed to register push token' });
+    }
+  });
+
+  app.delete('/api/push-tokens', isAuthenticated, async (req: any, res) => {
+    try {
+      const { token } = req.body;
+
+      if (token) {
+        // Delete specific token
+        await storage.deletePushToken(token);
+      } else {
+        // Delete all tokens for user (logout from all devices)
+        const userId = req.user.id;
+        await storage.deleteUserPushTokens(userId);
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      logger.error('Error deleting push token:', error);
+      res.status(500).json({ error: 'Failed to delete push token' });
     }
   });
 
@@ -760,6 +800,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         finalDiagnoses: null, // No longer combining results
         status: 'completed',
       });
+
+      // Send push notification if user has registered tokens
+      try {
+        const userTokens = await storage.getUserPushTokens(userId);
+        if (userTokens.length > 0) {
+          const tokens = userTokens.map((t) => t.token);
+          await sendAnalysisCompleteNotification(tokens, updatedCase.caseId, language);
+        }
+      } catch (pushError) {
+        logger.error('Error sending push notification:', pushError);
+        // Don't fail the request if push notification fails
+      }
 
       // Return case plus non-persistent diagnostic info for the UI
       res.json({ ...updatedCase, analysisErrors });

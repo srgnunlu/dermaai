@@ -293,6 +293,30 @@ export const Translations = {
         tr: 'Destek',
         en: 'Contact Support',
     },
+    notificationPermissionRequired: {
+        tr: 'Bildirim İzni Gerekli',
+        en: 'Notification Permission Required',
+    },
+    notificationPermissionDenied: {
+        tr: 'Bildirimleri etkinleştirmek için cihaz ayarlarından izin vermeniz gerekiyor.',
+        en: 'You need to grant permission in device settings to enable notifications.',
+    },
+    skinCheckReminderTitle: {
+        tr: '🔍 Cilt Kontrolü Zamanı',
+        en: '🔍 Time for Skin Check',
+    },
+    skinCheckReminderBody: {
+        tr: 'Lezyonlarınızı kontrol edin ve değişiklik varsa kaydedin.',
+        en: 'Check your skin for any changes and record them if needed.',
+    },
+    analysisCompleteTitle: {
+        tr: '✅ Analiz Tamamlandı',
+        en: '✅ Analysis Complete',
+    },
+    analysisCompleteBody: {
+        tr: 'AI analizi tamamlandı. Sonuçları görüntüleyin.',
+        en: 'AI analysis is complete. View your results.',
+    },
     version: {
         tr: 'Versiyon',
         en: 'Version',

@@ -84,6 +84,14 @@ export function useCase(caseId: string, enabled: boolean = true) {
     };
 }
 
+// Response from submit endpoint
+interface SubmitResponse {
+    id: string;
+    caseId: string;
+    status: 'analyzing';
+    message: string;
+}
+
 export function useAnalyzeCase() {
     const queryClient = useQueryClient();
 
@@ -96,12 +104,12 @@ export function useAnalyzeCase() {
             patientData: PatientData;
             imageUrls: string[];
             language?: 'tr' | 'en';
-        }) => {
-            // First create patient
+        }): Promise<SubmitResponse> => {
+            // First create patient (quick operation)
             const patient = await api.post<Patient>('/api/patients', patientData);
 
-            // Upload images to server and get server URLs
-            // Local file URIs cannot be accessed by AI models
+            // Upload images to server SYNCHRONOUSLY (user must wait for this)
+            // This is the critical part that must complete before user can leave
             const uploadedUrls: string[] = [];
 
             for (let i = 0; i < imageUrls.length; i++) {
@@ -145,9 +153,9 @@ export function useAnalyzeCase() {
                     : 'No images were uploaded.');
             }
 
-            // Analyze the case with uploaded server URLs
-            // This waits for the analysis to complete (synchronous)
-            // Push notification is sent by backend when done
+            // Submit case for ASYNC analysis (fire-and-forget)
+            // This returns immediately - analysis runs in background on server
+            // Server will send push notification when complete
             const caseData = {
                 patientId: patient.id,
                 imageUrls: uploadedUrls,
@@ -160,8 +168,8 @@ export function useAnalyzeCase() {
                 isMobileRequest: true, // Flag for personalized AI responses based on user type
             };
 
-            // Use longer timeout for AI analysis (2 minutes)
-            return api.postWithTimeout<AnalysisResponse>('/api/cases/analyze', caseData, 120000);
+            // Submit returns immediately with caseId - analysis runs in background
+            return api.post<SubmitResponse>('/api/cases/submit', caseData);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['cases'] });

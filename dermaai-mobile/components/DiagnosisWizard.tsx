@@ -3,7 +3,7 @@
  * Multi-step wizard for AI skin lesion analysis
  */
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
     View,
     StyleSheet,
@@ -15,10 +15,10 @@ import {
     Alert,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { Colors } from '@/constants/Colors';
+import { Colors } from '@/constants/Colors'
 import { Spacing } from '@/constants/Spacing';
 import { useColorScheme } from '@/components/useColorScheme';
-import { useAnalyzeCase, useCases } from '@/hooks/useCases';
+import { useAnalyzeCase, useCases, useCase } from '@/hooks/useCases';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'expo-router';
 import { useTabBarVisibility } from '@/contexts/TabBarVisibilityContext';
@@ -86,10 +86,27 @@ export function DiagnosisWizard() {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
     const [showResults, setShowResults] = useState(false);
+    const [pendingCaseId, setPendingCaseId] = useState<string | null>(null);
 
     const slideAnim = useRef(new Animated.Value(0)).current;
     const { analyze } = useAnalyzeCase();
     const { language } = useLanguage();
+
+    // Poll for analysis completion when pendingCaseId is set
+    const { caseData: polledCase, isAnalyzing: caseIsAnalyzing } = useCase(
+        pendingCaseId || '',
+        !!pendingCaseId
+    );
+
+    // When analysis completes (case status changes from analyzing), show results
+    useEffect(() => {
+        if (pendingCaseId && polledCase && !caseIsAnalyzing && polledCase.status === 'completed') {
+            // Analysis completed - convert to AnalysisResponse format
+            setAnalysisResult(polledCase as AnalysisResponse);
+            setShowResults(true);
+            setPendingCaseId(null);
+        }
+    }, [pendingCaseId, polledCase, caseIsAnalyzing]);
 
     // Hide/show tab bar based on current step
     React.useEffect(() => {
@@ -139,7 +156,7 @@ export function DiagnosisWizard() {
         setState(prev => ({ ...prev, [key]: value }));
     }, []);
 
-    // Handle analysis start
+    // Handle analysis start (hybrid approach: sync upload, async analysis)
     const handleStartAnalysis = useCallback(async () => {
         setIsAnalyzing(true);
         setTabBarAnalyzing(true); // Block tab bar interactions during analysis
@@ -157,14 +174,17 @@ export function DiagnosisWizard() {
                 medicalHistory: state.medicalHistory,
             };
 
+            // This uploads images synchronously, then submits for async analysis
+            // Returns immediately with caseId after images are uploaded
             const result = await analyze({
                 patientData,
                 imageUrls: state.images,
                 language, // Pass current language for localized AI responses
             });
 
-            setAnalysisResult(result);
-            setShowResults(true);
+            // Set pendingCaseId to start polling for completion
+            // The useEffect above will detect when analysis completes and show results
+            setPendingCaseId(result.id);
         } catch (error) {
             console.error('Analysis error:', error);
             setIsAnalyzing(false);
@@ -185,6 +205,7 @@ export function DiagnosisWizard() {
         setTabBarAnalyzing(false); // Re-enable tab bar interactions
         setAnalysisResult(null);
         setShowResults(false);
+        setPendingCaseId(null);
     }, [setTabBarAnalyzing]);
 
     const { user } = useAuth();

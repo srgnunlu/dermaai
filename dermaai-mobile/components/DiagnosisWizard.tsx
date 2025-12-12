@@ -247,12 +247,14 @@ export function DiagnosisWizard() {
                 caseData={analysisResult}
                 onNewAnalysis={handleNewAnalysis}
                 onConfirmSuccess={() => {
-                    // Reset state and navigate to home
+                    // Reset ALL state and navigate to home
                     setState(initialState);
+                    setIsProcessing(false);
                     setIsAnalyzing(false);
                     setTabBarAnalyzing(false);
                     setAnalysisResult(null);
                     setShowResults(false);
+                    setPendingCaseId(null);
                     showTabBar();
                     router.push('/(tabs)');
                 }}

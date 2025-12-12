@@ -278,7 +278,8 @@ export function DiagnosisWizard() {
     }
 
     // Show upload progress (critical phase - user must stay in app)
-    if (isUploading) {
+    // Also show during transition (pendingCaseId exists but isAnalyzing not yet true)
+    if (isUploading || (pendingCaseId && !isAnalyzing)) {
         return (
             <View style={styles.uploadContainer}>
                 <BlurView intensity={80} tint="light" style={styles.uploadCard}>

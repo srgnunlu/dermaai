@@ -283,7 +283,7 @@ const DetectionMarker = ({
 export function AnalysisProgress({
     isActive,
     onComplete,
-    duration = 60,
+    duration = 40,
     imageUris = [],
 }: AnalysisProgressProps) {
     const colorScheme = useColorScheme() ?? 'light';
@@ -422,7 +422,7 @@ export function AnalysisProgress({
         return () => clearInterval(interval);
     }, [isActive, imageUris.length, imageFadeAnim]);
 
-    // Progress tracking
+    // Progress tracking - starts at 1% to prevent stuttering
     useEffect(() => {
         if (!isActive) {
             setProgress(0);
@@ -430,6 +430,9 @@ export function AnalysisProgress({
             setTimeRemaining(duration);
             return;
         }
+
+        // Start at 1% immediately to prevent 0-1-0-1 stuttering
+        setProgress(1);
 
         const startTime = Date.now();
         const endTime = startTime + duration * 1000;
@@ -439,7 +442,8 @@ export function AnalysisProgress({
             const elapsed = now - startTime;
             const remaining = Math.max(0, endTime - now);
 
-            const newProgress = Math.min(100, (elapsed / (duration * 1000)) * 100);
+            // Use Math.round and ensure minimum 1% to prevent stuttering
+            const newProgress = Math.max(1, Math.min(100, Math.round((elapsed / (duration * 1000)) * 100)));
             setProgress(newProgress);
             setTimeRemaining(Math.ceil(remaining / 1000));
 
@@ -453,7 +457,7 @@ export function AnalysisProgress({
                 clearInterval(interval);
                 onComplete?.();
             }
-        }, 100);
+        }, 250); // Use 250ms instead of 100ms for smoother updates
 
         return () => clearInterval(interval);
     }, [isActive, duration, onComplete]);
@@ -626,15 +630,11 @@ export function AnalysisProgress({
                                     ))}
                                 </View>
 
-                                {/* Disclaimer with background awareness warning */}
+                                {/* Disclaimer - user is safe to leave at this point */}
                                 <Text style={styles.disclaimer}>
-                                    {progress < 20
-                                        ? (language === 'tr'
-                                            ? '⚠️ Görseller yükleniyor...\nLütfen bu aşamada uygulamadan çıkmayın.'
-                                            : '⚠️ Uploading images...\nPlease do not leave the app during this step.')
-                                        : (language === 'tr'
-                                            ? '✅ Görseller yüklendi! Artık uygulamadan çıkabilirsiniz.\nTamamlandığında bildirim alacaksınız.'
-                                            : '✅ Images uploaded! You can now leave the app.\nYou will receive a notification when complete.')}
+                                    {language === 'tr'
+                                        ? 'Artık uygulamadan çıkabilirsiniz.\nTamamlandığında bildirim alacaksınız.'
+                                        : 'You can now leave the app.\nYou will receive a notification when complete.'}
                                 </Text>
                             </View>
                         </BlurView>

@@ -16,6 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { TabBarVisibilityProvider } from '@/contexts/TabBarVisibilityContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { registerPushTokenWithBackend } from '@/lib/notifications';
+import * as Notifications from 'expo-notifications';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -117,6 +118,21 @@ function RootLayoutNav() {
       });
     }
   }, [isAuthenticated, isLoading]);
+
+  // Handle push notification taps
+  useEffect(() => {
+    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data;
+      console.log('[Notification] Tapped:', data);
+
+      // Navigate to case detail if caseId is present
+      if (data?.caseId && isAuthenticated) {
+        router.push(`/case/${data.caseId}`);
+      }
+    });
+
+    return () => subscription.remove();
+  }, [isAuthenticated, router]);
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>

@@ -165,35 +165,15 @@ export function DiagnosisWizard() {
                 language, // Pass current language for localized AI responses
             });
 
-            // Show success message
-            Alert.alert(
-                language === 'tr' ? '✅ Analiz Başlatıldı' : '✅ Analysis Started',
-                result.message || (language === 'tr'
-                    ? 'Analiz arka planda devam ediyor. Tamamlandığında bildirim alacaksınız.'
-                    : 'Analysis is running in background. You will receive a notification when complete.'),
-                [
-                    {
-                        text: language === 'tr' ? 'Sonuçları Gör' : 'View Results',
-                        onPress: () => {
-                            // Reset wizard and navigate to case detail
-                            setState(initialState);
-                            setIsAnalyzing(false);
-                            setTabBarAnalyzing(false);
-                            showTabBar();
-                            router.push(`/case/${result.caseId}`);
-                        },
-                    },
-                    {
-                        text: language === 'tr' ? 'Yeni Analiz' : 'New Analysis',
-                        style: 'cancel',
-                        onPress: () => {
-                            setState(initialState);
-                            setIsAnalyzing(false);
-                            setTabBarAnalyzing(false);
-                        },
-                    },
-                ]
-            );
+            // Reset wizard state
+            setState(initialState);
+            setIsAnalyzing(false);
+            setTabBarAnalyzing(false);
+            showTabBar();
+
+            // Navigate directly to case detail page (no popup)
+            // Use internal id for API compatibility
+            router.push(`/case/${result.id}`);
         } catch (error) {
             console.error('Analysis error:', error);
             setIsAnalyzing(false);

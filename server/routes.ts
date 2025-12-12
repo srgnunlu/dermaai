@@ -990,7 +990,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/cases/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const caseRecord = await storage.getCase(req.params.id, userId);
+      const idParam = req.params.id;
+
+      // Support both internal id and caseId (DR-2025-...) formats
+      let caseRecord;
+      if (idParam.startsWith('DR-')) {
+        caseRecord = await storage.getCaseByCaseId(idParam, userId);
+      } else {
+        caseRecord = await storage.getCase(idParam, userId);
+      }
+
       if (!caseRecord) {
         return res.status(403).json({ error: 'Access denied' });
       }
@@ -1005,15 +1014,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/cases/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const caseId = req.params.id;
+      const idParam = req.params.id;
 
-      // Verify case exists and belongs to user
-      const existingCase = await storage.getCase(caseId, userId);
+      // Support both internal id and caseId (DR-2025-...) formats
+      let existingCase;
+      if (idParam.startsWith('DR-')) {
+        existingCase = await storage.getCaseByCaseId(idParam, userId);
+      } else {
+        existingCase = await storage.getCase(idParam, userId);
+      }
+
       if (!existingCase) {
         return res.status(403).json({ error: 'Access denied' });
       }
 
-      const success = await storage.deleteCase(caseId);
+      // Delete using internal id
+      const success = await storage.deleteCase(existingCase.id);
 
       if (success) {
         res.status(204).send();
@@ -1030,7 +1046,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/mobile/cases/:id/select-provider', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const caseId = req.params.id;
+      const idParam = req.params.id;
       const { provider } = req.body;
 
       // Validate provider
@@ -1038,14 +1054,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Invalid provider. Must be "gemini" or "openai"' });
       }
 
-      // Verify case exists and belongs to user
-      const existingCase = await storage.getCase(caseId, userId);
+      // Support both internal id and caseId (DR-2025-...) formats
+      let existingCase;
+      if (idParam.startsWith('DR-')) {
+        existingCase = await storage.getCaseByCaseId(idParam, userId);
+      } else {
+        existingCase = await storage.getCase(idParam, userId);
+      }
+
       if (!existingCase) {
         return res.status(403).json({ error: 'Access denied' });
       }
 
-      // Update the selected provider
-      const updatedCase = await storage.updateCase(caseId, userId, {
+      // Update the selected provider using internal id
+      const updatedCase = await storage.updateCase(existingCase.id, userId, {
         selectedAnalysisProvider: provider,
       });
 

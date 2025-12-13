@@ -14,8 +14,10 @@ import {
     Platform,
     StatusBar,
     Alert,
+    Easing,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { Upload, Cloud } from 'lucide-react-native';
 import { Colors } from '@/constants/Colors'
 import { Spacing } from '@/constants/Spacing';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -24,6 +26,217 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'expo-router';
 import { useTabBarVisibility } from '@/contexts/TabBarVisibilityContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+
+// Animated Upload Spinner Component
+function AnimatedUploadSpinner() {
+    const outerRotation = useRef(new Animated.Value(0)).current;
+    const innerRotation = useRef(new Animated.Value(0)).current;
+    const pulseAnim = useRef(new Animated.Value(1)).current;
+    const glowAnim = useRef(new Animated.Value(0.3)).current;
+
+    useEffect(() => {
+        // Outer ring rotation (clockwise)
+        const outerSpin = Animated.loop(
+            Animated.timing(outerRotation, {
+                toValue: 1,
+                duration: 1800,
+                easing: Easing.linear,
+                useNativeDriver: true,
+            })
+        );
+
+        // Inner ring rotation (counter-clockwise)
+        const innerSpin = Animated.loop(
+            Animated.timing(innerRotation, {
+                toValue: 1,
+                duration: 1200,
+                easing: Easing.linear,
+                useNativeDriver: true,
+            })
+        );
+
+        // Pulse animation for center icon
+        const pulse = Animated.loop(
+            Animated.sequence([
+                Animated.timing(pulseAnim, {
+                    toValue: 1.15,
+                    duration: 800,
+                    easing: Easing.inOut(Easing.ease),
+                    useNativeDriver: true,
+                }),
+                Animated.timing(pulseAnim, {
+                    toValue: 1,
+                    duration: 800,
+                    easing: Easing.inOut(Easing.ease),
+                    useNativeDriver: true,
+                }),
+            ])
+        );
+
+        // Glow animation for background
+        const glow = Animated.loop(
+            Animated.sequence([
+                Animated.timing(glowAnim, {
+                    toValue: 0.6,
+                    duration: 1500,
+                    easing: Easing.inOut(Easing.ease),
+                    useNativeDriver: true,
+                }),
+                Animated.timing(glowAnim, {
+                    toValue: 0.3,
+                    duration: 1500,
+                    easing: Easing.inOut(Easing.ease),
+                    useNativeDriver: true,
+                }),
+            ])
+        );
+
+        outerSpin.start();
+        innerSpin.start();
+        pulse.start();
+        glow.start();
+
+        return () => {
+            outerSpin.stop();
+            innerSpin.stop();
+            pulse.stop();
+            glow.stop();
+        };
+    }, []);
+
+    const outerRotate = outerRotation.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['0deg', '360deg'],
+    });
+
+    const innerRotate = innerRotation.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['360deg', '0deg'],
+    });
+
+    return (
+        <View style={spinnerStyles.container}>
+            {/* Glow background */}
+            <Animated.View
+                style={[
+                    spinnerStyles.glowBackground,
+                    { opacity: glowAnim },
+                ]}
+            />
+
+            {/* Outer rotating ring */}
+            <Animated.View
+                style={[
+                    spinnerStyles.outerRing,
+                    { transform: [{ rotate: outerRotate }] },
+                ]}
+            >
+                <View style={spinnerStyles.outerRingTrack} />
+                <View style={spinnerStyles.outerRingProgress} />
+            </Animated.View>
+
+            {/* Inner rotating ring */}
+            <Animated.View
+                style={[
+                    spinnerStyles.innerRing,
+                    { transform: [{ rotate: innerRotate }] },
+                ]}
+            >
+                <View style={spinnerStyles.innerRingTrack} />
+                <View style={spinnerStyles.innerRingProgress} />
+            </Animated.View>
+
+            {/* Center icon with pulse */}
+            <Animated.View
+                style={[
+                    spinnerStyles.centerIcon,
+                    { transform: [{ scale: pulseAnim }] },
+                ]}
+            >
+                <Cloud size={28} color="#0891B2" strokeWidth={2} />
+            </Animated.View>
+        </View>
+    );
+}
+
+const spinnerStyles = StyleSheet.create({
+    container: {
+        width: 90,
+        height: 90,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    glowBackground: {
+        position: 'absolute',
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        backgroundColor: 'rgba(8, 145, 178, 0.15)',
+    },
+    outerRing: {
+        position: 'absolute',
+        width: 80,
+        height: 80,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    outerRingTrack: {
+        position: 'absolute',
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        borderWidth: 3,
+        borderColor: 'rgba(8, 145, 178, 0.15)',
+    },
+    outerRingProgress: {
+        position: 'absolute',
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        borderWidth: 3,
+        borderColor: 'transparent',
+        borderTopColor: '#0891B2',
+        borderRightColor: '#0891B2',
+    },
+    innerRing: {
+        position: 'absolute',
+        width: 56,
+        height: 56,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    innerRingTrack: {
+        position: 'absolute',
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        borderWidth: 2,
+        borderColor: 'rgba(6, 182, 212, 0.1)',
+    },
+    innerRingProgress: {
+        position: 'absolute',
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        borderWidth: 2,
+        borderColor: 'transparent',
+        borderTopColor: '#06B6D4',
+        borderLeftColor: '#06B6D4',
+    },
+    centerIcon: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#0891B2',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+});
 
 // Step components
 import { WelcomeStep } from './wizard/WelcomeStep';
@@ -290,11 +503,7 @@ export function DiagnosisWizard() {
             <View style={styles.uploadContainer}>
                 <BlurView intensity={80} tint="light" style={styles.uploadCard}>
                     <View style={styles.uploadContent}>
-                        <View style={styles.uploadSpinner}>
-                            <View style={styles.spinnerOuter}>
-                                <View style={styles.spinnerInner} />
-                            </View>
-                        </View>
+                        <AnimatedUploadSpinner />
                         <Text style={styles.uploadTitle}>
                             {language === 'tr' ? '⚠️ Görseller Yükleniyor' : '⚠️ Uploading Images'}
                         </Text>
@@ -548,27 +757,6 @@ const styles = StyleSheet.create({
             android: 'rgba(255, 255, 255, 0.5)',
             ios: 'rgba(255, 255, 255, 0.2)',
         }),
-    },
-    uploadSpinner: {
-        marginBottom: Spacing.lg,
-    },
-    spinnerOuter: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        borderWidth: 3,
-        borderColor: 'rgba(8, 145, 178, 0.2)',
-        borderTopColor: '#0891B2',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    spinnerInner: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        borderWidth: 2,
-        borderColor: 'rgba(8, 145, 178, 0.1)',
-        borderTopColor: '#06B6D4',
     },
     uploadTitle: {
         fontSize: 18,

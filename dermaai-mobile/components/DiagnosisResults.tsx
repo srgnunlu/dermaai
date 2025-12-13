@@ -41,6 +41,7 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui';
 import { api } from '@/lib/api';
+import { useQueryClient } from '@tanstack/react-query';
 import { hasTutorialBeenShown } from '@/lib/storage';
 import { DiagnosisTutorial } from '@/components/DiagnosisTutorial';
 import { useAuth } from '@/hooks/useAuth';
@@ -122,6 +123,7 @@ export function DiagnosisResults({
     const colors = Colors[colorScheme];
     const { language } = useLanguage();
     const { user } = useAuth();
+    const queryClient = useQueryClient();
 
     const router = useRouter();
     const [activeIndex, setActiveIndex] = useState(0);
@@ -183,6 +185,11 @@ export function DiagnosisResults({
 
         try {
             await api.selectAnalysisProvider(caseData.id, activeProvider);
+
+            // Invalidate cache so case detail page gets updated data
+            queryClient.invalidateQueries({ queryKey: ['cases'] });
+            queryClient.invalidateQueries({ queryKey: ['cases', caseData.id] });
+
             setIsSelected(true);
 
             // Show success modal

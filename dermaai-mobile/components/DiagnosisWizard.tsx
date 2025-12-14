@@ -318,7 +318,18 @@ export function DiagnosisWizard() {
 
     // When analysis completes (case status changes from analyzing), show results
     useEffect(() => {
+        // Debug logging to track polling state
+        if (pendingCaseId) {
+            console.log('[DiagnosisWizard] Polling state:', {
+                pendingCaseId,
+                polledCaseStatus: polledCase?.status,
+                caseIsAnalyzing,
+                hasPolledCase: !!polledCase,
+            });
+        }
+
         if (pendingCaseId && polledCase && !caseIsAnalyzing && polledCase.status === 'completed') {
+            console.log('[DiagnosisWizard] Analysis completed, showing results');
             // Analysis completed - convert to AnalysisResponse format
             setAnalysisResult(polledCase as AnalysisResponse);
             setShowResults(true);

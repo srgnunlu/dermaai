@@ -433,6 +433,12 @@ export function DiagnosisWizard() {
                 anonymizeData, // Pass anonymization setting to prevent history save
             });
 
+            console.log('[DiagnosisWizard] Submit result:', {
+                id: result.id,
+                caseId: result.caseId,
+                status: result.status,
+            });
+
             // Set pendingCaseId to start polling for completion
             // The useEffect above will detect when analysis completes and show results
             setPendingCaseId(result.id);

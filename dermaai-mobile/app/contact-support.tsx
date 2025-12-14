@@ -46,7 +46,7 @@ export default function ContactSupportScreen() {
     };
 
     const handleEmail = () => {
-        Linking.openURL('mailto:support@corioscan.ai');
+        Linking.openURL('mailto:destek@corioscan.com');
     };
 
     const handlePhone = () => {
@@ -86,7 +86,7 @@ export default function ContactSupportScreen() {
                             <ContactButton
                                 icon={<Mail size={20} color={colors.primary} />}
                                 label="E-posta"
-                                value="support@corioscan.ai"
+                                value="destek@corioscan.com"
                                 onPress={handleEmail}
                                 colors={colors}
                             />

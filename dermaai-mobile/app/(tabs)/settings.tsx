@@ -17,6 +17,7 @@ import {
     Linking,
     Modal,
     Pressable,
+    ActivityIndicator,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -49,6 +50,7 @@ import { Translations } from '@/constants/Translations';
 import { APP_VERSION } from '@/constants/Config';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
+import { api } from '@/lib/api';
 import {
     requestNotificationPermissions,
     checkNotificationPermissions,
@@ -86,6 +88,7 @@ export default function SettingsScreen() {
     const [isLoaded, setIsLoaded] = useState(false);
     const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
     const [isCheckingPermission, setIsCheckingPermission] = useState(false);
+    const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
     // Load settings from AsyncStorage on mount and check notification permission
     useEffect(() => {
@@ -240,14 +243,31 @@ export default function SettingsScreen() {
                 {
                     text: language === 'tr' ? 'Hesabı Sil' : 'Delete Account',
                     style: 'destructive',
-                    onPress: () => {
-                        // TODO: Implement account deletion API call
-                        Alert.alert(
-                            language === 'tr' ? 'Bilgi' : 'Info',
-                            language === 'tr'
-                                ? 'Hesap silme işlemi için lütfen destek ekibimizle iletişime geçin.'
-                                : 'Please contact our support team to delete your account.'
-                        );
+                    onPress: async () => {
+                        setIsDeletingAccount(true);
+                        try {
+                            // Unregister push token before deleting account
+                            await unregisterPushToken();
+
+                            // Call the delete account API
+                            await api.delete('/api/auth/mobile/delete-account');
+
+                            // Clear local data and logout
+                            await logout();
+
+                            // Navigate to login screen
+                            router.replace('/(auth)/login');
+                        } catch (error) {
+                            console.error('Delete account error:', error);
+                            Alert.alert(
+                                language === 'tr' ? 'Hata' : 'Error',
+                                language === 'tr'
+                                    ? 'Hesap silinirken bir hata oluştu. Lütfen tekrar deneyin.'
+                                    : 'An error occurred while deleting your account. Please try again.'
+                            );
+                        } finally {
+                            setIsDeletingAccount(false);
+                        }
                     },
                 },
             ]
@@ -256,7 +276,7 @@ export default function SettingsScreen() {
 
     const handleContactSupport = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        Linking.openURL('mailto:support@corioscan.ai?subject=Corio%20Scan%20Support');
+        Linking.openURL('mailto:destek@corioscan.com?subject=Corio%20Scan%20Support');
     };
 
     const handleRateApp = () => {
@@ -390,7 +410,7 @@ export default function SettingsScreen() {
                                 <SettingNavRow
                                     icon={<Mail size={20} color="#0891B2" />}
                                     title={language === 'tr' ? 'İletişim' : 'Contact Us'}
-                                    subtitle="support@corioscan.ai"
+                                    subtitle="destek@corioscan.com"
                                     onPress={handleContactSupport}
                                 />
                                 <View style={styles.divider} />

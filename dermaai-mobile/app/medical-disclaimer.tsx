@@ -227,10 +227,10 @@ The skin images and health information you upload are sensitive personal data. T
     section7Title: { tr: '7. Sorumluluk Reddi', en: '7. Disclaimer of Liability' },
     section7Content: {
         tr: `7.1 Genel Sorumluluk Reddi
-Corio Scan ve geliştiricileri (Corio Teknoloji A.Ş.) aşağıdaki durumlardan HİÇBİR KOŞULDA SORUMLU TUTULAMAZ:
+Corio Scan ve geliştiricileri aşağıdaki durumlardan HİÇBİR KOŞULDA SORUMLU TUTULAMAZ:
 
 • Yanlış veya eksik analiz sonuçları
-• Kaçırılan veya geciken tanılar
+• Kaçırılan veya geciken değerlendirmeler
 • Yanlış tedavi kararları
 • Sağlık durumunuzun kötüleşmesi
 • Uygulama sonuçlarına dayanarak alınan kararlar
@@ -243,10 +243,10 @@ Uygulamayı kullanarak, tüm sağlık kararlarının sizin (veya yetkili sağlı
 7.3 Bilgi Doğruluğu
 Uygulama içindeki bilgiler genel bilgilendirme amaçlıdır ve tıbbi tavsiye niteliği taşımaz. Bilgilerin doğruluğu veya güncelliği garanti edilmez.`,
         en: `7.1 General Disclaimer
-Corio Scan and its developers (Corio Technology Inc.) CANNOT BE HELD LIABLE UNDER ANY CIRCUMSTANCES for:
+Corio Scan and its developers CANNOT BE HELD LIABLE UNDER ANY CIRCUMSTANCES for:
 
 • Incorrect or incomplete analysis results
-• Missed or delayed diagnoses
+• Missed or delayed assessments
 • Wrong treatment decisions
 • Deterioration of your health condition
 • Decisions made based on Application results
@@ -319,18 +319,16 @@ Your health is valuable - use technology as a supporting tool, don't let it repl
     section10Content: {
         tr: `Tıbbi uyarı veya uygulama kullanımı hakkında sorularınız için:
 
-Corio Teknoloji A.Ş.
-📧 Genel Destek: support@corioscan.ai
-📧 Yasal Sorular: legal@corioscan.ai
-🌐 Web: www.corioscan.ai
+Corio Scan Geliştiricileri
+📧 Genel Destek: destek@corioscan.com
+🌐 Web: www.corioscan.com
 
 ⚠️ Tıbbi acil durumlar için 112'yi arayın!`,
         en: `For questions about the medical disclaimer or Application usage:
 
-Corio Technology Inc.
-📧 General Support: support@corioscan.ai
-📧 Legal Questions: legal@corioscan.ai
-🌐 Web: www.corioscan.ai
+Corio Scan Developers
+📧 General Support: destek@corioscan.com
+🌐 Web: www.corioscan.com
 
 ⚠️ For medical emergencies, call emergency services!`
     },

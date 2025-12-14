@@ -31,6 +31,7 @@ export const STORAGE_KEYS = {
     USER_DATA: 'corio_user_data',
     THEME: 'corio_theme',
     TUTORIAL_SHOWN: 'corio_tutorial_shown',
+    MEDICAL_CONSENT_ACCEPTED: 'corio_medical_consent_accepted',
 } as const;
 
 

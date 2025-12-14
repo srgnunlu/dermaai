@@ -26,10 +26,10 @@ const T = {
     // Section 1
     section1Title: { tr: '1. Giriş', en: '1. Introduction' },
     section1Content: {
-        tr: `Corio Teknoloji A.Ş. ("Şirket", "biz", "bizim") olarak kişisel verilerinizin gizliliğine ve güvenliğine büyük önem veriyoruz. Bu Gizlilik Politikası, Corio Scan mobil uygulaması ("Uygulama") aracılığıyla toplanan kişisel verilerin nasıl işlendiğini, korunduğunu ve haklarınızı açıklamaktadır.
+        tr: `Corio Scan Geliştiricileri ("Geliştirici", "biz", "bizim") olarak kişisel verilerinizin gizliliğine ve güvenliğine büyük önem veriyoruz. Bu Gizlilik Politikası, Corio Scan mobil uygulaması ("Uygulama") aracılığıyla toplanan kişisel verilerin nasıl işlendiğini, korunduğunu ve haklarınızı açıklamaktadır.
 
 Bu politika, 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK), Avrupa Birliği Genel Veri Koruma Tüzüğü (GDPR) ve diğer ilgili mevzuat kapsamında hazırlanmıştır.`,
-        en: `At Corio Technology Inc. ("Company", "we", "our"), we place great importance on the privacy and security of your personal data. This Privacy Policy explains how personal data collected through the Corio Scan mobile application ("Application") is processed, protected, and your rights.
+        en: `At Corio Scan Developers ("Developer", "we", "our"), we place great importance on the privacy and security of your personal data. This Privacy Policy explains how personal data collected through the Corio Scan mobile application ("Application") is processed, protected, and your rights.
 
 This policy has been prepared in accordance with the Turkish Personal Data Protection Law (KVKK), the European Union General Data Protection Regulation (GDPR), and other relevant legislation.`
     },
@@ -37,14 +37,14 @@ This policy has been prepared in accordance with the Turkish Personal Data Prote
     // Section 2
     section2Title: { tr: '2. Veri Sorumlusu', en: '2. Data Controller' },
     section2Content: {
-        tr: `Corio Teknoloji A.Ş.
+        tr: `Corio Scan Geliştiricileri
 Adres: İstanbul, Türkiye
-E-posta: privacy@corioscan.ai
+E-posta: destek@corioscan.com
 
 Kişisel verilerinizle ilgili tüm sorularınız için yukarıdaki iletişim bilgilerini kullanabilirsiniz.`,
-        en: `Corio Technology Inc.
+        en: `Corio Scan Developers
 Address: Istanbul, Turkey
-Email: privacy@corioscan.ai
+Email: destek@corioscan.com
 
 You can use the contact information above for all questions regarding your personal data.`
     },
@@ -279,7 +279,7 @@ Some data must be retained for specified periods due to legal regulations (e.g.,
 • İtiraz Hakkı: Otomatik işleme ve profillemeye itiraz etme
 • Şikayet Hakkı: Kişisel Verileri Koruma Kurumu'na şikayette bulunma
 
-Haklarınızı kullanmak için privacy@corioscan.ai adresine yazılı başvuru yapabilirsiniz. Başvurular en geç 30 gün içinde yanıtlanacaktır.`,
+Haklarınızı kullanmak için destek@corioscan.com adresine yazılı başvuru yapabilirsiniz. Başvurular en geç 30 gün içinde yanıtlanacaktır.`,
         en: `Under Article 11 of KVKK Law No. 6698, you have the following rights:
 
 • Right to Information: Learn whether your personal data is being processed
@@ -290,7 +290,7 @@ Haklarınızı kullanmak için privacy@corioscan.ai adresine yazılı başvuru y
 • Right to Object: Object to automated processing and profiling
 • Right to Complain: File a complaint with the Personal Data Protection Authority
 
-To exercise your rights, you can submit a written application to privacy@corioscan.ai. Applications will be answered within 30 days at the latest.`
+To exercise your rights, you can submit a written application to destek@corioscan.com. Applications will be answered within 30 days at the latest.`
     },
 
     // Section 11
@@ -346,18 +346,18 @@ Your continued use of the Application after changes means you accept the updated
     section14Title: { tr: '14. İletişim ve Şikayetler', en: '14. Contact and Complaints' },
     section14Content: {
         tr: `Gizlilik Sorularınız İçin:
-📧 E-posta: privacy@corioscan.ai
-📧 Genel Destek: support@corioscan.ai
-🌐 Web: www.corioscan.ai
+📧 E-posta: destek@corioscan.com
+📧 Genel Destek: destek@corioscan.com
+🌐 Web: www.corioscan.com
 
 Kişisel Verileri Koruma Kurumu:
 Şikayetlerinizi www.kvkk.gov.tr adresinden iletebilirsiniz.
 
 Yanıt süresi: Talepler en geç 30 gün içinde yanıtlanır.`,
         en: `For Privacy Questions:
-📧 Email: privacy@corioscan.ai
-📧 General Support: support@corioscan.ai
-🌐 Web: www.corioscan.ai
+📧 Email: destek@corioscan.com
+📧 General Support: destek@corioscan.com
+🌐 Web: www.corioscan.com
 
 Personal Data Protection Authority:
 You can submit complaints at www.kvkk.gov.tr

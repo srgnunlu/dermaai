@@ -43,7 +43,7 @@ export function useAuth() {
                 await saveUserData(userData);
                 return userData;
             } catch (err) {
-                console.error('[Auth] User fetch error:', err);
+                // Auth errors are expected when not logged in - don't log them
                 // If auth fails, try to get cached user data
                 const cachedUser = await getUserData<User>();
                 if (cachedUser) return cachedUser;

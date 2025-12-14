@@ -10,8 +10,8 @@ export const Translations = {
         en: 'Hello,',
     },
     startDiagnosis: {
-        tr: 'Tanı Başlat',
-        en: 'Start Diagnosis',
+        tr: 'Analizi Başlat',
+        en: 'Start Analysis',
     },
     recentScans: {
         tr: 'Son Taramalar',
@@ -110,8 +110,8 @@ export const Translations = {
 
     // Tab Bar
     tabDiagnosis: {
-        tr: 'Tanı',
-        en: 'Diagnosis',
+        tr: 'Analiz',
+        en: 'Analysis',
     },
     tabHistory: {
         tr: 'Geçmiş',
@@ -500,8 +500,8 @@ export const Translations = {
 
     // Results
     diagnosisResults: {
-        tr: 'Tanı Sonuçları',
-        en: 'Diagnosis Results',
+        tr: 'Analiz Sonuçları',
+        en: 'Analysis Results',
     },
     confidence: {
         tr: 'Güven',
@@ -540,12 +540,12 @@ export const Translations = {
         en: 'Alternative AI',
     },
     confirmDiagnosis: {
-        tr: 'Bu Tanıyı Seç',
-        en: 'Select This Diagnosis',
+        tr: 'Sonucu Kaydet',
+        en: 'Save Result',
     },
     diagnosisSelected: {
-        tr: 'Tanı seçildi!',
-        en: 'Diagnosis selected!',
+        tr: 'Sonuç kaydedildi!',
+        en: 'Result saved!',
     },
     selectingDiagnosis: {
         tr: 'Kaydediliyor...',
@@ -699,20 +699,20 @@ export const Translations = {
     // History Stats
     totalCases: { tr: 'Toplam Vaka', en: 'Total Cases' },
     completedCases: { tr: 'Tamamlanan', en: 'Completed' },
-    possibleDiagnosis: { tr: 'Olası Tanı', en: 'Possible Diagnosis' },
+    possibleDiagnosis: { tr: 'Olası Sonuç', en: 'Possible Result' },
 
     // Onboarding Tutorial
     tutorialSwipe: {
-        tr: 'Diğer tanıları görmek için kaydırın',
-        en: 'Swipe to see other diagnoses',
+        tr: 'Diğer sonuçları görmek için kaydırın',
+        en: 'Swipe to see other results',
     },
     tutorialAlternativeAI: {
         tr: 'Alternatif AI sonuçlarını görüntüleyin',
         en: 'View alternative AI results',
     },
     tutorialConfirm: {
-        tr: 'Beğendiğiniz tanıyı buradan onaylayın',
-        en: 'Confirm your preferred diagnosis here',
+        tr: 'Sonucu buradan kaydedin',
+        en: 'Save the result here',
     },
     tutorialSkip: {
         tr: 'Atlamak için dokunun',

@@ -130,3 +130,26 @@ export async function markTutorialAsShown(userId?: string): Promise<void> {
         : STORAGE_KEYS.TUTORIAL_SHOWN;
     await storage.setItem(key, 'true');
 }
+
+/**
+ * Check if medical consent has been accepted for a specific user
+ * @param userId - The user's unique ID
+ */
+export async function hasMedicalConsentBeenAccepted(userId?: string): Promise<boolean> {
+    const key = userId
+        ? `${STORAGE_KEYS.MEDICAL_CONSENT_ACCEPTED}_${userId}`
+        : STORAGE_KEYS.MEDICAL_CONSENT_ACCEPTED;
+    const value = await storage.getItem(key);
+    return value === 'true';
+}
+
+/**
+ * Mark medical consent as accepted for a specific user
+ * @param userId - The user's unique ID
+ */
+export async function markMedicalConsentAsAccepted(userId?: string): Promise<void> {
+    const key = userId
+        ? `${STORAGE_KEYS.MEDICAL_CONSENT_ACCEPTED}_${userId}`
+        : STORAGE_KEYS.MEDICAL_CONSENT_ACCEPTED;
+    await storage.setItem(key, 'true');
+}

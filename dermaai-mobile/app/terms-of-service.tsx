@@ -25,16 +25,16 @@ const T = {
     // Section 1
     section1Title: { tr: '1. Giriş ve Kabul', en: '1. Introduction and Acceptance' },
     section1Content: {
-        tr: `Corio Scan mobil uygulamasını ("Uygulama") indirerek, yükleyerek veya kullanarak, bu Kullanım Şartları ve Koşullarını ("Şartlar") okuduğunuzu, anladığınızı ve bunlara bağlı kalmayı kabul ettiğinizi beyan etmiş olursunuz.
+        tr: `Corio Scan mobil uygulamasını ("Uygulama") indirerek, yükleyerek veya kullanarak, bu Kullanım Şartları ve Koşullarını ("Şartlar") okuduwğunuzu, anladığınızı ve bunlara bağlı kalmayı kabul ettiğinizi beyan etmiş olursunuz.
 
 Bu Şartları kabul etmiyorsanız, Uygulamayı kullanmamalısınız. Uygulamayı kullanmaya devam etmeniz, Şartlardaki değişiklikleri de kabul ettiğiniz anlamına gelir.
 
-Corio Teknoloji A.Ş. ("Şirket", "biz", "bizim") bu Şartları herhangi bir zamanda değiştirme hakkını saklı tutar. Değişiklikler, Uygulama içinde yayınlandığı tarihte yürürlüğe girer.`,
+Corio Scan Geliştiricileri ("Geliştirici", "biz", "bizim") bu Şartları herhangi bir zamanda değiştirme hakkını saklı tutar. Değişiklikler, Uygulama içinde yayınlandığı tarihte yürürlüğe girer.`,
         en: `By downloading, installing, or using the Corio Scan mobile application ("Application"), you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions ("Terms").
 
 If you do not accept these Terms, you should not use the Application. Your continued use of the Application signifies your acceptance of any changes to the Terms.
 
-Corio Technology Inc. ("Company", "we", "our") reserves the right to modify these Terms at any time. Changes become effective upon publication within the Application.`
+Corio Scan Developers ("Developer", "we", "our") reserves the right to modify these Terms at any time. Changes become effective upon publication within the Application.`
     },
 
     // Section 2
@@ -45,17 +45,17 @@ Corio Technology Inc. ("Company", "we", "our") reserves the right to modify thes
 • Ciltteki lezyonların görsel analizi
 • Yapay zeka destekli ön değerlendirme raporları
 • Vaka geçmişi yönetimi
-• Profesyonel kullanıcılar için tanı destek araçları
+• Profesyonel kullanıcılar için değerlendirme destek araçları
 
-ÖNEMLİ UYARI: Bu Uygulama, kesinlikle tıbbi tanı koymak, tedavi önermek veya bir sağlık profesyonelinin değerlendirmesinin yerini almak amacıyla tasarlanmamıştır. Uygulama yalnızca bilgilendirme ve karar destek aracı olarak kullanılmalıdır.`,
+ÖNEMLİ UYARI: Bu Uygulama, kesinlikle tıbbi değerlendirme yapmak, tedavi önermek veya bir sağlık profesyonelinin değerlendirmesinin yerini almak amacıyla tasarlanmamıştır. Uygulama yalnızca bilgilendirme ve karar destek aracı olarak kullanılmalıdır.`,
         en: `Corio Scan is a mobile application that helps analyze dermatological images using artificial intelligence technology. The Application offers the following services:
 
 • Visual analysis of skin lesions
 • AI-powered preliminary assessment reports
 • Case history management
-• Diagnostic support tools for professional users
+• Assessment support tools for professional users
 
-IMPORTANT WARNING: This Application is not designed to provide medical diagnosis, recommend treatment, or replace the evaluation of a healthcare professional. The Application should only be used as an informational and decision support tool.`
+IMPORTANT WARNING: This Application is not designed to provide medical assessment, recommend treatment, or replace the evaluation of a healthcare professional. The Application should only be used as an informational and decision support tool.`
     },
 
     // Section 3
@@ -220,7 +220,7 @@ The Company's total liability, in any event, cannot exceed the amount you paid t
     section9Title: { tr: '9. Hesap Askıya Alma ve Fesih', en: '9. Account Suspension and Termination' },
     section9Content: {
         tr: `9.1 Sizin Tarafınızdan Fesih
-Hesabınızı istediğiniz zaman Ayarlar menüsünden veya support@corioscan.ai adresine e-posta göndererek silebilirsiniz.
+Hesabınızı istediğiniz zaman Ayarlar menüsünden veya destek@corioscan.com adresine e-posta göndererek silebilirsiniz.
 
 9.2 Şirket Tarafından Fesih
 Şirket, aşağıdaki durumlarda hesabınızı askıya alabilir veya sonlandırabilir:
@@ -232,7 +232,7 @@ Hesabınızı istediğiniz zaman Ayarlar menüsünden veya support@corioscan.ai 
 9.3 Fesih Sonrası
 Hesap feshinden sonra verileriniz 30 gün içinde kalıcı olarak silinir. Yasal zorunluluklar gereği bazı veriler daha uzun süre saklanabilir.`,
         en: `9.1 Termination by You
-You can delete your account at any time through the Settings menu or by sending an email to support@corioscan.ai.
+You can delete your account at any time through the Settings menu or by sending an email to destek@corioscan.com.
 
 9.2 Termination by Company
 The Company may suspend or terminate your account in the following cases:
@@ -324,18 +324,16 @@ You may not transfer your rights under these Terms without the written consent o
     section14Content: {
         tr: `Bu Kullanım Şartları ile ilgili sorularınız için:
 
-Corio Teknoloji A.Ş.
-📧 E-posta: legal@corioscan.ai
-📧 Destek: support@corioscan.ai
-🌐 Web: www.corioscan.ai
+Corio Scan Geliştiricileri
+📧 Destek: destek@corioscan.com
+🌐 Web: www.corioscan.com
 
 Yanıt süresi: İş günlerinde 48 saat içinde`,
         en: `For questions regarding these Terms of Service:
 
-Corio Technology Inc.
-📧 Email: legal@corioscan.ai
-📧 Support: support@corioscan.ai
-🌐 Web: www.corioscan.ai
+Corio Scan Developers
+📧 Support: destek@corioscan.com
+🌐 Web: www.corioscan.com
 
 Response time: Within 48 hours on business days`
     },

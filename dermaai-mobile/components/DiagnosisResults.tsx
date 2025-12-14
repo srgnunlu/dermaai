@@ -284,9 +284,9 @@ export function DiagnosisResults({
             style={styles.container}
             resizeMode="cover"
         >
-            {/* DermAssistAI Header */}
+            {/* Corio Scan Header */}
             <View style={styles.brandHeader}>
-                <Text style={styles.brandTitle}>DermAssistAI</Text>
+                <Text style={styles.brandTitle}>Corio Scan</Text>
             </View>
 
             {/* AI Provider Toggle Tabs */}
@@ -410,40 +410,49 @@ export function DiagnosisResults({
             {/* Action Buttons Row */}
             <View style={styles.buttonRow}>
                 <TouchableOpacity
-                    style={styles.primaryButton}
+                    style={styles.secondaryButton}
                     onPress={onNewAnalysis}
                     activeOpacity={0.8}
                 >
-                    <LinearGradient
-                        colors={['#0E7490', '#0891B2', '#06B6D4']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.primaryButtonGradient}
-                    >
-                        <RefreshCw size={16} color="#FFFFFF" />
-                        <Text style={styles.primaryButtonText}>
-                            {Translations.newAnalysis[language]}
-                        </Text>
-                    </LinearGradient>
+                    <BlurView intensity={60} tint="light" style={styles.secondaryButtonBlur}>
+                        <View style={styles.secondaryButtonContent}>
+                            <RefreshCw size={18} color="#0891B2" />
+                            <Text style={styles.secondaryButtonText}>
+                                {Translations.newAnalysis[language]}
+                            </Text>
+                        </View>
+                    </BlurView>
                 </TouchableOpacity>
 
                 {/* Confirm Diagnosis Button */}
                 <TouchableOpacity
                     style={[
-                        styles.confirmButton,
+                        styles.primaryButton,
                         isSelected && styles.confirmButtonSelected,
                     ]}
                     onPress={handleSelectDiagnosis}
                     disabled={isSelecting || isSelected}
-                    activeOpacity={0.7}
+                    activeOpacity={0.8}
                 >
-                    {isSelecting ? (
-                        <ActivityIndicator size="small" color="#0891B2" />
-                    ) : isSelected ? (
-                        <Check size={20} color="#10B981" />
-                    ) : (
-                        <CheckCircle size={20} color="#0891B2" />
-                    )}
+                    <LinearGradient
+                        colors={isSelected ? ['#10B981', '#059669'] : ['#0E7490', '#0891B2', '#06B6D4']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.primaryButtonGradient}
+                    >
+                        {isSelecting ? (
+                            <ActivityIndicator size="small" color="#FFFFFF" />
+                        ) : isSelected ? (
+                            <Check size={18} color="#FFFFFF" />
+                        ) : (
+                            <CheckCircle size={18} color="#FFFFFF" />
+                        )}
+                        <Text style={styles.primaryButtonText}>
+                            {isSelected
+                                ? (language === 'tr' ? 'Onaylandı' : 'Confirmed')
+                                : (language === 'tr' ? 'Sonucu Kaydet' : 'Save Result')}
+                        </Text>
+                    </LinearGradient>
                 </TouchableOpacity>
             </View>
 
@@ -497,7 +506,7 @@ export function DiagnosisResults({
 
                                 {/* Success Text */}
                                 <Text style={styles.modalTitle}>
-                                    {language === 'tr' ? 'Tanı Kaydedildi!' : 'Diagnosis Saved!'}
+                                    {language === 'tr' ? 'Sonuç Kaydedildi!' : 'Result Saved!'}
                                 </Text>
                                 <Text style={styles.modalSubtitle}>
                                     {Translations.diagnosisSelected[language]}
@@ -573,7 +582,7 @@ function DiagnosisCard({
                                 </LinearGradient>
                                 {isFirst && (
                                     <Text style={[styles.primaryLabel, { color: colors.primary }]}>
-                                        {language === 'tr' ? 'Ana Tanı' : 'Primary'}
+                                        {language === 'tr' ? 'Birincil Sonuç' : 'Primary Result'}
                                     </Text>
                                 )}
                             </View>
@@ -990,9 +999,47 @@ const styles = StyleSheet.create({
     },
     primaryButtonText: {
         color: '#FFFFFF',
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '600',
         letterSpacing: 0.3,
+    },
+    secondaryButton: {
+        flex: 1,
+        borderRadius: 16,
+        overflow: 'hidden',
+        borderWidth: 1.5,
+        borderColor: 'rgba(8, 145, 178, 0.2)',
+        shadowColor: '#0E7490',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        elevation: 3,
+    },
+    secondaryButtonBlur: {
+        flex: 1,
+        borderRadius: 16,
+        overflow: 'hidden',
+    },
+    secondaryButtonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 16,
+        paddingHorizontal: Spacing.md,
+        gap: Spacing.sm,
+        backgroundColor: Platform.select({
+            android: 'rgba(255, 255, 255, 0.7)',
+            ios: 'rgba(255, 255, 255, 0.3)',
+        }),
+    },
+    secondaryButtonText: {
+        color: '#0891B2',
+        fontSize: 15,
+        fontWeight: '600',
+        letterSpacing: 0.3,
+    },
+    confirmButtonSelected: {
+        opacity: 0.8,
     },
     secondaryIconButton: {
         width: 52,
@@ -1064,10 +1111,6 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 6,
         elevation: 3,
-    },
-    confirmButtonSelected: {
-        backgroundColor: 'rgba(16, 185, 129, 0.15)',
-        borderColor: 'rgba(16, 185, 129, 0.3)',
     },
 
     // Success Modal Styles

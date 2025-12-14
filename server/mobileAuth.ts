@@ -290,7 +290,43 @@ export function setupMobileAuth(app: Express) {
         }
     });
 
+    /**
+     * Delete user account
+     * Permanently deletes user and all associated data (cases, settings, push tokens)
+     */
+    app.delete('/api/auth/mobile/delete-account', isMobileAuthenticated, async (req: any, res) => {
+        try {
+            const userId = req.mobileUser.userId;
+
+            logger.info(`[MOBILE_AUTH] Account deletion requested for user: ${userId}`);
+
+            // Verify user exists
+            const user = await storage.getUser(userId);
+            if (!user) {
+                return res.status(404).json({ error: 'User not found' });
+            }
+
+            // Delete push tokens first
+            await storage.deleteUserPushTokens(userId);
+
+            // Delete user (this cascades to cases and settings via storage.deleteUser)
+            const deleted = await storage.deleteUser(userId);
+
+            if (!deleted) {
+                logger.error(`[MOBILE_AUTH] Failed to delete user: ${userId}`);
+                return res.status(500).json({ error: 'Failed to delete account' });
+            }
+
+            logger.info(`[MOBILE_AUTH] Account deleted successfully: ${userId}`);
+            res.status(200).json({ success: true, message: 'Account deleted successfully' });
+        } catch (error) {
+            logger.error('[MOBILE_AUTH] Delete account error:', error);
+            res.status(500).json({ error: 'Failed to delete account' });
+        }
+    });
+
     logger.debug('[MOBILE_AUTH] Mobile authentication routes configured');
+
 }
 
 /**

@@ -56,12 +56,12 @@ This policy has been prepared in accordance with the Turkish Personal Data Prote
     section2Content: {
         tr: `Corio Teknoloji A.Ş.
 Adres: İstanbul, Türkiye
-E-posta: privacy@corioscan.ai
+E-posta: destek@corioscan.com
 
 Kişisel verilerinizle ilgili tüm sorularınız için yukarıdaki iletişim bilgilerini kullanabilirsiniz.`,
         en: `Corio Technology Inc.
 Address: Istanbul, Turkey
-Email: privacy@corioscan.ai
+Email: destek@corioscan.com
 
 You can use the contact information above for all questions regarding your personal data.`
     },
@@ -288,7 +288,7 @@ Some data must be retained for specified periods due to legal regulations (e.g.,
 • İtiraz Hakkı: Otomatik işleme ve profillemeye itiraz etme
 • Şikayet Hakkı: Kişisel Verileri Koruma Kurumu'na şikayette bulunma
 
-Haklarınızı kullanmak için privacy@corioscan.ai adresine yazılı başvuru yapabilirsiniz. Başvurular en geç 30 gün içinde yanıtlanacaktır.`,
+Haklarınızı kullanmak için destek@corioscan.com adresine yazılı başvuru yapabilirsiniz. Başvurular en geç 30 gün içinde yanıtlanacaktır.`,
         en: `Under Article 11 of KVKK Law No. 6698, you have the following rights:
 
 • Right to Information: Learn whether your personal data is being processed
@@ -299,7 +299,7 @@ Haklarınızı kullanmak için privacy@corioscan.ai adresine yazılı başvuru y
 • Right to Object: Object to automated processing and profiling
 • Right to Complain: File a complaint with the Personal Data Protection Authority
 
-To exercise your rights, you can submit a written application to privacy@corioscan.ai. Applications will be answered within 30 days at the latest.`
+To exercise your rights, you can submit a written application to destek@corioscan.com. Applications will be answered within 30 days at the latest.`
     },
 
     section11Title: { tr: '11. Çocukların Gizliliği', en: '11. Children\'s Privacy' },
@@ -351,18 +351,18 @@ Your continued use of the Application after changes means you accept the updated
     section14Title: { tr: '14. İletişim ve Şikayetler', en: '14. Contact and Complaints' },
     section14Content: {
         tr: `Gizlilik Sorularınız İçin:
-📧 E-posta: privacy@corioscan.ai
-📧 Genel Destek: support@corioscan.ai
-🌐 Web: www.corioscan.ai
+📧 E-posta: destek@corioscan.com
+📧 Genel Destek: destek@corioscan.com
+🌐 Web: www.corioscan.com
 
 Kişisel Verileri Koruma Kurumu:
 Şikayetlerinizi www.kvkk.gov.tr adresinden iletebilirsiniz.
 
 Yanıt süresi: Talepler en geç 30 gün içinde yanıtlanır.`,
         en: `For Privacy Questions:
-📧 Email: privacy@corioscan.ai
-📧 General Support: support@corioscan.ai
-🌐 Web: www.corioscan.ai
+📧 Email: destek@corioscan.com
+📧 General Support: destek@corioscan.com
+🌐 Web: www.corioscan.com
 
 Personal Data Protection Authority:
 You can submit complaints at www.kvkk.gov.tr
@@ -568,7 +568,7 @@ The Company's total liability, in any event, cannot exceed the amount you paid t
     section9Title: { tr: '9. Hesap Askıya Alma ve Fesih', en: '9. Account Suspension and Termination' },
     section9Content: {
         tr: `9.1 Sizin Tarafınızdan Fesih
-Hesabınızı istediğiniz zaman Ayarlar menüsünden veya support@corioscan.ai adresine e-posta göndererek silebilirsiniz.
+Hesabınızı istediğiniz zaman Ayarlar menüsünden veya destek@corioscan.com adresine e-posta göndererek silebilirsiniz.
 
 9.2 Şirket Tarafından Fesih
 Şirket, aşağıdaki durumlarda hesabınızı askıya alabilir veya sonlandırabilir:
@@ -580,7 +580,7 @@ Hesabınızı istediğiniz zaman Ayarlar menüsünden veya support@corioscan.ai 
 9.3 Fesih Sonrası
 Hesap feshinden sonra verileriniz 30 gün içinde kalıcı olarak silinir. Yasal zorunluluklar gereği bazı veriler daha uzun süre saklanabilir.`,
         en: `9.1 Termination by You
-You can delete your account at any time through the Settings menu or by sending an email to support@corioscan.ai.
+You can delete your account at any time through the Settings menu or by sending an email to destek@corioscan.com.
 
 9.2 Termination by Company
 The Company may suspend or terminate your account in the following cases:
@@ -668,17 +668,17 @@ You may not transfer your rights under these Terms without the written consent o
         tr: `Bu Kullanım Şartları ile ilgili sorularınız için:
 
 Corio Teknoloji A.Ş.
-📧 E-posta: legal@corioscan.ai
-📧 Destek: support@corioscan.ai
-🌐 Web: www.corioscan.ai
+📧 E-posta: destek@corioscan.com
+📧 Destek: destek@corioscan.com
+🌐 Web: www.corioscan.com
 
 Yanıt süresi: İş günlerinde 48 saat içinde`,
         en: `For questions regarding these Terms of Service:
 
 Corio Technology Inc.
-📧 Email: legal@corioscan.ai
-📧 Support: support@corioscan.ai
-🌐 Web: www.corioscan.ai
+📧 Email: destek@corioscan.com
+📧 Support: destek@corioscan.com
+🌐 Web: www.corioscan.com
 
 Response time: Within 48 hours on business days`
     },

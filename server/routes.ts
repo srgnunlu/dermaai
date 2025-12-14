@@ -952,16 +952,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           logger.info(`[Background] Analysis completed for case ${newCase.caseId}`);
 
-          // Send push notification
-          try {
-            const userTokens = await storage.getUserPushTokens(userId);
-            if (userTokens.length > 0) {
-              const tokens = userTokens.map((t) => t.token);
-              await sendAnalysisCompleteNotification(tokens, newCase.caseId, language);
-              logger.info(`[Background] Push notification sent for case ${newCase.caseId}`);
+          // Send push notification only if data is NOT anonymized
+          // (anonymized cases are deleted after analysis, so notification would lead to "not found")
+          if (!anonymizeData) {
+            try {
+              const userTokens = await storage.getUserPushTokens(userId);
+              if (userTokens.length > 0) {
+                const tokens = userTokens.map((t) => t.token);
+                await sendAnalysisCompleteNotification(tokens, newCase.caseId, language);
+                logger.info(`[Background] Push notification sent for case ${newCase.caseId}`);
+              }
+            } catch (pushError) {
+              logger.error('[Background] Push notification failed:', pushError);
             }
-          } catch (pushError) {
-            logger.error('[Background] Push notification failed:', pushError);
+          } else {
+            logger.info(`[Background] Skipping notification for case ${newCase.caseId} (anonymizeData enabled)`);
           }
 
           // If anonymization is enabled, delete the case after analysis

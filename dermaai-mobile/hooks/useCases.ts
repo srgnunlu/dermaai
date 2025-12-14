@@ -103,11 +103,13 @@ export function useAnalyzeCase() {
             imageUrls,
             language = 'en',
             onUploadComplete,
+            anonymizeData = false,
         }: {
             patientData: PatientData;
             imageUrls: string[];
             language?: 'tr' | 'en';
             onUploadComplete?: () => void;
+            anonymizeData?: boolean;
         }): Promise<SubmitResponse> => {
             // Reset upload state
             setUploadComplete(false);
@@ -177,6 +179,7 @@ export function useAnalyzeCase() {
                 medicalHistory: patientData.medicalHistory,
                 language, // Pass language preference for AI analysis output
                 isMobileRequest: true, // Flag for personalized AI responses based on user type
+                anonymizeData, // Flag to prevent saving case to history
             };
 
             // Submit returns immediately with caseId - analysis runs in background

@@ -852,6 +852,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Extract language preference
       const language = (req.body.language === 'tr' ? 'tr' : 'en') as 'tr' | 'en';
 
+      // Check if data anonymization is enabled (don't save to history)
+      const anonymizeData = req.body.anonymizeData === true;
+
       // Return immediately - don't wait for analysis
       res.json({
         id: newCase.id,
@@ -959,6 +962,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           } catch (pushError) {
             logger.error('[Background] Push notification failed:', pushError);
+          }
+
+          // If anonymization is enabled, delete the case after analysis
+          // This ensures analysis results are returned but not saved to history
+          if (anonymizeData) {
+            try {
+              await storage.deleteCase(newCase.id);
+              logger.info(`[Background] Case ${newCase.caseId} deleted due to anonymization setting`);
+            } catch (deleteError) {
+              logger.error('[Background] Failed to delete anonymized case:', deleteError);
+            }
           }
         } catch (bgError) {
           logger.error(`[Background] Analysis failed for case ${newCase.caseId}:`, bgError);

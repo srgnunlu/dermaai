@@ -16,6 +16,7 @@ import {
     Alert,
     Easing,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BlurView } from 'expo-blur';
 import { Upload, Cloud } from 'lucide-react-native';
 import { Colors } from '@/constants/Colors'
@@ -26,6 +27,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'expo-router';
 import { useTabBarVisibility } from '@/contexts/TabBarVisibilityContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+
+const SETTINGS_STORAGE_KEY = 'corio_settings';
 
 // Animated Upload Spinner Component
 function AnimatedUploadSpinner() {
@@ -384,6 +387,18 @@ export function DiagnosisWizard() {
         setIsProcessing(true);
         setTabBarAnalyzing(true); // Block tab bar interactions
 
+        // Check anonymization setting from AsyncStorage
+        let anonymizeData = false;
+        try {
+            const savedSettings = await AsyncStorage.getItem(SETTINGS_STORAGE_KEY);
+            if (savedSettings) {
+                const parsed = JSON.parse(savedSettings);
+                anonymizeData = parsed.anonymizeData === true;
+            }
+        } catch (error) {
+            console.error('Failed to load anonymization setting:', error);
+        }
+
         try {
             const patientData: PatientData = {
                 patientId: state.patientId || `P-${Date.now()}`,
@@ -404,6 +419,7 @@ export function DiagnosisWizard() {
                 patientData,
                 imageUrls: state.images,
                 language, // Pass current language for localized AI responses
+                anonymizeData, // Pass anonymization setting to prevent history save
             });
 
             // Set pendingCaseId to start polling for completion

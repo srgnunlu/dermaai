@@ -20,7 +20,7 @@ import {
   pushTokens,
 } from '@shared/schema';
 import { db } from './db';
-import { eq } from 'drizzle-orm';
+import { eq, and, or, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import logger from './logger';
 import * as cache from './cache';
@@ -347,7 +347,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCases(userId: string): Promise<Case[]> {
-    const userCases = await db.select().from(cases).where(eq(cases.userId, userId));
+    // Filter out hidden cases (those with anonymization enabled)
+    const userCases = await db.select().from(cases).where(
+      and(
+        eq(cases.userId, userId),
+        or(eq(cases.isHidden, false), sql`${cases.isHidden} IS NULL`)
+      )
+    );
 
     return userCases.sort((a, b) => {
       const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;

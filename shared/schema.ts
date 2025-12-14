@@ -110,6 +110,7 @@ export const cases = pgTable(
     dermatologistDiagnosedAt: timestamp('dermatologist_diagnosed_at'),
     status: text('status').default('pending'),
     selectedAnalysisProvider: text('selected_analysis_provider').default('gemini'), // 'gemini' | 'openai'
+    isHidden: jsonb('is_hidden').default(false).$type<boolean>(), // Hidden from history when anonymization is enabled
     createdAt: timestamp('created_at').defaultNow(),
   },
   (table) => [

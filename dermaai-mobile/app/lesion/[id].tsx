@@ -17,6 +17,7 @@ import {
     Platform,
     Modal,
     TextInput,
+    Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
@@ -24,6 +25,7 @@ import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { format } from 'date-fns';
 import { tr, enUS } from 'date-fns/locale';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
 import {
     ArrowLeft,
     Calendar,
@@ -39,17 +41,25 @@ import {
     Edit3,
     X,
     Save,
+    ImageIcon,
+    Upload,
+    Sparkles,
 } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Spacing } from '@/constants/Spacing';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
     useLesionTracking,
     useDeleteLesionTracking,
     useUpdateLesionTracking,
+    useAddSnapshot,
     useRiskLevelStyle,
 } from '@/hooks/useLesionTracking';
 import { LoadingSpinner, EmptyState } from '@/components/ui';
+import { api } from '@/lib/api';
 import type { LesionSnapshot, LesionComparison } from '@/types/schema';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function LesionDetailScreen() {
     const router = useRouter();
@@ -61,11 +71,19 @@ export default function LesionDetailScreen() {
     const { tracking, snapshots, comparisons, isLoading, error, refetch } = useLesionTracking(id || '');
     const { deleteTracking, isDeleting } = useDeleteLesionTracking();
     const { updateTracking, isUpdating } = useUpdateLesionTracking();
+    const { addSnapshot, isAdding } = useAddSnapshot();
     const { getRiskColor, getRiskLabel, getProgressionLabel, getProgressionIcon } = useRiskLevelStyle();
 
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [editName, setEditName] = useState('');
     const [editLocation, setEditLocation] = useState('');
+    
+    // New Snapshot Modal State
+    const [snapshotModalVisible, setSnapshotModalVisible] = useState(false);
+    const [selectedImages, setSelectedImages] = useState<string[]>([]);
+    const [snapshotNote, setSnapshotNote] = useState('');
+    const [isUploading, setIsUploading] = useState(false);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
 
     const handleDelete = useCallback(() => {
         Alert.alert(
@@ -132,14 +150,174 @@ export default function LesionDetailScreen() {
         }
     }, [id, editName, editLocation, language, updateTracking]);
 
+    // Open snapshot modal instead of navigating away
     const handleAddSnapshot = useCallback(() => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        // Navigate to diagnosis wizard with tracking context
-        router.push({
-            pathname: '/(tabs)',
-            params: { lesionTrackingId: id },
-        });
-    }, [id, router]);
+        setSelectedImages([]);
+        setSnapshotNote('');
+        setSnapshotModalVisible(true);
+    }, []);
+
+    // Pick image from gallery
+    const handlePickImage = useCallback(async () => {
+        try {
+            const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (!permissionResult.granted) {
+                Alert.alert(
+                    language === 'tr' ? 'İzin Gerekli' : 'Permission Required',
+                    language === 'tr' 
+                        ? 'Galeri erişimi için izin vermeniz gerekmektedir.'
+                        : 'You need to grant permission to access the gallery.'
+                );
+                return;
+            }
+
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsMultipleSelection: true,
+                quality: 0.8,
+                selectionLimit: 3,
+            });
+
+            if (!result.canceled && result.assets.length > 0) {
+                const newImages = result.assets.map(asset => asset.uri);
+                setSelectedImages(prev => [...prev, ...newImages].slice(0, 3));
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }
+        } catch (error) {
+            console.error('Image picker error:', error);
+        }
+    }, [language]);
+
+    // Take photo with camera
+    const handleTakePhoto = useCallback(async () => {
+        try {
+            const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+            if (!permissionResult.granted) {
+                Alert.alert(
+                    language === 'tr' ? 'İzin Gerekli' : 'Permission Required',
+                    language === 'tr' 
+                        ? 'Kamera erişimi için izin vermeniz gerekmektedir.'
+                        : 'You need to grant permission to access the camera.'
+                );
+                return;
+            }
+
+            const result = await ImagePicker.launchCameraAsync({
+                quality: 0.8,
+                allowsEditing: false,
+            });
+
+            if (!result.canceled && result.assets.length > 0) {
+                setSelectedImages(prev => [...prev, result.assets[0].uri].slice(0, 3));
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }
+        } catch (error) {
+            console.error('Camera error:', error);
+        }
+    }, [language]);
+
+    // Remove selected image
+    const handleRemoveImage = useCallback((index: number) => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        setSelectedImages(prev => prev.filter((_, i) => i !== index));
+    }, []);
+
+    // Upload images and create snapshot
+    const handleSubmitSnapshot = useCallback(async () => {
+        if (selectedImages.length === 0) {
+            Alert.alert(
+                language === 'tr' ? 'Hata' : 'Error',
+                language === 'tr' ? 'En az bir görsel seçmelisiniz.' : 'You must select at least one image.'
+            );
+            return;
+        }
+
+        try {
+            setIsUploading(true);
+
+            // Upload images first
+            const uploadedUrls: string[] = [];
+            for (const imageUri of selectedImages) {
+                const formData = new FormData();
+                const filename = imageUri.split('/').pop() || 'image.jpg';
+                const match = /\.(\w+)$/.exec(filename);
+                const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+                formData.append('image', {
+                    uri: imageUri,
+                    name: filename,
+                    type,
+                } as any);
+
+                const response = await api.uploadFile('/api/upload', formData);
+                if (response.imageUrl) {
+                    uploadedUrls.push(response.imageUrl);
+                }
+            }
+
+            if (uploadedUrls.length === 0) {
+                throw new Error('No images uploaded');
+            }
+
+            setIsUploading(false);
+            setIsAnalyzing(true);
+
+            // Add snapshot with comparison
+            const result = await addSnapshot({
+                trackingId: id!,
+                data: {
+                    imageUrls: uploadedUrls,
+                    notes: snapshotNote.trim() || undefined,
+                    runComparison: true,
+                    language: language as 'tr' | 'en',
+                },
+            });
+
+            setIsAnalyzing(false);
+            setSnapshotModalVisible(false);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+            // Show result
+            if (result.comparison) {
+                const analysis = result.comparison.comparisonAnalysis;
+                Alert.alert(
+                    language === 'tr' ? '✅ Analiz Tamamlandı' : '✅ Analysis Complete',
+                    `${analysis?.changeSummary || ''}\n\n${language === 'tr' ? 'Risk Seviyesi' : 'Risk Level'}: ${getRiskLabel(analysis?.riskLevel || 'low', language)}`,
+                    [
+                        {
+                            text: language === 'tr' ? 'Detayları Gör' : 'View Details',
+                            onPress: () => router.push(`/lesion/compare/${result.comparison!.id}`),
+                        },
+                        {
+                            text: language === 'tr' ? 'Tamam' : 'OK',
+                            style: 'cancel',
+                        },
+                    ]
+                );
+            } else {
+                Alert.alert(
+                    language === 'tr' ? '✅ Kayıt Eklendi' : '✅ Record Added',
+                    language === 'tr' 
+                        ? 'Yeni görsel kaydedildi.'
+                        : 'New image has been saved.'
+                );
+            }
+
+            refetch();
+        } catch (error) {
+            console.error('Snapshot error:', error);
+            setIsUploading(false);
+            setIsAnalyzing(false);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            Alert.alert(
+                language === 'tr' ? 'Hata' : 'Error',
+                language === 'tr' 
+                    ? 'Görsel yüklenirken bir hata oluştu.'
+                    : 'An error occurred while uploading the image.'
+            );
+        }
+    }, [selectedImages, snapshotNote, id, language, addSnapshot, refetch, getRiskLabel, router]);
 
     if (isLoading) {
         return (
@@ -498,6 +676,185 @@ export default function LesionDetailScreen() {
                                             )}
                                         </TouchableOpacity>
                                     </View>
+                                </View>
+                            </BlurView>
+                        </View>
+                    </View>
+                </Modal>
+
+                {/* New Snapshot Modal - Simple Image Upload */}
+                <Modal
+                    visible={snapshotModalVisible}
+                    animationType="slide"
+                    transparent={true}
+                    onRequestClose={() => !isUploading && !isAnalyzing && setSnapshotModalVisible(false)}
+                >
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.snapshotModalContainer}>
+                            <BlurView intensity={90} tint="light" style={styles.modalBlur}>
+                                <View style={styles.snapshotModalContent}>
+                                    {/* Header */}
+                                    <View style={styles.modalHeader}>
+                                        <Text style={styles.modalTitle}>
+                                            {language === 'tr' ? '📸 Yeni Görsel Ekle' : '📸 Add New Image'}
+                                        </Text>
+                                        {!isUploading && !isAnalyzing && (
+                                            <TouchableOpacity
+                                                onPress={() => setSnapshotModalVisible(false)}
+                                                style={styles.closeButton}
+                                            >
+                                                <X size={22} color="#64748B" />
+                                            </TouchableOpacity>
+                                        )}
+                                    </View>
+
+                                    {/* Info Text */}
+                                    <View style={styles.snapshotInfoBox}>
+                                        <Sparkles size={16} color="#0891B2" />
+                                        <Text style={styles.snapshotInfoText}>
+                                            {language === 'tr'
+                                                ? 'Lezyonun güncel görselini ekleyin. AI, önceki kayıtlarla karşılaştırarak değişimleri analiz edecek.'
+                                                : 'Add the current image of the lesion. AI will analyze changes by comparing with previous records.'}
+                                        </Text>
+                                    </View>
+
+                                    {/* Image Selection Area */}
+                                    {selectedImages.length === 0 ? (
+                                        <View style={styles.imagePickerArea}>
+                                            <TouchableOpacity
+                                                style={styles.imagePickerButton}
+                                                onPress={handleTakePhoto}
+                                                activeOpacity={0.7}
+                                            >
+                                                <View style={styles.imagePickerIconContainer}>
+                                                    <Camera size={32} color="#0891B2" />
+                                                </View>
+                                                <Text style={styles.imagePickerButtonText}>
+                                                    {language === 'tr' ? 'Fotoğraf Çek' : 'Take Photo'}
+                                                </Text>
+                                            </TouchableOpacity>
+
+                                            <View style={styles.imagePickerDivider}>
+                                                <View style={styles.imagePickerDividerLine} />
+                                                <Text style={styles.imagePickerDividerText}>
+                                                    {language === 'tr' ? 'veya' : 'or'}
+                                                </Text>
+                                                <View style={styles.imagePickerDividerLine} />
+                                            </View>
+
+                                            <TouchableOpacity
+                                                style={styles.imagePickerButton}
+                                                onPress={handlePickImage}
+                                                activeOpacity={0.7}
+                                            >
+                                                <View style={styles.imagePickerIconContainer}>
+                                                    <ImageIcon size={32} color="#8B5CF6" />
+                                                </View>
+                                                <Text style={styles.imagePickerButtonText}>
+                                                    {language === 'tr' ? 'Galeriden Seç' : 'Choose from Gallery'}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    ) : (
+                                        <View style={styles.selectedImagesContainer}>
+                                            <ScrollView
+                                                horizontal
+                                                showsHorizontalScrollIndicator={false}
+                                                contentContainerStyle={styles.selectedImagesScroll}
+                                            >
+                                                {selectedImages.map((uri, index) => (
+                                                    <View key={index} style={styles.selectedImageWrapper}>
+                                                        <Image
+                                                            source={{ uri }}
+                                                            style={styles.selectedImage}
+                                                            resizeMode="cover"
+                                                        />
+                                                        <TouchableOpacity
+                                                            style={styles.removeImageButton}
+                                                            onPress={() => handleRemoveImage(index)}
+                                                        >
+                                                            <X size={14} color="#FFFFFF" />
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                ))}
+                                                {selectedImages.length < 3 && (
+                                                    <TouchableOpacity
+                                                        style={styles.addMoreImageButton}
+                                                        onPress={handlePickImage}
+                                                        activeOpacity={0.7}
+                                                    >
+                                                        <Plus size={24} color="#0891B2" />
+                                                    </TouchableOpacity>
+                                                )}
+                                            </ScrollView>
+                                            <Text style={styles.imageCountText}>
+                                                {selectedImages.length}/3 {language === 'tr' ? 'görsel' : 'images'}
+                                            </Text>
+                                        </View>
+                                    )}
+
+                                    {/* Optional Note */}
+                                    <View style={styles.inputGroup}>
+                                        <Text style={styles.inputLabel}>
+                                            {language === 'tr' ? 'Not (isteğe bağlı)' : 'Note (optional)'}
+                                        </Text>
+                                        <TextInput
+                                            style={[styles.textInput, styles.noteInput]}
+                                            value={snapshotNote}
+                                            onChangeText={setSnapshotNote}
+                                            placeholder={language === 'tr' 
+                                                ? 'Değişiklikler hakkında not ekleyin...' 
+                                                : 'Add a note about changes...'}
+                                            placeholderTextColor="#94A3B8"
+                                            multiline
+                                            numberOfLines={2}
+                                        />
+                                    </View>
+
+                                    {/* Action Button */}
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.submitSnapshotButton,
+                                            (selectedImages.length === 0 || isUploading || isAnalyzing) && 
+                                            styles.submitSnapshotButtonDisabled
+                                        ]}
+                                        onPress={handleSubmitSnapshot}
+                                        disabled={selectedImages.length === 0 || isUploading || isAnalyzing}
+                                        activeOpacity={0.8}
+                                    >
+                                        <LinearGradient
+                                            colors={selectedImages.length > 0 && !isUploading && !isAnalyzing
+                                                ? ['#0891B2', '#0E7490']
+                                                : ['#94A3B8', '#64748B']
+                                            }
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 0 }}
+                                            style={styles.submitSnapshotGradient}
+                                        >
+                                            {isUploading ? (
+                                                <>
+                                                    <ActivityIndicator size="small" color="#FFFFFF" />
+                                                    <Text style={styles.submitSnapshotText}>
+                                                        {language === 'tr' ? 'Yükleniyor...' : 'Uploading...'}
+                                                    </Text>
+                                                </>
+                                            ) : isAnalyzing ? (
+                                                <>
+                                                    <ActivityIndicator size="small" color="#FFFFFF" />
+                                                    <Text style={styles.submitSnapshotText}>
+                                                        {language === 'tr' ? 'AI Analiz Ediyor...' : 'AI Analyzing...'}
+                                                    </Text>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Upload size={20} color="#FFFFFF" />
+                                                    <Text style={styles.submitSnapshotText}>
+                                                        {language === 'tr' ? 'Kaydet ve Analiz Et' : 'Save & Analyze'}
+                                                    </Text>
+                                                </>
+                                            )}
+                                        </LinearGradient>
+                                    </TouchableOpacity>
                                 </View>
                             </BlurView>
                         </View>
@@ -1062,6 +1419,153 @@ const styles = StyleSheet.create({
     },
     saveButtonText: {
         fontSize: 15,
+        fontWeight: '600',
+        color: '#FFFFFF',
+    },
+
+    // Snapshot Modal Styles
+    snapshotModalContainer: {
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+        overflow: 'hidden',
+        maxHeight: '90%',
+    },
+    snapshotModalContent: {
+        padding: Spacing.xl,
+        paddingBottom: Spacing['3xl'],
+        backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    },
+    snapshotInfoBox: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        backgroundColor: 'rgba(8, 145, 178, 0.1)',
+        borderRadius: 14,
+        padding: Spacing.md,
+        marginBottom: Spacing.lg,
+        gap: 10,
+    },
+    snapshotInfoText: {
+        flex: 1,
+        fontSize: 13,
+        color: '#0F172A',
+        lineHeight: 18,
+    },
+    imagePickerArea: {
+        marginBottom: Spacing.lg,
+    },
+    imagePickerButton: {
+        alignItems: 'center',
+        padding: Spacing.lg,
+        backgroundColor: 'rgba(255, 255, 255, 0.6)',
+        borderWidth: 2,
+        borderColor: 'rgba(0, 0, 0, 0.08)',
+        borderStyle: 'dashed',
+        borderRadius: 16,
+    },
+    imagePickerIconContainer: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: 'rgba(8, 145, 178, 0.1)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: Spacing.sm,
+    },
+    imagePickerButtonText: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#0F172A',
+    },
+    imagePickerDivider: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: Spacing.md,
+    },
+    imagePickerDividerLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    },
+    imagePickerDividerText: {
+        marginHorizontal: Spacing.md,
+        fontSize: 13,
+        color: '#64748B',
+    },
+    selectedImagesContainer: {
+        marginBottom: Spacing.lg,
+    },
+    selectedImagesScroll: {
+        gap: 12,
+    },
+    selectedImageWrapper: {
+        position: 'relative',
+    },
+    selectedImage: {
+        width: (SCREEN_WIDTH - Spacing.xl * 2 - 24) / 3,
+        height: (SCREEN_WIDTH - Spacing.xl * 2 - 24) / 3,
+        borderRadius: 14,
+    },
+    removeImageButton: {
+        position: 'absolute',
+        top: -6,
+        right: -6,
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: '#EF4444',
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.2,
+                shadowRadius: 4,
+            },
+            android: {
+                elevation: 4,
+            },
+        }),
+    },
+    addMoreImageButton: {
+        width: (SCREEN_WIDTH - Spacing.xl * 2 - 24) / 3,
+        height: (SCREEN_WIDTH - Spacing.xl * 2 - 24) / 3,
+        borderRadius: 14,
+        borderWidth: 2,
+        borderColor: 'rgba(8, 145, 178, 0.3)',
+        borderStyle: 'dashed',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(8, 145, 178, 0.05)',
+    },
+    imageCountText: {
+        fontSize: 12,
+        color: '#64748B',
+        textAlign: 'center',
+        marginTop: Spacing.sm,
+    },
+    noteInput: {
+        height: 70,
+        textAlignVertical: 'top',
+        paddingTop: 14,
+    },
+    submitSnapshotButton: {
+        marginTop: Spacing.md,
+        borderRadius: 16,
+        overflow: 'hidden',
+    },
+    submitSnapshotButtonDisabled: {
+        opacity: 0.7,
+    },
+    submitSnapshotGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 16,
+        gap: 10,
+    },
+    submitSnapshotText: {
+        fontSize: 16,
         fontWeight: '600',
         color: '#FFFFFF',
     },

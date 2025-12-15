@@ -18,6 +18,7 @@ import {
     Animated,
     Platform,
     Alert,
+    ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
@@ -36,6 +37,11 @@ import {
     Check,
     Camera,
     Star,
+    Activity,
+    TrendingUp,
+    Crown,
+    Plus,
+    AlertTriangle,
 } from 'lucide-react-native';
 import { Colors } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
@@ -44,6 +50,8 @@ import { Translations } from '@/constants/Translations';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useCases, useDeleteCase, useToggleFavorite, useUpdateCaseNotes } from '@/hooks/useCases';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useLesionTrackings, useRiskLevelStyle, useCreateLesionTracking } from '@/hooks/useLesionTracking';
+import type { LesionTracking } from '@/types/schema';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { SwipeableCaseCard } from '@/components/SwipeableCaseCard';
 import {
@@ -89,10 +97,13 @@ export default function HistoryScreen() {
     const { toggleFavorite, isToggling } = useToggleFavorite();
     const { updateNotes, isUpdating } = useUpdateCaseNotes();
     const { subscriptionStatus } = useSubscription();
+    const { trackings: lesionTrackings, isLoading: isLoadingTrackings, refetch: refetchTrackings } = useLesionTrackings();
+    const { getRiskColor, getRiskLabel } = useRiskLevelStyle();
     const insets = useSafeAreaInsets();
     const [filterModalVisible, setFilterModalVisible] = useState(false);
     const [filters, setFilters] = useState<FilterState>(initialFilterState);
     const [tempFilters, setTempFilters] = useState<FilterState>(initialFilterState);
+    const [showTrackings, setShowTrackings] = useState(false);
 
     // Pro features state
     const [contextMenuVisible, setContextMenuVisible] = useState(false);
@@ -396,6 +407,98 @@ export default function HistoryScreen() {
                     </BlurView>
                 </View>
 
+                {/* Pro Feature: Lesion Tracking Section */}
+                {isPro && (
+                    <View style={styles.trackingSectionWrapper}>
+                        <TouchableOpacity
+                            style={styles.trackingSectionHeader}
+                            onPress={() => {
+                                setShowTrackings(!showTrackings);
+                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            }}
+                            activeOpacity={0.7}
+                        >
+                            <BlurView intensity={70} tint="light" style={styles.trackingSectionBlur}>
+                                <View style={styles.trackingSectionContent}>
+                                    <View style={styles.trackingTitleRow}>
+                                        <View style={styles.trackingIconContainer}>
+                                            <Activity size={18} color="#0891B2" />
+                                        </View>
+                                        <View style={styles.trackingTitleContent}>
+                                            <View style={styles.trackingTitleWithBadge}>
+                                                <Text style={styles.trackingSectionTitle}>
+                                                    {language === 'tr' ? 'Lezyon Takibi' : 'Lesion Tracking'}
+                                                </Text>
+                                                <View style={styles.proBadgeSmall}>
+                                                    <Crown size={10} color="#F59E0B" />
+                                                    <Text style={styles.proBadgeText}>PRO</Text>
+                                                </View>
+                                            </View>
+                                            <Text style={styles.trackingSubtitle}>
+                                                {language === 'tr'
+                                                    ? `${lesionTrackings.length} takip edilen lezyon`
+                                                    : `${lesionTrackings.length} tracked lesions`}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                    <ChevronRight
+                                        size={20}
+                                        color="#64748B"
+                                        style={{
+                                            transform: [{ rotate: showTrackings ? '90deg' : '0deg' }],
+                                        }}
+                                    />
+                                </View>
+                            </BlurView>
+                        </TouchableOpacity>
+
+                        {/* Expanded Tracking List */}
+                        {showTrackings && (
+                            <View style={styles.trackingListContainer}>
+                                {lesionTrackings.length === 0 ? (
+                                    <View style={styles.emptyTrackingWrapper}>
+                                        <BlurView intensity={60} tint="light" style={styles.emptyTrackingBlur}>
+                                            <View style={styles.emptyTrackingContent}>
+                                                <TrendingUp size={32} color="#0891B2" strokeWidth={1.5} />
+                                                <Text style={styles.emptyTrackingTitle}>
+                                                    {language === 'tr'
+                                                        ? 'Henüz takip yok'
+                                                        : 'No trackings yet'}
+                                                </Text>
+                                                <Text style={styles.emptyTrackingDesc}>
+                                                    {language === 'tr'
+                                                        ? 'Bir vakanın detayına giderek "Takibe Başla" seçeneğini kullanın'
+                                                        : 'Go to a case detail and use "Start Tracking" option'}
+                                                </Text>
+                                            </View>
+                                        </BlurView>
+                                    </View>
+                                ) : (
+                                    <ScrollView
+                                        horizontal
+                                        showsHorizontalScrollIndicator={false}
+                                        contentContainerStyle={styles.trackingScrollContent}
+                                    >
+                                        {lesionTrackings.map((tracking) => (
+                                            <LesionTrackingCard
+                                                key={tracking.id}
+                                                tracking={tracking}
+                                                language={language}
+                                                onPress={() => {
+                                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                                    router.push(`/lesion/${tracking.id}`);
+                                                }}
+                                                getRiskColor={getRiskColor}
+                                                getRiskLabel={getRiskLabel}
+                                            />
+                                        ))}
+                                    </ScrollView>
+                                )}
+                            </View>
+                        )}
+                    </View>
+                )}
+
                 {/* Filter Bar */}
                 <View style={styles.filterBarWrapper}>
                     <BlurView intensity={60} tint="light" style={styles.filterBarBlur}>
@@ -588,6 +691,80 @@ function CaseCard({
                                 <ConfidenceBadge confidence={topDiagnosis.confidence} size="sm" />
                             )}
                             <ChevronRight size={18} color="#94A3B8" style={styles.chevron} />
+                        </View>
+                    </View>
+                </BlurView>
+            </View>
+        </TouchableOpacity>
+    );
+}
+
+// Lesion Tracking Card Component
+function LesionTrackingCard({
+    tracking,
+    language,
+    onPress,
+    getRiskColor,
+    getRiskLabel,
+}: {
+    tracking: LesionTracking;
+    language: 'tr' | 'en';
+    onPress: () => void;
+    getRiskColor: (level: string) => { bg: string; text: string; border: string };
+    getRiskLabel: (level: string, lang: 'tr' | 'en') => string;
+}) {
+    const dateLocale = language === 'tr' ? tr : enUS;
+    const createdDate = tracking.createdAt
+        ? format(new Date(tracking.createdAt), 'dd MMM yyyy', { locale: dateLocale })
+        : '-';
+
+    const statusColors = {
+        monitoring: { bg: 'rgba(8, 145, 178, 0.15)', text: '#0891B2', label: language === 'tr' ? 'Takipte' : 'Monitoring' },
+        resolved: { bg: 'rgba(34, 197, 94, 0.15)', text: '#22C55E', label: language === 'tr' ? 'Çözüldü' : 'Resolved' },
+        urgent: { bg: 'rgba(239, 68, 68, 0.15)', text: '#EF4444', label: language === 'tr' ? 'Acil' : 'Urgent' },
+    };
+
+    const statusStyle = statusColors[tracking.status as keyof typeof statusColors] || statusColors.monitoring;
+
+    return (
+        <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
+            <View style={styles.trackingCardWrapper}>
+                <BlurView intensity={65} tint="light" style={styles.trackingCardBlur}>
+                    <View style={styles.trackingCard}>
+                        {/* Status Badge */}
+                        <View style={[styles.trackingStatusBadge, { backgroundColor: statusStyle.bg }]}>
+                            {tracking.status === 'urgent' && (
+                                <AlertTriangle size={10} color={statusStyle.text} />
+                            )}
+                            <Text style={[styles.trackingStatusText, { color: statusStyle.text }]}>
+                                {statusStyle.label}
+                            </Text>
+                        </View>
+
+                        {/* Lesion Name */}
+                        <Text style={styles.trackingCardName} numberOfLines={1}>
+                            {tracking.name}
+                        </Text>
+
+                        {/* Body Location */}
+                        {tracking.bodyLocation && (
+                            <View style={styles.trackingLocationRow}>
+                                <MapPin size={11} color="#94A3B8" />
+                                <Text style={styles.trackingLocationText} numberOfLines={1}>
+                                    {tracking.bodyLocation}
+                                </Text>
+                            </View>
+                        )}
+
+                        {/* Snapshot Count & Date */}
+                        <View style={styles.trackingMetaRow}>
+                            <View style={styles.trackingMetaItem}>
+                                <Camera size={12} color="#64748B" />
+                                <Text style={styles.trackingMetaText}>
+                                    {tracking.snapshotCount} {language === 'tr' ? 'kayıt' : 'records'}
+                                </Text>
+                            </View>
+                            <Text style={styles.trackingDateText}>{createdDate}</Text>
                         </View>
                     </View>
                 </BlurView>
@@ -1128,5 +1305,187 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: '600',
         color: '#FFFFFF',
+    },
+
+    // Lesion Tracking Section
+    trackingSectionWrapper: {
+        marginHorizontal: Spacing.lg,
+        marginTop: Spacing.md,
+    },
+    trackingSectionHeader: {
+        borderRadius: 18,
+        overflow: 'hidden',
+    },
+    trackingSectionBlur: {
+        borderRadius: 18,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(8, 145, 178, 0.2)',
+    },
+    trackingSectionContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: Spacing.md,
+        backgroundColor: Platform.select({
+            android: 'rgba(8, 145, 178, 0.05)',
+            ios: 'rgba(8, 145, 178, 0.08)',
+        }),
+    },
+    trackingTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    trackingIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: 'rgba(8, 145, 178, 0.15)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: Spacing.md,
+    },
+    trackingTitleContent: {
+        flex: 1,
+    },
+    trackingTitleWithBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    trackingSectionTitle: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#0F172A',
+    },
+    proBadgeSmall: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(245, 158, 11, 0.15)',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+        gap: 3,
+    },
+    proBadgeText: {
+        fontSize: 9,
+        fontWeight: '700',
+        color: '#F59E0B',
+    },
+    trackingSubtitle: {
+        fontSize: 12,
+        color: '#64748B',
+        marginTop: 2,
+    },
+    trackingListContainer: {
+        marginTop: Spacing.sm,
+    },
+    trackingScrollContent: {
+        paddingVertical: Spacing.xs,
+        gap: 12,
+    },
+
+    // Empty Tracking State
+    emptyTrackingWrapper: {
+        borderRadius: 16,
+        overflow: 'hidden',
+    },
+    emptyTrackingBlur: {
+        borderRadius: 16,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.5)',
+    },
+    emptyTrackingContent: {
+        alignItems: 'center',
+        padding: Spacing.xl,
+        backgroundColor: Platform.select({
+            android: 'rgba(255, 255, 255, 0.1)',
+            ios: 'rgba(255, 255, 255, 0.2)',
+        }),
+    },
+    emptyTrackingTitle: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#0F172A',
+        marginTop: Spacing.sm,
+    },
+    emptyTrackingDesc: {
+        fontSize: 13,
+        color: '#64748B',
+        textAlign: 'center',
+        marginTop: 4,
+        lineHeight: 18,
+    },
+
+    // Tracking Card
+    trackingCardWrapper: {
+        width: 160,
+        borderRadius: 16,
+        overflow: 'hidden',
+    },
+    trackingCardBlur: {
+        borderRadius: 16,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.5)',
+    },
+    trackingCard: {
+        padding: Spacing.md,
+        backgroundColor: Platform.select({
+            android: 'rgba(255, 255, 255, 0.1)',
+            ios: 'rgba(255, 255, 255, 0.25)',
+        }),
+        minHeight: 120,
+    },
+    trackingStatusBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        alignSelf: 'flex-start',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 8,
+        gap: 4,
+        marginBottom: 8,
+    },
+    trackingStatusText: {
+        fontSize: 10,
+        fontWeight: '600',
+    },
+    trackingCardName: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#0F172A',
+        marginBottom: 4,
+    },
+    trackingLocationRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginBottom: 8,
+    },
+    trackingLocationText: {
+        fontSize: 11,
+        color: '#64748B',
+    },
+    trackingMetaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: 'auto',
+    },
+    trackingMetaItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    trackingMetaText: {
+        fontSize: 11,
+        color: '#64748B',
+    },
+    trackingDateText: {
+        fontSize: 10,
+        color: '#94A3B8',
     },
 });

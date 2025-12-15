@@ -43,6 +43,39 @@ interface AnalysisContext {
   isMobileRequest?: boolean;
 }
 
+// Lesion Comparison Types
+interface LesionComparisonResult {
+  changeDetected: boolean;
+  changeSummary: string;
+  sizeChange: string | null;
+  colorChange: string | null;
+  borderChange: string | null;
+  textureChange: string | null;
+  overallProgression: 'stable' | 'improved' | 'worsened' | 'significant_change';
+  riskLevel: 'low' | 'moderate' | 'elevated' | 'high';
+  recommendations: string[];
+  detailedAnalysis: string;
+  timeElapsed: string;
+  analysisTime: number;
+}
+
+interface PreviousAnalysisData {
+  date: string;
+  imageUrls: string[];
+  topDiagnosis?: {
+    name: string;
+    confidence: number;
+    keyFeatures: string[];
+  };
+}
+
+interface ComparisonContext {
+  lesionName?: string;
+  bodyLocation?: string;
+  language?: 'tr' | 'en';
+  previousAnalysis: PreviousAnalysisData;
+}
+
 export async function analyzeWithGemini(
   imageUrls: string | string[],
   symptoms: string,
@@ -343,4 +376,285 @@ QUALITY CHECKLIST (verify before responding):
     logger.error('[Gemini] Analysis failed with error:', mapped);
     throw new GeminiAnalysisError(mapped);
   }
+}
+
+/**
+ * Compare two lesion images over time using Gemini AI
+ * This is a PRO feature for lesion progression tracking
+ */
+export async function compareWithGemini(
+  currentImageUrls: string[],
+  context: ComparisonContext
+): Promise<LesionComparisonResult> {
+  const startTime = Date.now();
+
+  try {
+    const { previousAnalysis, language = 'tr', lesionName, bodyLocation } = context;
+
+    // Validate inputs
+    if (currentImageUrls.length === 0) {
+      throw new Error('At least one current image URL is required');
+    }
+    if (previousAnalysis.imageUrls.length === 0) {
+      throw new Error('At least one previous image URL is required');
+    }
+
+    logger.info(`[Gemini Comparison] Starting comparison with ${previousAnalysis.imageUrls.length} previous and ${currentImageUrls.length} current image(s)`);
+
+    // Fetch and encode all images
+    const allImageData: { data: string; mimeType: string; label: string }[] = [];
+
+    // Process previous images
+    for (let i = 0; i < previousAnalysis.imageUrls.length; i++) {
+      const imageUrl = previousAnalysis.imageUrls[i];
+      const imageData = await fetchAndEncodeImage(imageUrl);
+      allImageData.push({ ...imageData, label: `PREVIOUS_${i + 1}` });
+    }
+
+    // Process current images
+    for (let i = 0; i < currentImageUrls.length; i++) {
+      const imageUrl = currentImageUrls[i];
+      const imageData = await fetchAndEncodeImage(imageUrl);
+      allImageData.push({ ...imageData, label: `CURRENT_${i + 1}` });
+    }
+
+    // Calculate time elapsed
+    const previousDate = new Date(previousAnalysis.date);
+    const currentDate = new Date();
+    const daysDiff = Math.floor((currentDate.getTime() - previousDate.getTime()) / (1000 * 60 * 60 * 24));
+    const timeElapsed = daysDiff < 7 
+      ? `${daysDiff} ${language === 'tr' ? 'gün' : 'days'}`
+      : daysDiff < 30 
+        ? `${Math.floor(daysDiff / 7)} ${language === 'tr' ? 'hafta' : 'weeks'}`
+        : `${Math.floor(daysDiff / 30)} ${language === 'tr' ? 'ay' : 'months'}`;
+
+    // Build comparison prompt
+    const previousDiagnosisInfo = previousAnalysis.topDiagnosis
+      ? `
+Previous Analysis Diagnosis: ${previousAnalysis.topDiagnosis.name} (${previousAnalysis.topDiagnosis.confidence}% confidence)
+Previous Key Features: ${previousAnalysis.topDiagnosis.keyFeatures.join(', ')}`
+      : '';
+
+    const systemPrompt = language === 'tr'
+      ? `Sen dermatolojik lezyon takibi ve karşılaştırma konusunda uzman bir yapay zeka asistanısın.
+
+GÖREV: İki farklı zamanda çekilen lezyon görsellerini karşılaştır ve değişimleri analiz et.
+
+BAĞLAM:
+- Lezyon Adı: ${lesionName || 'Belirtilmedi'}
+- Vücut Bölgesi: ${bodyLocation || 'Belirtilmedi'}
+- Önceki Analiz Tarihi: ${previousAnalysis.date}
+- Geçen Süre: ${timeElapsed}${previousDiagnosisInfo}
+
+GÖRSELLER:
+- PREVIOUS_* etiketli görseller: Önceki kayıt (${previousAnalysis.date})
+- CURRENT_* etiketli görseller: Şimdiki durum
+
+KRİTİK ANALİZ KRİTERLERİ:
+1. BOYUT DEĞİŞİMİ: Büyüme veya küçülme var mı? Tahmini ölçü değişimi
+2. RENK DEĞİŞİMİ: Pigmentasyonda değişim, koyulaşma, açılma
+3. KENAR DEĞİŞİMİ: Sınırlar düzensizleşti mi, belirsizleşti mi?
+4. DOKU DEĞİŞİMİ: Yüzey yapısında değişim, kabuklanma, ülserasyon
+5. ŞEKİL DEĞİŞİMİ: Asimetri artışı, düzensiz büyüme
+
+RİSK SEVİYESİ BELİRLEME:
+- low: Stabil veya iyileşme gösteren, endişe verici değişim yok
+- moderate: Hafif değişimler mevcut, takip önerilir
+- elevated: Dikkat gerektiren değişimler, dermatoloji konsültasyonu önerilir
+- high: ACİL - Ciddi değişimler, hızlı tıbbi değerlendirme gerekli
+
+JSON formatında yanıt ver:
+{
+  "changeDetected": true/false,
+  "changeSummary": "Değişimlerin kısa özeti (1-2 cümle)",
+  "sizeChange": "Boyut değişimi açıklaması veya null",
+  "colorChange": "Renk değişimi açıklaması veya null", 
+  "borderChange": "Kenar değişimi açıklaması veya null",
+  "textureChange": "Doku değişimi açıklaması veya null",
+  "overallProgression": "stable" | "improved" | "worsened" | "significant_change",
+  "riskLevel": "low" | "moderate" | "elevated" | "high",
+  "recommendations": ["Öneri 1", "Öneri 2", ...],
+  "detailedAnalysis": "Detaylı karşılaştırma analizi (en az 3-4 cümle)"
+}`
+      : `You are an expert AI assistant specializing in dermatological lesion tracking and comparison.
+
+TASK: Compare lesion images taken at two different times and analyze changes.
+
+CONTEXT:
+- Lesion Name: ${lesionName || 'Not specified'}
+- Body Location: ${bodyLocation || 'Not specified'}
+- Previous Analysis Date: ${previousAnalysis.date}
+- Time Elapsed: ${timeElapsed}${previousDiagnosisInfo}
+
+IMAGES:
+- PREVIOUS_* labeled images: Previous recording (${previousAnalysis.date})
+- CURRENT_* labeled images: Current state
+
+CRITICAL ANALYSIS CRITERIA:
+1. SIZE CHANGE: Growth or shrinkage? Estimated measurement change
+2. COLOR CHANGE: Pigmentation changes, darkening, lightening
+3. BORDER CHANGE: Have borders become irregular or blurred?
+4. TEXTURE CHANGE: Surface structure changes, crusting, ulceration
+5. SHAPE CHANGE: Increased asymmetry, irregular growth
+
+RISK LEVEL DETERMINATION:
+- low: Stable or improving, no concerning changes
+- moderate: Minor changes present, follow-up recommended
+- elevated: Changes requiring attention, dermatology consultation recommended
+- high: URGENT - Serious changes, rapid medical evaluation required
+
+Respond in JSON format:
+{
+  "changeDetected": true/false,
+  "changeSummary": "Brief summary of changes (1-2 sentences)",
+  "sizeChange": "Size change description or null",
+  "colorChange": "Color change description or null",
+  "borderChange": "Border change description or null",
+  "textureChange": "Texture change description or null",
+  "overallProgression": "stable" | "improved" | "worsened" | "significant_change",
+  "riskLevel": "low" | "moderate" | "elevated" | "high",
+  "recommendations": ["Recommendation 1", "Recommendation 2", ...],
+  "detailedAnalysis": "Detailed comparison analysis (at least 3-4 sentences)"
+}`;
+
+    // Build contents array with labeled images
+    const contents: any[] = [];
+
+    for (const imageData of allImageData) {
+      contents.push({
+        inlineData: {
+          data: imageData.data,
+          mimeType: imageData.mimeType,
+        },
+      });
+      contents.push(`[Image Label: ${imageData.label}]`);
+    }
+
+    contents.push(systemPrompt);
+
+    // Make API call with retry logic
+    const maxRetries = Number(process.env.GEMINI_MAX_RETRIES ?? 2);
+    const baseDelayMs = Number(process.env.GEMINI_RETRY_DELAY_MS ?? 1500);
+    let response;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        logger.info(`[Gemini Comparison] API call attempt ${attempt + 1}/${maxRetries + 1}`);
+        response = await ai.models.generateContent({
+          model: 'gemini-3-pro-preview',
+          config: {
+            responseMimeType: 'application/json',
+            responseSchema: {
+              type: 'object',
+              properties: {
+                changeDetected: { type: 'boolean' },
+                changeSummary: { type: 'string' },
+                sizeChange: { type: 'string', nullable: true },
+                colorChange: { type: 'string', nullable: true },
+                borderChange: { type: 'string', nullable: true },
+                textureChange: { type: 'string', nullable: true },
+                overallProgression: { 
+                  type: 'string',
+                  enum: ['stable', 'improved', 'worsened', 'significant_change']
+                },
+                riskLevel: {
+                  type: 'string',
+                  enum: ['low', 'moderate', 'elevated', 'high']
+                },
+                recommendations: { type: 'array', items: { type: 'string' } },
+                detailedAnalysis: { type: 'string' },
+              },
+              required: [
+                'changeDetected',
+                'changeSummary',
+                'overallProgression',
+                'riskLevel',
+                'recommendations',
+                'detailedAnalysis',
+              ],
+            },
+          },
+          contents: contents,
+        });
+        logger.info(`[Gemini Comparison] API call successful on attempt ${attempt + 1}`);
+        break;
+      } catch (err: any) {
+        const status = err?.status ?? err?.error?.status ?? err?.response?.status;
+        const retryableStatuses = [429, 500, 503];
+        if (retryableStatuses.includes(status) && attempt < maxRetries) {
+          const delay = baseDelayMs * Math.pow(2, attempt);
+          logger.warn(`[Gemini Comparison] ${status} – retrying in ${delay}ms`);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    if (!response) {
+      throw new GeminiAnalysisError({
+        provider: 'gemini',
+        code: 'NO_RESPONSE',
+        message: 'Gemini returned no response for comparison',
+      });
+    }
+
+    const analysisTime = (Date.now() - startTime) / 1000;
+    const rawJson = response.text;
+
+    if (!rawJson) {
+      throw new GeminiAnalysisError({
+        provider: 'gemini',
+        code: 'EMPTY_CONTENT',
+        message: 'Empty response from Gemini comparison',
+      });
+    }
+
+    const result = JSON.parse(rawJson);
+
+    logger.info(`[Gemini Comparison] Analysis completed in ${analysisTime.toFixed(1)}s - Risk: ${result.riskLevel}, Progression: ${result.overallProgression}`);
+
+    return {
+      ...result,
+      timeElapsed,
+      analysisTime,
+    };
+  } catch (error: any) {
+    if (error instanceof GeminiAnalysisError) {
+      throw error;
+    }
+
+    const message = error?.message || 'Gemini comparison failed';
+    logger.error('[Gemini Comparison] Analysis failed:', message);
+    
+    throw new GeminiAnalysisError({
+      provider: 'gemini',
+      code: 'COMPARISON_FAILED',
+      message,
+      details: { raw: error },
+    });
+  }
+}
+
+// Helper function to fetch and encode images
+async function fetchAndEncodeImage(imageUrl: string): Promise<{ data: string; mimeType: string }> {
+  let file;
+
+  if (imageUrl.includes('cloudinary.com')) {
+    const { CloudinaryStorageService } = await import('./cloudinaryStorage');
+    const cloudinaryService = new CloudinaryStorageService();
+    file = await cloudinaryService.getObjectEntityFile(imageUrl);
+  } else {
+    const { LocalFileStorageService } = await import('./localFileStorage');
+    const fileStorageService = new LocalFileStorageService();
+    const normalizedPath = fileStorageService.normalizeObjectEntityPath(imageUrl);
+    file = await fileStorageService.getObjectEntityFile(normalizedPath);
+  }
+
+  const [imageBuffer] = await file.download();
+  const [metadata] = await file.getMetadata();
+  const imageBase64 = Buffer.from(imageBuffer).toString('base64');
+  const mimeType = metadata.contentType || 'image/jpeg';
+
+  return { data: imageBase64, mimeType };
 }

@@ -3,8 +3,9 @@ import { createServer, type Server } from 'http';
 import { storage } from './storage';
 import { LocalFileStorageService } from './localFileStorage';
 import { CloudinaryStorageService } from './cloudinaryStorage';
-import { analyzeWithGemini } from './gemini';
+import { analyzeWithGemini, compareWithGemini } from './gemini';
 import { analyzeWithOpenAI } from './openai';
+import { insertLesionTrackingSchema, insertLesionSnapshotSchema } from '@shared/schema';
 import {
   insertPatientSchema,
   insertCaseSchema,
@@ -2205,6 +2206,388 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       logger.error('Error fetching subscription plans:', error);
       res.status(500).json({ error: 'Failed to fetch subscription plans' });
+    }
+  });
+
+  // ==========================================
+  // Lesion Tracking Routes (Pro Feature)
+  // ==========================================
+
+  // Helper to check if user is Pro
+  const requireProSubscription = async (userId: string): Promise<boolean> => {
+    const status = await getUserSubscriptionStatus(userId);
+    return status.tier === 'pro';
+  };
+
+  // Get all lesion trackings for user
+  app.get('/api/lesion-trackings', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+
+      // Check Pro subscription
+      const isPro = await requireProSubscription(userId);
+      if (!isPro) {
+        return res.status(403).json({
+          error: 'pro_required',
+          message: 'Lesion tracking is a Pro feature. Please upgrade to access.',
+        });
+      }
+
+      const trackings = await storage.getUserLesionTrackings(userId);
+      res.json(trackings);
+    } catch (error) {
+      logger.error('Error fetching lesion trackings:', error);
+      res.status(500).json({ error: 'Failed to fetch lesion trackings' });
+    }
+  });
+
+  // Get single lesion tracking with all snapshots and comparisons
+  app.get('/api/lesion-trackings/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+
+      const isPro = await requireProSubscription(userId);
+      if (!isPro) {
+        return res.status(403).json({
+          error: 'pro_required',
+          message: 'Lesion tracking is a Pro feature. Please upgrade to access.',
+        });
+      }
+
+      const data = await storage.getLesionTrackingWithSnapshots(id, userId);
+      if (!data) {
+        return res.status(404).json({ error: 'Lesion tracking not found' });
+      }
+
+      res.json(data);
+    } catch (error) {
+      logger.error('Error fetching lesion tracking:', error);
+      res.status(500).json({ error: 'Failed to fetch lesion tracking' });
+    }
+  });
+
+  // Create new lesion tracking from an existing case
+  app.post('/api/lesion-trackings', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+
+      const isPro = await requireProSubscription(userId);
+      if (!isPro) {
+        return res.status(403).json({
+          error: 'pro_required',
+          message: 'Lesion tracking is a Pro feature. Please upgrade to access.',
+        });
+      }
+
+      const trackingData = insertLesionTrackingSchema.parse(req.body);
+      
+      // Create the tracking
+      const tracking = await storage.createLesionTracking(trackingData, userId);
+
+      // If initialCaseId is provided, create the first snapshot
+      if (trackingData.initialCaseId) {
+        const initialCase = await storage.getCase(trackingData.initialCaseId, userId);
+        if (initialCase) {
+          await storage.createLesionSnapshot({
+            lesionTrackingId: tracking.id,
+            caseId: initialCase.id,
+            imageUrls: initialCase.imageUrls || (initialCase.imageUrl ? [initialCase.imageUrl] : []),
+            notes: null,
+          });
+        }
+      }
+
+      res.status(201).json(tracking);
+    } catch (error) {
+      logger.error('Error creating lesion tracking:', error);
+      res.status(400).json({ error: 'Failed to create lesion tracking' });
+    }
+  });
+
+  // Update lesion tracking
+  app.patch('/api/lesion-trackings/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+
+      const isPro = await requireProSubscription(userId);
+      if (!isPro) {
+        return res.status(403).json({
+          error: 'pro_required',
+          message: 'Lesion tracking is a Pro feature. Please upgrade to access.',
+        });
+      }
+
+      const { name, bodyLocation, description, status } = req.body;
+      const updates: any = {};
+      if (name !== undefined) updates.name = name;
+      if (bodyLocation !== undefined) updates.bodyLocation = bodyLocation;
+      if (description !== undefined) updates.description = description;
+      if (status !== undefined) updates.status = status;
+
+      const updated = await storage.updateLesionTracking(id, userId, updates);
+      res.json(updated);
+    } catch (error) {
+      logger.error('Error updating lesion tracking:', error);
+      res.status(400).json({ error: 'Failed to update lesion tracking' });
+    }
+  });
+
+  // Delete lesion tracking
+  app.delete('/api/lesion-trackings/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+
+      const isPro = await requireProSubscription(userId);
+      if (!isPro) {
+        return res.status(403).json({
+          error: 'pro_required',
+          message: 'Lesion tracking is a Pro feature. Please upgrade to access.',
+        });
+      }
+
+      const success = await storage.deleteLesionTracking(id, userId);
+      if (!success) {
+        return res.status(404).json({ error: 'Lesion tracking not found' });
+      }
+
+      res.status(204).send();
+    } catch (error) {
+      logger.error('Error deleting lesion tracking:', error);
+      res.status(500).json({ error: 'Failed to delete lesion tracking' });
+    }
+  });
+
+  // Add new snapshot to tracking (with optional comparison)
+  app.post('/api/lesion-trackings/:id/snapshots', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id: trackingId } = req.params;
+
+      const isPro = await requireProSubscription(userId);
+      if (!isPro) {
+        return res.status(403).json({
+          error: 'pro_required',
+          message: 'Lesion tracking is a Pro feature. Please upgrade to access.',
+        });
+      }
+
+      // Verify tracking ownership
+      const tracking = await storage.getLesionTracking(trackingId, userId);
+      if (!tracking) {
+        return res.status(404).json({ error: 'Lesion tracking not found' });
+      }
+
+      const { caseId, imageUrls, notes, runComparison = true, language = 'tr' } = req.body;
+
+      if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
+        return res.status(400).json({ error: 'At least one image URL is required' });
+      }
+
+      // Create the snapshot
+      const snapshot = await storage.createLesionSnapshot({
+        lesionTrackingId: trackingId,
+        caseId: caseId || null,
+        imageUrls,
+        notes: notes || null,
+      });
+
+      // If runComparison is true and there's a previous snapshot, run AI comparison
+      let comparison = null;
+      if (runComparison) {
+        const allSnapshots = await storage.getLesionSnapshots(trackingId);
+        if (allSnapshots.length >= 2) {
+          const previousSnapshot = allSnapshots[allSnapshots.length - 2]; // Second to last
+
+          if (previousSnapshot.imageUrls && previousSnapshot.imageUrls.length > 0) {
+            try {
+              // Get previous case for diagnosis info
+              let previousDiagnosis = undefined;
+              if (previousSnapshot.caseId) {
+                const prevCase = await storage.getCaseForAdmin(previousSnapshot.caseId);
+                if (prevCase?.geminiAnalysis?.diagnoses?.[0]) {
+                  const diag = prevCase.geminiAnalysis.diagnoses[0];
+                  previousDiagnosis = {
+                    name: diag.name,
+                    confidence: diag.confidence,
+                    keyFeatures: diag.keyFeatures || [],
+                  };
+                }
+              }
+
+              // Run Gemini comparison
+              const comparisonResult = await compareWithGemini(imageUrls, {
+                lesionName: tracking.name,
+                bodyLocation: tracking.bodyLocation || undefined,
+                language: language as 'tr' | 'en',
+                previousAnalysis: {
+                  date: previousSnapshot.createdAt?.toISOString().split('T')[0] || '',
+                  imageUrls: previousSnapshot.imageUrls,
+                  topDiagnosis: previousDiagnosis,
+                },
+              });
+
+              // Save comparison
+              comparison = await storage.createLesionComparison({
+                lesionTrackingId: trackingId,
+                previousSnapshotId: previousSnapshot.id,
+                currentSnapshotId: snapshot.id,
+                comparisonAnalysis: comparisonResult,
+              });
+
+              // Update tracking status based on risk level
+              if (comparisonResult.riskLevel === 'high') {
+                await storage.updateLesionTracking(trackingId, userId, { status: 'urgent' });
+              }
+
+              logger.info(`[LesionTracking] Comparison completed for tracking ${trackingId}`);
+            } catch (compError) {
+              logger.error('Error running lesion comparison:', compError);
+              // Don't fail the whole request if comparison fails
+            }
+          }
+        }
+      }
+
+      res.status(201).json({
+        snapshot,
+        comparison,
+      });
+    } catch (error) {
+      logger.error('Error adding lesion snapshot:', error);
+      res.status(500).json({ error: 'Failed to add snapshot' });
+    }
+  });
+
+  // Get comparison details
+  app.get('/api/lesion-comparisons/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+
+      const isPro = await requireProSubscription(userId);
+      if (!isPro) {
+        return res.status(403).json({
+          error: 'pro_required',
+          message: 'Lesion tracking is a Pro feature. Please upgrade to access.',
+        });
+      }
+
+      const comparison = await storage.getLesionComparison(id);
+      if (!comparison) {
+        return res.status(404).json({ error: 'Comparison not found' });
+      }
+
+      // Verify user owns this comparison's tracking
+      const tracking = await storage.getLesionTracking(comparison.lesionTrackingId, userId);
+      if (!tracking) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      // Get snapshot details
+      const [prevSnapshot, currSnapshot] = await Promise.all([
+        storage.getLesionSnapshot(comparison.previousSnapshotId),
+        storage.getLesionSnapshot(comparison.currentSnapshotId),
+      ]);
+
+      res.json({
+        comparison,
+        previousSnapshot: prevSnapshot,
+        currentSnapshot: currSnapshot,
+        tracking,
+      });
+    } catch (error) {
+      logger.error('Error fetching comparison:', error);
+      res.status(500).json({ error: 'Failed to fetch comparison' });
+    }
+  });
+
+  // Manually trigger comparison between two snapshots
+  app.post('/api/lesion-trackings/:id/compare', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id: trackingId } = req.params;
+
+      const isPro = await requireProSubscription(userId);
+      if (!isPro) {
+        return res.status(403).json({
+          error: 'pro_required',
+          message: 'Lesion tracking is a Pro feature. Please upgrade to access.',
+        });
+      }
+
+      const tracking = await storage.getLesionTracking(trackingId, userId);
+      if (!tracking) {
+        return res.status(404).json({ error: 'Lesion tracking not found' });
+      }
+
+      const { previousSnapshotId, currentSnapshotId, language = 'tr' } = req.body;
+
+      if (!previousSnapshotId || !currentSnapshotId) {
+        return res.status(400).json({ error: 'Both previousSnapshotId and currentSnapshotId are required' });
+      }
+
+      const [prevSnapshot, currSnapshot] = await Promise.all([
+        storage.getLesionSnapshot(previousSnapshotId),
+        storage.getLesionSnapshot(currentSnapshotId),
+      ]);
+
+      if (!prevSnapshot || !currSnapshot) {
+        return res.status(404).json({ error: 'One or both snapshots not found' });
+      }
+
+      if (!prevSnapshot.imageUrls?.length || !currSnapshot.imageUrls?.length) {
+        return res.status(400).json({ error: 'Both snapshots must have images' });
+      }
+
+      // Get previous diagnosis info
+      let previousDiagnosis = undefined;
+      if (prevSnapshot.caseId) {
+        const prevCase = await storage.getCaseForAdmin(prevSnapshot.caseId);
+        if (prevCase?.geminiAnalysis?.diagnoses?.[0]) {
+          const diag = prevCase.geminiAnalysis.diagnoses[0];
+          previousDiagnosis = {
+            name: diag.name,
+            confidence: diag.confidence,
+            keyFeatures: diag.keyFeatures || [],
+          };
+        }
+      }
+
+      // Run comparison
+      const comparisonResult = await compareWithGemini(currSnapshot.imageUrls, {
+        lesionName: tracking.name,
+        bodyLocation: tracking.bodyLocation || undefined,
+        language: language as 'tr' | 'en',
+        previousAnalysis: {
+          date: prevSnapshot.createdAt?.toISOString().split('T')[0] || '',
+          imageUrls: prevSnapshot.imageUrls,
+          topDiagnosis: previousDiagnosis,
+        },
+      });
+
+      // Save comparison
+      const comparison = await storage.createLesionComparison({
+        lesionTrackingId: trackingId,
+        previousSnapshotId: prevSnapshot.id,
+        currentSnapshotId: currSnapshot.id,
+        comparisonAnalysis: comparisonResult,
+      });
+
+      // Update tracking status based on risk level
+      if (comparisonResult.riskLevel === 'high') {
+        await storage.updateLesionTracking(trackingId, userId, { status: 'urgent' });
+      }
+
+      res.json({
+        comparison,
+        analysis: comparisonResult,
+      });
+    } catch (error) {
+      logger.error('Error running manual comparison:', error);
+      res.status(500).json({ error: 'Failed to run comparison' });
     }
   });
 

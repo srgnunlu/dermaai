@@ -38,6 +38,8 @@ import {
     ChevronRight,
     Download,
     Trash2,
+    TrendingUp,
+    Crown,
 } from 'lucide-react-native';
 import { Colors, getConfidenceColor } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
@@ -46,6 +48,8 @@ import { Translations, translateValue } from '@/constants/Translations';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCase, useDeleteCase } from '@/hooks/useCases';
+import { useCreateLesionTracking } from '@/hooks/useLesionTracking';
+import { useSubscription } from '@/hooks/useSubscription';
 import {
     ConfidenceBadge,
     LoadingSpinner,
@@ -65,10 +69,14 @@ export default function CaseDetailScreen() {
     const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
     const [isDeleting, setIsDeleting] = React.useState(false);
     const [isDeleted, setIsDeleted] = React.useState(false);
+    const [isCreatingTracking, setIsCreatingTracking] = React.useState(false);
 
     // Disable query when case is being deleted or already deleted
     const { caseData, isLoading, error, isAnalyzing } = useCase(id || '', !isDeleted && !isDeleting);
     const { deleteCase } = useDeleteCase();
+    const { createTracking } = useCreateLesionTracking();
+    const { subscriptionStatus } = useSubscription();
+    const isPro = subscriptionStatus?.tier === 'pro';
 
     const notSpecified = language === 'tr' ? 'Belirtilmedi' : 'Not specified';
 
@@ -452,6 +460,103 @@ export default function CaseDetailScreen() {
 
 
                     {/* Delete Button */}
+                    {/* Pro Feature: Start Lesion Tracking */}
+                    {isPro && caseData.status === 'completed' && (
+                        <View style={styles.trackingButtonWrapper}>
+                            <TouchableOpacity
+                                style={styles.trackingButtonTouchable}
+                                onPress={async () => {
+                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                    
+                                    Alert.prompt(
+                                        language === 'tr' ? 'Lezyon Takibi Başlat' : 'Start Lesion Tracking',
+                                        language === 'tr' 
+                                            ? 'Bu lezyona bir isim verin (örn: Sol koldaki ben)'
+                                            : 'Give this lesion a name (e.g: Mole on left arm)',
+                                        [
+                                            {
+                                                text: language === 'tr' ? 'İptal' : 'Cancel',
+                                                style: 'cancel',
+                                            },
+                                            {
+                                                text: language === 'tr' ? 'Başlat' : 'Start',
+                                                onPress: async (name?: string) => {
+                                                    if (!name?.trim()) {
+                                                        Alert.alert(
+                                                            language === 'tr' ? 'Hata' : 'Error',
+                                                            language === 'tr' ? 'Lezyon adı gereklidir.' : 'Lesion name is required.'
+                                                        );
+                                                        return;
+                                                    }
+                                                    
+                                                    try {
+                                                        setIsCreatingTracking(true);
+                                                        const tracking = await createTracking({
+                                                            name: name.trim(),
+                                                            bodyLocation: caseData.lesionLocation || undefined,
+                                                            initialCaseId: caseData.id,
+                                                        });
+                                                        
+                                                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                                                        Alert.alert(
+                                                            language === 'tr' ? 'Başarılı' : 'Success',
+                                                            language === 'tr' 
+                                                                ? 'Lezyon takibi başlatıldı!'
+                                                                : 'Lesion tracking started!',
+                                                            [
+                                                                {
+                                                                    text: language === 'tr' ? 'Takibe Git' : 'Go to Tracking',
+                                                                    onPress: () => router.push(`/lesion/${tracking.id}`),
+                                                                },
+                                                                {
+                                                                    text: language === 'tr' ? 'Tamam' : 'OK',
+                                                                    style: 'cancel',
+                                                                },
+                                                            ]
+                                                        );
+                                                    } catch (err) {
+                                                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                                                        Alert.alert(
+                                                            language === 'tr' ? 'Hata' : 'Error',
+                                                            language === 'tr' 
+                                                                ? 'Takip oluşturulamadı.'
+                                                                : 'Failed to create tracking.'
+                                                        );
+                                                    } finally {
+                                                        setIsCreatingTracking(false);
+                                                    }
+                                                },
+                                            },
+                                        ],
+                                        'plain-text',
+                                        '',
+                                        'default'
+                                    );
+                                }}
+                                activeOpacity={0.7}
+                                disabled={isCreatingTracking}
+                            >
+                                <BlurView intensity={60} tint="light" style={styles.trackingButtonBlur}>
+                                    <View style={[styles.trackingButtonContent, isCreatingTracking && styles.trackingButtonDisabled]}>
+                                        {isCreatingTracking ? (
+                                            <ActivityIndicator size="small" color="#0891B2" />
+                                        ) : (
+                                            <TrendingUp size={20} color="#0891B2" />
+                                        )}
+                                        <Text style={styles.trackingButtonText}>
+                                            {language === 'tr' ? 'Takibe Başla' : 'Start Tracking'}
+                                        </Text>
+                                        <View style={styles.proBadgeMini}>
+                                            <Crown size={10} color="#F59E0B" />
+                                            <Text style={styles.proBadgeMiniText}>PRO</Text>
+                                        </View>
+                                    </View>
+                                </BlurView>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+
+                    {/* Delete Case */}
                     <View style={styles.deleteButtonWrapper}>
                         <TouchableOpacity
                             style={styles.deleteButtonTouchable}
@@ -1183,5 +1288,53 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: '#FFFFFF',
+    },
+
+    // Lesion Tracking Button Styles
+    trackingButtonWrapper: {
+        marginTop: Spacing.lg,
+        borderRadius: 20,
+        overflow: 'hidden',
+    },
+    trackingButtonTouchable: {
+        borderRadius: 20,
+        overflow: 'hidden',
+    },
+    trackingButtonBlur: {
+        borderRadius: 20,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(8, 145, 178, 0.3)',
+    },
+    trackingButtonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 16,
+        paddingHorizontal: 24,
+        backgroundColor: 'rgba(8, 145, 178, 0.1)',
+        gap: 10,
+    },
+    trackingButtonDisabled: {
+        opacity: 0.6,
+    },
+    trackingButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#0891B2',
+    },
+    proBadgeMini: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(245, 158, 11, 0.15)',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+        gap: 3,
+    },
+    proBadgeMiniText: {
+        fontSize: 9,
+        fontWeight: '700',
+        color: '#F59E0B',
     },
 });

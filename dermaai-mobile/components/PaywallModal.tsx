@@ -34,6 +34,9 @@ import {
     Users,
     Gauge,
     Brain,
+    Activity,
+    Star,
+    StickyNote,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Typography } from '@/constants/Typography';
@@ -114,6 +117,18 @@ const T = {
         tr: 'Hasta Yönetimi',
         en: 'Patient Management',
     },
+    lesionTracking: {
+        tr: 'Lezyon Takibi',
+        en: 'Lesion Tracking',
+    },
+    favorites: {
+        tr: 'Favoriler',
+        en: 'Favorites',
+    },
+    caseNotes: {
+        tr: 'Vaka Notları',
+        en: 'Case Notes',
+    },
     unlimited: {
         tr: 'Sınırsız',
         en: 'Unlimited',
@@ -173,6 +188,9 @@ const PLANS = {
         pushNotifications: true,
         priorityAnalysis: false,
         patientManagement: false,
+        lesionTracking: false,
+        favorites: false,
+        caseNotes: false,
         monthlyPrice: { tr: '₺79.99', usd: '$4.99' },
         yearlyPrice: { tr: '₺599.99', usd: '$39.99' },
         yearlySavings: '33%',
@@ -185,6 +203,9 @@ const PLANS = {
         pushNotifications: true,
         priorityAnalysis: true,
         patientManagement: true,
+        lesionTracking: true,
+        favorites: true,
+        caseNotes: true,
         monthlyPrice: { tr: '₺149.99', usd: '$8.99' },
         yearlyPrice: { tr: '₺1,199.99', usd: '$74.99' },
         yearlySavings: '33%',
@@ -200,6 +221,9 @@ const FEATURE_ICONS: Record<string, React.ComponentType<any>> = {
     pushNotifications: Bell,
     priorityAnalysis: Zap,
     patientManagement: Users,
+    lesionTracking: Activity,
+    favorites: Star,
+    caseNotes: StickyNote,
 };
 
 type BillingPeriod = 'monthly' | 'yearly';
@@ -598,6 +622,9 @@ export function PaywallModal({ visible, onClose, language }: PaywallModalProps) 
                         {renderFeatureRow('pushNotifications', T.pushNotifications[language], true, true)}
                         {renderFeatureRow('priorityAnalysis', T.priorityAnalysis[language], false, true)}
                         {renderFeatureRow('patientManagement', T.patientManagement[language], false, true)}
+                        {renderFeatureRow('lesionTracking', T.lesionTracking[language], false, true)}
+                        {renderFeatureRow('favorites', T.favorites[language], false, true)}
+                        {renderFeatureRow('caseNotes', T.caseNotes[language], false, true)}
                     </View>
                 </ScrollView>
             </View>
@@ -1029,7 +1056,7 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     featuresScroll: {
-        maxHeight: 200,
+        maxHeight: 280,
     },
     featuresContainer: {
         padding: 16,

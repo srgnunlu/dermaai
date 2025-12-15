@@ -12,12 +12,20 @@ import {
   type UpdateSystemSettings,
   type PushToken,
   type InsertPushToken,
+  type LesionTracking,
+  type InsertLesionTracking,
+  type LesionSnapshot,
+  type InsertLesionSnapshot,
+  type LesionComparison,
   patients,
   cases,
   users,
   userSettings,
   systemSettings,
   pushTokens,
+  lesionTrackings,
+  lesionSnapshots,
+  lesionComparisons,
 } from '@shared/schema';
 import { db } from './db';
 import { eq, and, or, sql } from 'drizzle-orm';
@@ -118,6 +126,30 @@ export interface IStorage {
   getUserPushTokens(userId: string): Promise<PushToken[]>;
   deletePushToken(token: string): Promise<boolean>;
   deleteUserPushTokens(userId: string): Promise<boolean>;
+
+  // Lesion tracking operations (Pro feature)
+  createLesionTracking(data: InsertLesionTracking, userId: string): Promise<LesionTracking>;
+  getLesionTracking(id: string, userId: string): Promise<LesionTracking | undefined>;
+  getUserLesionTrackings(userId: string): Promise<LesionTracking[]>;
+  updateLesionTracking(id: string, userId: string, updates: Partial<LesionTracking>): Promise<LesionTracking>;
+  deleteLesionTracking(id: string, userId: string): Promise<boolean>;
+  
+  // Lesion snapshot operations
+  createLesionSnapshot(data: InsertLesionSnapshot): Promise<LesionSnapshot>;
+  getLesionSnapshots(lesionTrackingId: string): Promise<LesionSnapshot[]>;
+  getLesionSnapshot(id: string): Promise<LesionSnapshot | undefined>;
+  
+  // Lesion comparison operations
+  createLesionComparison(data: Omit<LesionComparison, 'id' | 'createdAt'>): Promise<LesionComparison>;
+  getLesionComparisons(lesionTrackingId: string): Promise<LesionComparison[]>;
+  getLesionComparison(id: string): Promise<LesionComparison | undefined>;
+  
+  // Lesion tracking with full data
+  getLesionTrackingWithSnapshots(id: string, userId: string): Promise<{
+    tracking: LesionTracking;
+    snapshots: (LesionSnapshot & { case?: Case })[];
+    comparisons: LesionComparison[];
+  } | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1132,6 +1164,218 @@ export class DatabaseStorage implements IStorage {
       logger.error('Error deleting user push tokens:', error);
       return false;
     }
+  }
+
+  // ============================================
+  // LESION TRACKING OPERATIONS (Pro Feature)
+  // ============================================
+
+  async createLesionTracking(data: InsertLesionTracking, userId: string): Promise<LesionTracking> {
+    const [tracking] = await db
+      .insert(lesionTrackings)
+      .values({
+        ...data,
+        userId,
+        snapshotCount: 1,
+      })
+      .returning();
+    
+    logger.info(`[LesionTracking] Created tracking ${tracking.id} for user ${userId}`);
+    return tracking;
+  }
+
+  async getLesionTracking(id: string, userId: string): Promise<LesionTracking | undefined> {
+    const [tracking] = await db
+      .select()
+      .from(lesionTrackings)
+      .where(and(eq(lesionTrackings.id, id), eq(lesionTrackings.userId, userId)));
+    return tracking;
+  }
+
+  async getUserLesionTrackings(userId: string): Promise<LesionTracking[]> {
+    const trackings = await db
+      .select()
+      .from(lesionTrackings)
+      .where(eq(lesionTrackings.userId, userId));
+    
+    // Sort by last comparison date or created date (newest first)
+    return trackings.sort((a, b) => {
+      const aTime = a.lastComparisonAt 
+        ? new Date(a.lastComparisonAt).getTime() 
+        : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+      const bTime = b.lastComparisonAt 
+        ? new Date(b.lastComparisonAt).getTime() 
+        : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+      return bTime - aTime;
+    });
+  }
+
+  async updateLesionTracking(
+    id: string,
+    userId: string,
+    updates: Partial<LesionTracking>
+  ): Promise<LesionTracking> {
+    // First verify ownership
+    const existing = await this.getLesionTracking(id, userId);
+    if (!existing) {
+      throw new Error('Lesion tracking not found or unauthorized');
+    }
+
+    const [updated] = await db
+      .update(lesionTrackings)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(lesionTrackings.id, id))
+      .returning();
+
+    return updated;
+  }
+
+  async deleteLesionTracking(id: string, userId: string): Promise<boolean> {
+    try {
+      // Verify ownership
+      const existing = await this.getLesionTracking(id, userId);
+      if (!existing) {
+        return false;
+      }
+
+      // Delete will cascade to snapshots and comparisons
+      const result = await db
+        .delete(lesionTrackings)
+        .where(eq(lesionTrackings.id, id));
+      
+      logger.info(`[LesionTracking] Deleted tracking ${id} for user ${userId}`);
+      return result.rowCount ? result.rowCount > 0 : false;
+    } catch (error) {
+      logger.error('Error deleting lesion tracking:', error);
+      return false;
+    }
+  }
+
+  // Lesion Snapshot operations
+  async createLesionSnapshot(data: InsertLesionSnapshot): Promise<LesionSnapshot> {
+    // Get current snapshot count
+    const existingSnapshots = await this.getLesionSnapshots(data.lesionTrackingId);
+    const snapshotOrder = existingSnapshots.length + 1;
+
+    const [snapshot] = await db
+      .insert(lesionSnapshots)
+      .values({
+        ...data,
+        snapshotOrder,
+      })
+      .returning();
+
+    // Update tracking snapshot count
+    await db
+      .update(lesionTrackings)
+      .set({
+        snapshotCount: snapshotOrder,
+        updatedAt: new Date(),
+      })
+      .where(eq(lesionTrackings.id, data.lesionTrackingId));
+
+    logger.info(`[LesionSnapshot] Created snapshot ${snapshot.id} (order: ${snapshotOrder})`);
+    return snapshot;
+  }
+
+  async getLesionSnapshots(lesionTrackingId: string): Promise<LesionSnapshot[]> {
+    const snapshots = await db
+      .select()
+      .from(lesionSnapshots)
+      .where(eq(lesionSnapshots.lesionTrackingId, lesionTrackingId));
+    
+    // Sort by snapshot order
+    return snapshots.sort((a, b) => (a.snapshotOrder || 0) - (b.snapshotOrder || 0));
+  }
+
+  async getLesionSnapshot(id: string): Promise<LesionSnapshot | undefined> {
+    const [snapshot] = await db
+      .select()
+      .from(lesionSnapshots)
+      .where(eq(lesionSnapshots.id, id));
+    return snapshot;
+  }
+
+  // Lesion Comparison operations
+  async createLesionComparison(
+    data: Omit<LesionComparison, 'id' | 'createdAt'>
+  ): Promise<LesionComparison> {
+    const [comparison] = await db
+      .insert(lesionComparisons)
+      .values(data as any)
+      .returning();
+
+    // Update tracking last comparison date
+    await db
+      .update(lesionTrackings)
+      .set({
+        lastComparisonAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(lesionTrackings.id, data.lesionTrackingId));
+
+    logger.info(`[LesionComparison] Created comparison ${comparison.id}`);
+    return comparison;
+  }
+
+  async getLesionComparisons(lesionTrackingId: string): Promise<LesionComparison[]> {
+    const comparisons = await db
+      .select()
+      .from(lesionComparisons)
+      .where(eq(lesionComparisons.lesionTrackingId, lesionTrackingId));
+    
+    // Sort by created date (newest first)
+    return comparisons.sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bTime - aTime;
+    });
+  }
+
+  async getLesionComparison(id: string): Promise<LesionComparison | undefined> {
+    const [comparison] = await db
+      .select()
+      .from(lesionComparisons)
+      .where(eq(lesionComparisons.id, id));
+    return comparison;
+  }
+
+  // Get full lesion tracking data with snapshots and comparisons
+  async getLesionTrackingWithSnapshots(
+    id: string,
+    userId: string
+  ): Promise<{
+    tracking: LesionTracking;
+    snapshots: (LesionSnapshot & { case?: Case })[];
+    comparisons: LesionComparison[];
+  } | undefined> {
+    const tracking = await this.getLesionTracking(id, userId);
+    if (!tracking) {
+      return undefined;
+    }
+
+    const snapshots = await this.getLesionSnapshots(id);
+    const comparisons = await this.getLesionComparisons(id);
+
+    // Enrich snapshots with case data
+    const enrichedSnapshots = await Promise.all(
+      snapshots.map(async (snapshot) => {
+        if (snapshot.caseId) {
+          const caseData = await this.getCaseForAdmin(snapshot.caseId);
+          return { ...snapshot, case: caseData };
+        }
+        return { ...snapshot, case: undefined };
+      })
+    );
+
+    return {
+      tracking,
+      snapshots: enrichedSnapshots,
+      comparisons,
+    };
   }
 }
 

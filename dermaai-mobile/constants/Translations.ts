@@ -984,6 +984,23 @@ export const ValueTranslations: Record<string, { tr: string; en: string }> = {
     'autoimmune': { tr: 'Otoimmün Hastalıklar', en: 'Autoimmune Diseases' },
     'hypertension': { tr: 'Hipertansiyon', en: 'Hypertension' },
     'heart disease': { tr: 'Kalp Hastalığı', en: 'Heart Disease' },
+    
+    // Lesion Tracking (Pro Feature)
+    'lesionTracking': { tr: 'Lezyon Takibi', en: 'Lesion Tracking' },
+    'trackLesion': { tr: 'Takibe Başla', en: 'Start Tracking' },
+    'addNewRecord': { tr: 'Yeni Kayıt Ekle', en: 'Add New Record' },
+    'viewComparison': { tr: 'Karşılaştırmayı Gör', en: 'View Comparison' },
+    'noTrackingsYet': { tr: 'Henüz takip yok', en: 'No trackings yet' },
+    'snapshotAdded': { tr: 'Kayıt eklendi', en: 'Record added' },
+    'comparisonComplete': { tr: 'Karşılaştırma tamamlandı', en: 'Comparison complete' },
+    'riskLow': { tr: 'Düşük Risk', en: 'Low Risk' },
+    'riskModerate': { tr: 'Orta Risk', en: 'Moderate Risk' },
+    'riskElevated': { tr: 'Yüksek Risk', en: 'Elevated Risk' },
+    'riskHigh': { tr: 'Acil', en: 'Urgent' },
+    'progressionStable': { tr: 'Stabil', en: 'Stable' },
+    'progressionImproved': { tr: 'İyileşme', en: 'Improved' },
+    'progressionWorsened': { tr: 'Kötüleşme', en: 'Worsened' },
+    'progressionSignificantChange': { tr: 'Önemli Değişim', en: 'Significant Change' },
 };
 
 // Helper function to translate a single value

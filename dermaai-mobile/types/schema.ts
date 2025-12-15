@@ -164,3 +164,94 @@ export interface UpdateProfileData {
     isProfileComplete?: boolean | null;
 }
 
+// ============================================
+// PRO FEATURE: Lesion Tracking Types
+// ============================================
+
+export type LesionTrackingStatus = 'monitoring' | 'resolved' | 'urgent';
+export type LesionProgressionType = 'stable' | 'improved' | 'worsened' | 'significant_change';
+export type LesionRiskLevel = 'low' | 'moderate' | 'elevated' | 'high';
+
+export interface LesionTracking {
+    id: string;
+    userId: string;
+    name: string;
+    bodyLocation: string | null;
+    description: string | null;
+    initialCaseId: string | null;
+    status: LesionTrackingStatus;
+    lastComparisonAt: Date | null;
+    snapshotCount: number;
+    createdAt: Date | null;
+    updatedAt: Date | null;
+}
+
+export interface LesionSnapshot {
+    id: string;
+    lesionTrackingId: string;
+    caseId: string | null;
+    imageUrls: string[] | null;
+    notes: string | null;
+    snapshotOrder: number;
+    createdAt: Date | null;
+    // Enriched with case data
+    case?: Case;
+}
+
+export interface LesionComparisonAnalysis {
+    changeDetected: boolean;
+    changeSummary: string;
+    sizeChange: string | null;
+    colorChange: string | null;
+    borderChange: string | null;
+    textureChange: string | null;
+    overallProgression: LesionProgressionType;
+    riskLevel: LesionRiskLevel;
+    recommendations: string[];
+    detailedAnalysis: string;
+    timeElapsed: string;
+    analysisTime: number;
+}
+
+export interface LesionComparison {
+    id: string;
+    lesionTrackingId: string;
+    previousSnapshotId: string;
+    currentSnapshotId: string;
+    comparisonAnalysis: LesionComparisonAnalysis | null;
+    createdAt: Date | null;
+}
+
+export interface LesionTrackingWithData {
+    tracking: LesionTracking;
+    snapshots: LesionSnapshot[];
+    comparisons: LesionComparison[];
+}
+
+export interface CreateLesionTrackingData {
+    name: string;
+    bodyLocation?: string;
+    description?: string;
+    initialCaseId?: string;
+}
+
+export interface AddSnapshotData {
+    imageUrls: string[];
+    caseId?: string;
+    notes?: string;
+    runComparison?: boolean;
+    language?: 'tr' | 'en';
+}
+
+export interface AddSnapshotResponse {
+    snapshot: LesionSnapshot;
+    comparison: LesionComparison | null;
+}
+
+export interface ComparisonDetailResponse {
+    comparison: LesionComparison;
+    previousSnapshot: LesionSnapshot;
+    currentSnapshot: LesionSnapshot;
+    tracking: LesionTracking;
+}
+

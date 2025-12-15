@@ -277,6 +277,121 @@ export const pushTokens = pgTable(
   ]
 );
 
+// ============================================
+// PRO FEATURE: Lesion Tracking System
+// ============================================
+
+// Lesion tracking - tracks a specific lesion over time (Pro feature)
+export const lesionTrackings = pgTable(
+  'lesion_trackings',
+  {
+    id: varchar('id')
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(), // User-given name: "Sol koldaki ben", "Sırt lezyonu"
+    bodyLocation: text('body_location'), // Anatomical location
+    description: text('description'), // Optional description
+    initialCaseId: varchar('initial_case_id')
+      .references(() => cases.id, { onDelete: 'set null' }), // First analysis case
+    status: text('status').default('monitoring'), // 'monitoring' | 'resolved' | 'urgent'
+    lastComparisonAt: timestamp('last_comparison_at'),
+    snapshotCount: integer('snapshot_count').default(1),
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow(),
+  },
+  (table) => [
+    index('idx_lesion_trackings_user_id').on(table.userId),
+    index('idx_lesion_trackings_status').on(table.status),
+    index('idx_lesion_trackings_created_at').on(table.createdAt),
+  ]
+);
+
+// Lesion snapshots - individual recordings for a tracked lesion
+export const lesionSnapshots = pgTable(
+  'lesion_snapshots',
+  {
+    id: varchar('id')
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    lesionTrackingId: varchar('lesion_tracking_id')
+      .notNull()
+      .references(() => lesionTrackings.id, { onDelete: 'cascade' }),
+    caseId: varchar('case_id')
+      .references(() => cases.id, { onDelete: 'set null' }), // Associated case with full analysis
+    imageUrls: jsonb('image_urls').$type<string[]>(), // Images for this snapshot
+    notes: text('notes'), // User notes for this snapshot
+    snapshotOrder: integer('snapshot_order').default(1), // Order in the tracking timeline
+    createdAt: timestamp('created_at').defaultNow(),
+  },
+  (table) => [
+    index('idx_lesion_snapshots_tracking_id').on(table.lesionTrackingId),
+    index('idx_lesion_snapshots_created_at').on(table.createdAt),
+  ]
+);
+
+// Lesion comparisons - AI comparison analysis between two snapshots
+export const lesionComparisons = pgTable(
+  'lesion_comparisons',
+  {
+    id: varchar('id')
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    lesionTrackingId: varchar('lesion_tracking_id')
+      .notNull()
+      .references(() => lesionTrackings.id, { onDelete: 'cascade' }),
+    previousSnapshotId: varchar('previous_snapshot_id')
+      .notNull()
+      .references(() => lesionSnapshots.id, { onDelete: 'cascade' }),
+    currentSnapshotId: varchar('current_snapshot_id')
+      .notNull()
+      .references(() => lesionSnapshots.id, { onDelete: 'cascade' }),
+    comparisonAnalysis: jsonb('comparison_analysis').$type<{
+      changeDetected: boolean;
+      changeSummary: string;
+      sizeChange: string | null;
+      colorChange: string | null;
+      borderChange: string | null;
+      textureChange: string | null;
+      overallProgression: 'stable' | 'improved' | 'worsened' | 'significant_change';
+      riskLevel: 'low' | 'moderate' | 'elevated' | 'high';
+      recommendations: string[];
+      detailedAnalysis: string;
+      timeElapsed: string;
+      analysisTime: number;
+    }>(),
+    createdAt: timestamp('created_at').defaultNow(),
+  },
+  (table) => [
+    index('idx_lesion_comparisons_tracking_id').on(table.lesionTrackingId),
+    index('idx_lesion_comparisons_created_at').on(table.createdAt),
+  ]
+);
+
+// Schema types for lesion tracking
+export const insertLesionTrackingSchema = createInsertSchema(lesionTrackings).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+  snapshotCount: true,
+  lastComparisonAt: true,
+});
+
+export const insertLesionSnapshotSchema = createInsertSchema(lesionSnapshots).omit({
+  id: true,
+  createdAt: true,
+  snapshotOrder: true,
+});
+
+export type InsertLesionTracking = z.infer<typeof insertLesionTrackingSchema>;
+export type LesionTracking = typeof lesionTrackings.$inferSelect;
+export type InsertLesionSnapshot = z.infer<typeof insertLesionSnapshotSchema>;
+export type LesionSnapshot = typeof lesionSnapshots.$inferSelect;
+export type LesionComparison = typeof lesionComparisons.$inferSelect;
+
 export const insertPushTokenSchema = createInsertSchema(pushTokens).omit({
   id: true,
   createdAt: true,

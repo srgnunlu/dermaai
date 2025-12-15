@@ -173,7 +173,7 @@ export default function LesionDetailScreen() {
             }
 
             const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                mediaTypes: ['images'],
                 allowsMultipleSelection: true,
                 quality: 0.8,
                 selectionLimit: 3,
@@ -236,23 +236,33 @@ export default function LesionDetailScreen() {
         try {
             setIsUploading(true);
 
-            // Upload images first
+            // Upload images first - convert to base64
             const uploadedUrls: string[] = [];
-            for (const imageUri of selectedImages) {
-                const formData = new FormData();
-                const filename = imageUri.split('/').pop() || 'image.jpg';
-                const match = /\.(\w+)$/.exec(filename);
-                const type = match ? `image/${match[1]}` : 'image/jpeg';
+            for (let i = 0; i < selectedImages.length; i++) {
+                const imageUri = selectedImages[i];
+                
+                try {
+                    // Read the local file as base64
+                    const response = await fetch(imageUri);
+                    const blob = await response.blob();
 
-                formData.append('image', {
-                    uri: imageUri,
-                    name: filename,
-                    type,
-                } as any);
+                    // Convert blob to base64
+                    const base64 = await new Promise<string>((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                            const result = reader.result as string;
+                            resolve(result);
+                        };
+                        reader.onerror = reject;
+                        reader.readAsDataURL(blob);
+                    });
 
-                const response = await api.uploadFile('/api/upload', formData);
-                if (response.imageUrl) {
-                    uploadedUrls.push(response.imageUrl);
+                    // Upload to server
+                    const filename = `lesion-snapshot-${Date.now()}-${i + 1}.jpg`;
+                    const uploadResult = await api.uploadImage(base64, filename);
+                    uploadedUrls.push(uploadResult.url);
+                } catch (uploadError) {
+                    console.error('Image upload error:', uploadError);
                 }
             }
 

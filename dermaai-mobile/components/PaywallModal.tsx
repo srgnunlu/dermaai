@@ -462,6 +462,7 @@ export function PaywallModal({ visible, onClose, language }: PaywallModalProps) 
                         <Text style={[
                             styles.billingOptionText,
                             billingPeriod === 'yearly' && styles.billingOptionTextActive,
+                            billingPeriod !== 'yearly' && styles.yearlyTextHighlight,
                         ]}>
                             {language === 'tr' ? 'Yıllık' : 'Yearly'}
                         </Text>
@@ -834,21 +835,9 @@ const styles = StyleSheet.create({
         color: '#1F2937',
         fontWeight: '700',
     },
-    yearlyTabHighlight: {
-        backgroundColor: 'rgba(245, 158, 11, 0.1)',
-        borderWidth: 1.5,
-        borderColor: '#F59E0B',
-        ...Platform.select({
-            ios: {
-                shadowColor: '#F59E0B',
-                shadowOffset: { width: 0, height: 0 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
-            },
-            android: {
-                elevation: 4,
-            },
-        }),
+    yearlyTextHighlight: {
+        color: '#F59E0B',
+        fontWeight: '700',
     },
     saveBadge: {
         flexDirection: 'row',

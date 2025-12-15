@@ -3,7 +3,7 @@
  * Shows timeline of snapshots and comparison results (Pro Feature)
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
     View,
     Text,
@@ -18,6 +18,7 @@ import {
     Modal,
     TextInput,
     Dimensions,
+    Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
@@ -83,7 +84,34 @@ export default function LesionDetailScreen() {
     const [selectedImages, setSelectedImages] = useState<string[]>([]);
     const [snapshotNote, setSnapshotNote] = useState('');
     const [isUploading, setIsUploading] = useState(false);
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    
+    // Background Analysis State
+    const [backgroundAnalyzing, setBackgroundAnalyzing] = useState(false);
+    const [lastComparisonResult, setLastComparisonResult] = useState<any>(null);
+    
+    // Pulse animation for analysis banner
+    const pulseAnim = useRef(new Animated.Value(1)).current;
+    
+    useEffect(() => {
+        if (backgroundAnalyzing) {
+            const pulse = Animated.loop(
+                Animated.sequence([
+                    Animated.timing(pulseAnim, {
+                        toValue: 1.2,
+                        duration: 800,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(pulseAnim, {
+                        toValue: 1,
+                        duration: 800,
+                        useNativeDriver: true,
+                    }),
+                ])
+            );
+            pulse.start();
+            return () => pulse.stop();
+        }
+    }, [backgroundAnalyzing, pulseAnim]);
 
     const handleDelete = useCallback(() => {
         Alert.alert(
@@ -270,55 +298,53 @@ export default function LesionDetailScreen() {
                 throw new Error('No images uploaded');
             }
 
+            // Close modal and show background analysis banner
             setIsUploading(false);
-            setIsAnalyzing(true);
-
-            // Add snapshot with comparison
-            const result = await addSnapshot({
-                trackingId: id!,
-                data: {
-                    imageUrls: uploadedUrls,
-                    notes: snapshotNote.trim() || undefined,
-                    runComparison: true,
-                    language: language as 'tr' | 'en',
-                },
-            });
-
-            setIsAnalyzing(false);
             setSnapshotModalVisible(false);
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            setBackgroundAnalyzing(true);
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-            // Show result
-            if (result.comparison) {
-                const analysis = result.comparison.comparisonAnalysis;
+            // Run analysis in background
+            try {
+                const result = await addSnapshot({
+                    trackingId: id!,
+                    data: {
+                        imageUrls: uploadedUrls,
+                        notes: snapshotNote.trim() || undefined,
+                        runComparison: true,
+                        language: language as 'tr' | 'en',
+                    },
+                });
+
+                setBackgroundAnalyzing(false);
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+                // Store result and show success
+                if (result.comparison) {
+                    setLastComparisonResult(result.comparison);
+                    // Auto-navigate to comparison result after short delay
+                    setTimeout(() => {
+                        router.push(`/lesion/compare/${result.comparison!.id}`);
+                    }, 500);
+                }
+
+                refetch();
+            } catch (analysisError) {
+                console.error('Analysis error:', analysisError);
+                setBackgroundAnalyzing(false);
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
                 Alert.alert(
-                    language === 'tr' ? '✅ Analiz Tamamlandı' : '✅ Analysis Complete',
-                    `${analysis?.changeSummary || ''}\n\n${language === 'tr' ? 'Risk Seviyesi' : 'Risk Level'}: ${getRiskLabel(analysis?.riskLevel || 'low', language)}`,
-                    [
-                        {
-                            text: language === 'tr' ? 'Detayları Gör' : 'View Details',
-                            onPress: () => router.push(`/lesion/compare/${result.comparison!.id}`),
-                        },
-                        {
-                            text: language === 'tr' ? 'Tamam' : 'OK',
-                            style: 'cancel',
-                        },
-                    ]
-                );
-            } else {
-                Alert.alert(
-                    language === 'tr' ? '✅ Kayıt Eklendi' : '✅ Record Added',
+                    language === 'tr' ? 'Analiz Hatası' : 'Analysis Error',
                     language === 'tr' 
-                        ? 'Yeni görsel kaydedildi.'
-                        : 'New image has been saved.'
+                        ? 'Görsel kaydedildi fakat analiz yapılamadı. Daha sonra tekrar deneyin.'
+                        : 'Image saved but analysis failed. Please try again later.'
                 );
+                refetch();
             }
-
-            refetch();
         } catch (error) {
             console.error('Snapshot error:', error);
             setIsUploading(false);
-            setIsAnalyzing(false);
+            setBackgroundAnalyzing(false);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             Alert.alert(
                 language === 'tr' ? 'Hata' : 'Error',
@@ -416,6 +442,35 @@ export default function LesionDetailScreen() {
                         </TouchableOpacity>
                     </View>
                 </View>
+
+                {/* Background Analysis Banner */}
+                {backgroundAnalyzing && (
+                    <View style={styles.analysisBanner}>
+                        <BlurView intensity={80} tint="light" style={styles.analysisBannerBlur}>
+                            <View style={styles.analysisBannerContent}>
+                                <Animated.View
+                                    style={[
+                                        styles.analysisPulse,
+                                        { transform: [{ scale: pulseAnim }] },
+                                    ]}
+                                >
+                                    <Sparkles size={20} color="#0891B2" />
+                                </Animated.View>
+                                <View style={styles.analysisBannerTextContainer}>
+                                    <Text style={styles.analysisBannerTitle}>
+                                        {language === 'tr' ? 'AI Analiz Yapıyor...' : 'AI Analyzing...'}
+                                    </Text>
+                                    <Text style={styles.analysisBannerSubtitle}>
+                                        {language === 'tr' 
+                                            ? 'Değişiklikler tespit ediliyor' 
+                                            : 'Detecting changes'}
+                                    </Text>
+                                </View>
+                                <ActivityIndicator size="small" color="#0891B2" />
+                            </View>
+                        </BlurView>
+                    </View>
+                )}
 
                 <ScrollView
                     style={styles.scrollView}
@@ -697,7 +752,7 @@ export default function LesionDetailScreen() {
                     visible={snapshotModalVisible}
                     animationType="slide"
                     transparent={true}
-                    onRequestClose={() => !isUploading && !isAnalyzing && setSnapshotModalVisible(false)}
+                    onRequestClose={() => !isUploading && setSnapshotModalVisible(false)}
                 >
                     <View style={styles.modalOverlay}>
                         <View style={styles.snapshotModalContainer}>
@@ -708,7 +763,7 @@ export default function LesionDetailScreen() {
                                         <Text style={styles.modalTitle}>
                                             {language === 'tr' ? '📸 Yeni Görsel Ekle' : '📸 Add New Image'}
                                         </Text>
-                                        {!isUploading && !isAnalyzing && (
+                                        {!isUploading && (
                                             <TouchableOpacity
                                                 onPress={() => setSnapshotModalVisible(false)}
                                                 style={styles.closeButton}
@@ -825,15 +880,15 @@ export default function LesionDetailScreen() {
                                     <TouchableOpacity
                                         style={[
                                             styles.submitSnapshotButton,
-                                            (selectedImages.length === 0 || isUploading || isAnalyzing) && 
+                                            (selectedImages.length === 0 || isUploading) && 
                                             styles.submitSnapshotButtonDisabled
                                         ]}
                                         onPress={handleSubmitSnapshot}
-                                        disabled={selectedImages.length === 0 || isUploading || isAnalyzing}
+                                        disabled={selectedImages.length === 0 || isUploading}
                                         activeOpacity={0.8}
                                     >
                                         <LinearGradient
-                                            colors={selectedImages.length > 0 && !isUploading && !isAnalyzing
+                                            colors={selectedImages.length > 0 && !isUploading
                                                 ? ['#0891B2', '#0E7490']
                                                 : ['#94A3B8', '#64748B']
                                             }
@@ -846,13 +901,6 @@ export default function LesionDetailScreen() {
                                                     <ActivityIndicator size="small" color="#FFFFFF" />
                                                     <Text style={styles.submitSnapshotText}>
                                                         {language === 'tr' ? 'Yükleniyor...' : 'Uploading...'}
-                                                    </Text>
-                                                </>
-                                            ) : isAnalyzing ? (
-                                                <>
-                                                    <ActivityIndicator size="small" color="#FFFFFF" />
-                                                    <Text style={styles.submitSnapshotText}>
-                                                        {language === 'tr' ? 'AI Analiz Ediyor...' : 'AI Analyzing...'}
                                                     </Text>
                                                 </>
                                             ) : (
@@ -1020,6 +1068,50 @@ const styles = StyleSheet.create({
             android: 'rgba(255, 255, 255, 0.2)',
             ios: 'rgba(255, 255, 255, 0.25)',
         }),
+    },
+
+    // Analysis Banner
+    analysisBanner: {
+        marginHorizontal: Spacing.lg,
+        marginBottom: Spacing.md,
+        borderRadius: 16,
+        overflow: 'hidden',
+    },
+    analysisBannerBlur: {
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(8, 145, 178, 0.3)',
+        backgroundColor: Platform.select({
+            android: 'rgba(8, 145, 178, 0.1)',
+            ios: 'rgba(8, 145, 178, 0.1)',
+        }),
+    },
+    analysisBannerContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: Spacing.md,
+        gap: 12,
+    },
+    analysisPulse: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(8, 145, 178, 0.15)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    analysisBannerTextContainer: {
+        flex: 1,
+    },
+    analysisBannerTitle: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#0891B2',
+    },
+    analysisBannerSubtitle: {
+        fontSize: 12,
+        color: '#64748B',
+        marginTop: 2,
     },
 
     // Scroll

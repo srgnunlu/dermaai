@@ -2386,6 +2386,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'At least one image URL is required' });
       }
 
+      // Get user settings to check if health professional
+      const userSettings = await storage.getUserSettings(userId);
+      const isHealthProfessional = userSettings?.isHealthProfessional ?? false;
+
       // Create the snapshot
       const snapshot = await storage.createLesionSnapshot({
         lesionTrackingId: trackingId,
@@ -2422,6 +2426,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 lesionName: tracking.name,
                 bodyLocation: tracking.bodyLocation || undefined,
                 language: language as 'tr' | 'en',
+                isHealthProfessional,
                 previousAnalysis: {
                   date: previousSnapshot.createdAt?.toISOString().split('T')[0] || '',
                   imageUrls: previousSnapshot.imageUrls,
@@ -2542,6 +2547,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Both snapshots must have images' });
       }
 
+      // Get user settings to check if health professional
+      const userSettings = await storage.getUserSettings(userId);
+      const isHealthProfessional = userSettings?.isHealthProfessional ?? false;
+
       // Get previous diagnosis info
       let previousDiagnosis = undefined;
       if (prevSnapshot.caseId) {
@@ -2561,6 +2570,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lesionName: tracking.name,
         bodyLocation: tracking.bodyLocation || undefined,
         language: language as 'tr' | 'en',
+        isHealthProfessional,
         previousAnalysis: {
           date: prevSnapshot.createdAt?.toISOString().split('T')[0] || '',
           imageUrls: prevSnapshot.imageUrls,

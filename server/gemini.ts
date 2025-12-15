@@ -73,6 +73,7 @@ interface ComparisonContext {
   lesionName?: string;
   bodyLocation?: string;
   language?: 'tr' | 'en';
+  isHealthProfessional?: boolean;
   previousAnalysis: PreviousAnalysisData;
 }
 
@@ -389,7 +390,7 @@ export async function compareWithGemini(
   const startTime = Date.now();
 
   try {
-    const { previousAnalysis, language = 'tr', lesionName, bodyLocation } = context;
+    const { previousAnalysis, language = 'tr', lesionName, bodyLocation, isHealthProfessional = false } = context;
 
     // Validate inputs
     if (currentImageUrls.length === 0) {
@@ -404,18 +405,27 @@ export async function compareWithGemini(
     // Fetch and encode all images
     const allImageData: { data: string; mimeType: string; label: string }[] = [];
 
-    // Process previous images
+    // Process previous images with professional labels
+    const previousLabel = language === 'tr' ? 'ÖNCEKİ_KAYIT' : 'PREVIOUS_RECORD';
+    const currentLabel = language === 'tr' ? 'GÜNCEL_KAYIT' : 'CURRENT_RECORD';
+    
     for (let i = 0; i < previousAnalysis.imageUrls.length; i++) {
       const imageUrl = previousAnalysis.imageUrls[i];
       const imageData = await fetchAndEncodeImage(imageUrl);
-      allImageData.push({ ...imageData, label: `PREVIOUS_${i + 1}` });
+      allImageData.push({ 
+        ...imageData, 
+        label: previousAnalysis.imageUrls.length > 1 ? `${previousLabel}_${i + 1}` : previousLabel 
+      });
     }
 
     // Process current images
     for (let i = 0; i < currentImageUrls.length; i++) {
       const imageUrl = currentImageUrls[i];
       const imageData = await fetchAndEncodeImage(imageUrl);
-      allImageData.push({ ...imageData, label: `CURRENT_${i + 1}` });
+      allImageData.push({ 
+        ...imageData, 
+        label: currentImageUrls.length > 1 ? `${currentLabel}_${i + 1}` : currentLabel 
+      });
     }
 
     // Calculate time elapsed
@@ -430,25 +440,73 @@ export async function compareWithGemini(
 
     // Build comparison prompt
     const previousDiagnosisInfo = previousAnalysis.topDiagnosis
-      ? `
-Previous Analysis Diagnosis: ${previousAnalysis.topDiagnosis.name} (${previousAnalysis.topDiagnosis.confidence}% confidence)
+      ? language === 'tr'
+        ? `
+Önceki Tanı: ${previousAnalysis.topDiagnosis.name} (%${previousAnalysis.topDiagnosis.confidence} güven)
+Önceki Anahtar Bulgular: ${previousAnalysis.topDiagnosis.keyFeatures.join(', ')}`
+        : `
+Previous Diagnosis: ${previousAnalysis.topDiagnosis.name} (${previousAnalysis.topDiagnosis.confidence}% confidence)
 Previous Key Features: ${previousAnalysis.topDiagnosis.keyFeatures.join(', ')}`
       : '';
 
+    // Build audience-specific instructions
+    const audienceInstruction = isHealthProfessional
+      ? language === 'tr'
+        ? `
+HEDEF KİTLE: SAĞLIK PROFESYONELİ
+Bu karşılaştırma analizi, hastasının lezyonunu takip eden bir sağlık çalışanı içindir.
+- Kesin tıbbi terminoloji kullan (örn: eritematöz, keratotik, papüler, nodüler)
+- Klinik değerlendirme formatında yaz
+- Ayırıcı tanı düşüncelerini dahil et
+- Tedavi seçenekleri ve yaklaşımları öner
+- Önerilerde "hastanız" veya "hasta" olarak hitap et
+- Morfolojik değişimleri detaylı tanımla
+- Histopatolojik korelasyon gereksinimi belirt`
+        : `
+TARGET AUDIENCE: HEALTHCARE PROFESSIONAL
+This comparison analysis is for a healthcare provider monitoring their patient's lesion.
+- Use precise medical terminology (e.g., erythematous, keratotic, papular, nodular)
+- Write in clinical assessment format
+- Include differential diagnosis considerations
+- Suggest treatment options and approaches
+- Refer to "your patient" or "the patient" in recommendations
+- Describe morphological changes in detail
+- Indicate need for histopathological correlation if warranted`
+      : language === 'tr'
+        ? `
+HEDEF KİTLE: GENEL KULLANICI
+Bu karşılaştırma analizi, kendi lezyonunu takip eden bir kullanıcı içindir.
+- Basit ve anlaşılır bir dil kullan
+- Tıbbi terimleri açıkla veya günlük dil ile ifade et
+- Kişisel bakım önerilerine odaklan
+- "Siz" veya "sizin" olarak hitap et
+- Ne zaman doktora başvurulması gerektiğini açıkça belirt
+- Endişe verici değişimleri nazik ama net bir şekilde ifade et`
+        : `
+TARGET AUDIENCE: GENERAL USER
+This comparison analysis is for a user monitoring their own lesion.
+- Use simple, easy-to-understand language
+- Explain medical terms or use everyday language
+- Focus on self-care recommendations
+- Address as "you" or "your"
+- Clearly indicate when to seek medical attention
+- Express concerning changes gently but clearly`;
+
     const systemPrompt = language === 'tr'
       ? `Sen dermatolojik lezyon takibi ve karşılaştırma konusunda uzman bir yapay zeka asistanısın.
+${audienceInstruction}
 
 GÖREV: İki farklı zamanda çekilen lezyon görsellerini karşılaştır ve değişimleri analiz et.
 
 BAĞLAM:
 - Lezyon Adı: ${lesionName || 'Belirtilmedi'}
 - Vücut Bölgesi: ${bodyLocation || 'Belirtilmedi'}
-- Önceki Analiz Tarihi: ${previousAnalysis.date}
+- Önceki Kayıt Tarihi: ${previousAnalysis.date}
 - Geçen Süre: ${timeElapsed}${previousDiagnosisInfo}
 
 GÖRSELLER:
-- PREVIOUS_* etiketli görseller: Önceki kayıt (${previousAnalysis.date})
-- CURRENT_* etiketli görseller: Şimdiki durum
+- ÖNCEKİ_KAYIT etiketli görseller: Önceki kayıt (${previousAnalysis.date})
+- GÜNCEL_KAYIT etiketli görseller: Şimdiki durum
 
 KRİTİK ANALİZ KRİTERLERİ:
 1. BOYUT DEĞİŞİMİ: Büyüme veya küçülme var mı? Tahmini ölçü değişimi
@@ -477,18 +535,19 @@ JSON formatında yanıt ver:
   "detailedAnalysis": "Detaylı karşılaştırma analizi (en az 3-4 cümle)"
 }`
       : `You are an expert AI assistant specializing in dermatological lesion tracking and comparison.
+${audienceInstruction}
 
 TASK: Compare lesion images taken at two different times and analyze changes.
 
 CONTEXT:
 - Lesion Name: ${lesionName || 'Not specified'}
 - Body Location: ${bodyLocation || 'Not specified'}
-- Previous Analysis Date: ${previousAnalysis.date}
+- Previous Record Date: ${previousAnalysis.date}
 - Time Elapsed: ${timeElapsed}${previousDiagnosisInfo}
 
 IMAGES:
-- PREVIOUS_* labeled images: Previous recording (${previousAnalysis.date})
-- CURRENT_* labeled images: Current state
+- PREVIOUS_RECORD labeled images: Previous recording (${previousAnalysis.date})
+- CURRENT_RECORD labeled images: Current state
 
 CRITICAL ANALYSIS CRITERIA:
 1. SIZE CHANGE: Growth or shrinkage? Estimated measurement change

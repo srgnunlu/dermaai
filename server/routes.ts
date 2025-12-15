@@ -23,6 +23,13 @@ import { sanitizeTextForPDF } from './utils/pdf';
 import { lookupCaseWithAuth } from './utils/caseHelpers';
 import { mergeAnalysesWithoutConsensus } from './utils/aiAnalysis';
 import { sendAnalysisCompleteNotification } from './pushNotifications';
+import {
+  canUserAnalyze,
+  incrementAnalysisCount,
+  getUserSubscriptionStatus,
+  processRevenueCatWebhook,
+  SUBSCRIPTION_LIMITS,
+} from './subscriptions';
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -640,6 +647,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create case record with authenticated user
       const userId = req.user.id;
 
+      // Check subscription limits before allowing analysis
+      const subscriptionCheck = await canUserAnalyze(userId);
+      if (!subscriptionCheck.allowed) {
+        return res.status(403).json({
+          error: 'subscription_limit_reached',
+          message: subscriptionCheck.reason,
+          tier: subscriptionCheck.tier,
+          remainingAnalyses: subscriptionCheck.remainingAnalyses,
+          upgradeRequired: true,
+        });
+      }
+
       // Handle both single imageUrl (backward compatibility) and multiple imageUrls
       let imageUrls: string[] = [];
       if (caseData.imageUrls && Array.isArray(caseData.imageUrls) && caseData.imageUrls.length > 0) {
@@ -827,6 +846,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const caseData = insertCaseSchema.parse(req.body);
       const userId = req.user.id;
 
+      // Check subscription limits before allowing analysis
+      const subscriptionCheck = await canUserAnalyze(userId);
+      if (!subscriptionCheck.allowed) {
+        return res.status(403).json({
+          error: 'subscription_limit_reached',
+          message: subscriptionCheck.reason,
+          tier: subscriptionCheck.tier,
+          remainingAnalyses: subscriptionCheck.remainingAnalyses,
+          upgradeRequired: true,
+        });
+      }
+
       // Handle image URLs
       let imageUrls: string[] = [];
       if (caseData.imageUrls && Array.isArray(caseData.imageUrls) && caseData.imageUrls.length > 0) {
@@ -845,6 +876,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       const newCase = await storage.createCase(caseDataToStore, userId);
+
+      // Increment analysis count for subscription tracking
+      await incrementAnalysisCount(userId);
 
       // Update case status to 'analyzing'
       await storage.updateCase(newCase.id, userId, { status: 'analyzing' });
@@ -2038,6 +2072,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       logger.error('Error in bulk export:', error);
       res.status(500).json({ error: 'Failed to export cases' });
+    }
+  });
+
+  // ==========================================
+  // Subscription Management Routes
+  // ==========================================
+
+  // Get user's subscription status
+  app.get('/api/subscription', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const status = await getUserSubscriptionStatus(userId);
+      res.json(status);
+    } catch (error) {
+      logger.error('Error fetching subscription status:', error);
+      res.status(500).json({ error: 'Failed to fetch subscription status' });
+    }
+  });
+
+  // Get subscription limits info (public - for paywall display)
+  app.get('/api/subscription/plans', async (req, res) => {
+    try {
+      res.json({
+        plans: {
+          free: {
+            name: 'Free',
+            monthlyAnalysisLimit: SUBSCRIPTION_LIMITS.free.monthlyAnalysisLimit,
+            historyDays: SUBSCRIPTION_LIMITS.free.historyDays,
+            aiProviders: SUBSCRIPTION_LIMITS.free.aiProviders,
+            pdfReport: SUBSCRIPTION_LIMITS.free.pdfReport,
+            pushNotifications: SUBSCRIPTION_LIMITS.free.pushNotifications,
+          },
+          basic: {
+            name: 'Basic',
+            monthlyAnalysisLimit: SUBSCRIPTION_LIMITS.basic.monthlyAnalysisLimit,
+            historyDays: SUBSCRIPTION_LIMITS.basic.historyDays,
+            aiProviders: SUBSCRIPTION_LIMITS.basic.aiProviders,
+            pdfReport: SUBSCRIPTION_LIMITS.basic.pdfReport,
+            pushNotifications: SUBSCRIPTION_LIMITS.basic.pushNotifications,
+          },
+          pro: {
+            name: 'Pro',
+            monthlyAnalysisLimit: SUBSCRIPTION_LIMITS.pro.monthlyAnalysisLimit,
+            historyDays: SUBSCRIPTION_LIMITS.pro.historyDays,
+            aiProviders: SUBSCRIPTION_LIMITS.pro.aiProviders,
+            pdfReport: SUBSCRIPTION_LIMITS.pro.pdfReport,
+            pushNotifications: SUBSCRIPTION_LIMITS.pro.pushNotifications,
+            priorityAnalysis: (SUBSCRIPTION_LIMITS.pro as any).priorityAnalysis,
+            patientManagement: (SUBSCRIPTION_LIMITS.pro as any).patientManagement,
+          },
+        },
+        productIds: {
+          basic_monthly: 'corio_basic_monthly',
+          basic_yearly: 'corio_basic_yearly',
+          pro_monthly: 'corio_pro_monthly',
+          pro_yearly: 'corio_pro_yearly',
+        },
+      });
+    } catch (error) {
+      logger.error('Error fetching subscription plans:', error);
+      res.status(500).json({ error: 'Failed to fetch subscription plans' });
+    }
+  });
+
+  // RevenueCat Webhook endpoint
+  // This endpoint receives purchase events from RevenueCat
+  app.post('/api/webhooks/revenuecat', async (req, res) => {
+    try {
+      // Verify webhook authorization
+      const authHeader = req.headers.authorization;
+      const expectedToken = process.env.REVENUECAT_WEBHOOK_SECRET;
+
+      if (expectedToken && authHeader !== `Bearer ${expectedToken}`) {
+        logger.warn('[RevenueCat] Invalid webhook authorization');
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const event = req.body.event;
+
+      if (!event) {
+        return res.status(400).json({ error: 'No event data provided' });
+      }
+
+      logger.info(`[RevenueCat] Received webhook event: ${event.type}`);
+
+      await processRevenueCatWebhook({
+        type: event.type,
+        app_user_id: event.app_user_id,
+        product_id: event.product_id,
+        expiration_at_ms: event.expiration_at_ms,
+      });
+
+      res.json({ received: true });
+    } catch (error) {
+      logger.error('Error processing RevenueCat webhook:', error);
+      res.status(500).json({ error: 'Webhook processing failed' });
     }
   });
 

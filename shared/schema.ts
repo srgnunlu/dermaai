@@ -35,12 +35,19 @@ export const users = pgTable(
     phoneNumber: varchar('phone_number'),
     isHealthProfessional: jsonb('is_health_professional').default(false).$type<boolean>(),
     isProfileComplete: jsonb('is_profile_complete').default(false).$type<boolean>(),
+    // Subscription fields
+    subscriptionTier: varchar('subscription_tier').default('free').notNull(), // 'free' | 'basic' | 'pro'
+    subscriptionExpiresAt: timestamp('subscription_expires_at'),
+    monthlyAnalysisCount: integer('monthly_analysis_count').default(0).notNull(),
+    monthlyAnalysisResetAt: timestamp('monthly_analysis_reset_at'),
+    revenueCatId: varchar('revenuecat_id'), // RevenueCat customer ID
     createdAt: timestamp('created_at').defaultNow(),
     updatedAt: timestamp('updated_at').defaultNow(),
   },
   (table) => [
     index('idx_users_role').on(table.role),
     index('idx_users_created_at').on(table.createdAt),
+    index('idx_users_subscription').on(table.subscriptionTier),
   ]
 );
 

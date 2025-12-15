@@ -1,10 +1,12 @@
 /**
  * Language Context - Manages app-wide language state
  * Supports Turkish (tr) and English (en)
+ * Automatically detects device language on first launch
  */
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Localization from 'expo-localization';
 
 type Language = 'tr' | 'en';
 
@@ -19,15 +21,30 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 const LANGUAGE_STORAGE_KEY = 'corio_language';
 
+/**
+ * Get the device's preferred language
+ * Returns 'tr' for Turkish devices, 'en' for all other languages
+ */
+const getDeviceLanguage = (): Language => {
+    try {
+        const locales = Localization.getLocales();
+        const deviceLanguageCode = locales[0]?.languageCode?.toLowerCase();
+        return deviceLanguageCode === 'tr' ? 'tr' : 'en';
+    } catch (error) {
+        console.error('Failed to get device language:', error);
+        return 'en'; // Default to English if detection fails
+    }
+};
+
 interface LanguageProviderProps {
     children: ReactNode;
 }
 
 export function LanguageProvider({ children }: LanguageProviderProps) {
-    const [language, setLanguageState] = useState<Language>('tr');
+    const [language, setLanguageState] = useState<Language>(() => getDeviceLanguage());
     const [isLoading, setIsLoading] = useState(true);
 
-    // Load saved language preference on mount
+    // Load saved language preference on mount, fallback to device language
     useEffect(() => {
         const loadLanguage = async () => {
             try {
@@ -35,6 +52,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
                 if (savedLanguage === 'tr' || savedLanguage === 'en') {
                     setLanguageState(savedLanguage);
                 }
+                // If no saved preference, keep the device language (already set in initial state)
             } catch (error) {
                 console.error('Failed to load language preference:', error);
             } finally {

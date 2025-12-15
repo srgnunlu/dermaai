@@ -27,6 +27,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'expo-router';
 import { useTabBarVisibility } from '@/contexts/TabBarVisibilityContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useSubscription } from '@/hooks/useSubscription';
+import { PaywallModal } from '@/components/PaywallModal';
 
 const SETTINGS_STORAGE_KEY = 'corio_settings';
 
@@ -309,6 +311,10 @@ export function DiagnosisWizard() {
     const slideAnim = useRef(new Animated.Value(0)).current;
     const { analyze, isUploading, uploadComplete } = useAnalyzeCase();
     const { language } = useLanguage();
+    const { subscriptionStatus, canAnalyze, refreshStatus } = useSubscription();
+
+    // Paywall modal state
+    const [showPaywall, setShowPaywall] = useState(false);
 
     // Poll for analysis completion when pendingCaseId is set
     const { caseData: polledCase, isAnalyzing: caseIsAnalyzing } = useCase(
@@ -394,6 +400,13 @@ export function DiagnosisWizard() {
 
     // Handle analysis start (hybrid approach: sync upload, async analysis)
     const handleStartAnalysis = useCallback(async () => {
+        // First check if user can start analysis (subscription limit check)
+        if (!canAnalyze()) {
+            // Show paywall if limit reached
+            setShowPaywall(true);
+            return;
+        }
+
         // Set isProcessing immediately - prevents wizard from showing during any transition
         setIsProcessing(true);
         setTabBarAnalyzing(true); // Block tab bar interactions
@@ -714,6 +727,17 @@ export function DiagnosisWizard() {
             >
                 {renderStep()}
             </Animated.View>
+
+            {/* Paywall Modal - shown when analysis limit reached */}
+            <PaywallModal
+                visible={showPaywall}
+                onClose={() => {
+                    setShowPaywall(false);
+                    // Refresh status after potential purchase
+                    refreshStatus();
+                }}
+                language={language}
+            />
         </SafeAreaView>
     );
 }

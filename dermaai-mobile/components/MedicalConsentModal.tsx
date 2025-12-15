@@ -128,154 +128,260 @@ export function MedicalConsentModal({ visible, onAccept, language }: MedicalCons
             statusBarTranslucent
         >
             <View style={styles.overlay}>
-                <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
-                    {/* Header */}
-                    <View style={styles.headerWrapper}>
-                        {Platform.OS === 'ios' ? (
-                            <BlurView intensity={80} tint="light" style={styles.headerBlur}>
-                                <View style={styles.headerContent}>
-                                    <View style={styles.headerIconContainer}>
-                                        <LinearGradient
-                                            colors={['#DC2626', '#EF4444']}
-                                            style={styles.headerIcon}
-                                        >
-                                            <AlertTriangle size={28} color="#FFFFFF" />
-                                        </LinearGradient>
-                                    </View>
-                                    <View style={styles.headerTextContainer}>
-                                        <Text style={[styles.headerTitle, { color: colors.text }]}>
-                                            {T.title[language]}
-                                        </Text>
-                                        <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-                                            {T.subtitle[language]}
-                                        </Text>
-                                    </View>
+                {Platform.OS === 'ios' ? (
+                    <BlurView intensity={100} tint="light" style={styles.modalContainer}>
+                        <LinearGradient
+                            colors={['#FFFFFF', '#F8FAFC', '#F1F5F9']}
+                            style={styles.modalInner}
+                        >
+                            {/* Header */}
+                            <View style={styles.headerContent}>
+                                <View style={styles.headerIconContainer}>
+                                    <LinearGradient
+                                        colors={['#DC2626', '#EF4444']}
+                                        style={styles.headerIcon}
+                                    >
+                                        <AlertTriangle size={28} color="#FFFFFF" />
+                                    </LinearGradient>
                                 </View>
-                            </BlurView>
-                        ) : (
-                            <View style={[styles.headerAndroid, { backgroundColor: colors.secondary }]}>
-                                <View style={styles.headerContent}>
-                                    <View style={styles.headerIconContainer}>
-                                        <LinearGradient
-                                            colors={['#DC2626', '#EF4444']}
-                                            style={styles.headerIcon}
-                                        >
-                                            <AlertTriangle size={28} color="#FFFFFF" />
-                                        </LinearGradient>
-                                    </View>
-                                    <View style={styles.headerTextContainer}>
-                                        <Text style={[styles.headerTitle, { color: colors.text }]}>
-                                            {T.title[language]}
-                                        </Text>
-                                        <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-                                            {T.subtitle[language]}
-                                        </Text>
-                                    </View>
+                                <View style={styles.headerTextContainer}>
+                                    <Text style={styles.headerTitle}>
+                                        {T.title[language]}
+                                    </Text>
+                                    <Text style={styles.headerSubtitle}>
+                                        {T.subtitle[language]}
+                                    </Text>
                                 </View>
                             </View>
-                        )}
-                    </View>
 
-                    {/* Content */}
-                    <ScrollView
-                        style={styles.scrollView}
-                        contentContainerStyle={styles.scrollContent}
-                        showsVerticalScrollIndicator={false}
-                    >
-                        {/* Section 1 - What app is NOT */}
-                        <View style={[styles.section, styles.warningSection, { backgroundColor: '#FEE2E2' }]}>
-                            <Text style={[styles.sectionTitle, { color: '#991B1B' }]}>
-                                {T.section1Title[language]}
-                            </Text>
-                            <Text style={[styles.sectionContent, { color: '#7F1D1D' }]}>
-                                {T.section1Content[language]}
-                            </Text>
-                        </View>
+                            {/* Content */}
+                            <ScrollView
+                                style={styles.scrollView}
+                                contentContainerStyle={styles.scrollContent}
+                                showsVerticalScrollIndicator={false}
+                            >
+                                {/* Section 1 - What app is NOT */}
+                                <View style={[styles.section, styles.warningSection]}>
+                                    <Text style={styles.warningSectionTitle}>
+                                        {T.section1Title[language]}
+                                    </Text>
+                                    <Text style={styles.warningSectionContent}>
+                                        {T.section1Content[language]}
+                                    </Text>
+                                </View>
 
-                        {/* Section 2 - What app IS */}
-                        <View style={[styles.section, styles.infoSection, { backgroundColor: '#DCFCE7' }]}>
-                            <Text style={[styles.sectionTitle, { color: '#166534' }]}>
-                                {T.section2Title[language]}
-                            </Text>
-                            <Text style={[styles.sectionContent, { color: '#14532D' }]}>
-                                {T.section2Content[language]}
-                            </Text>
-                        </View>
+                                {/* Section 2 - What app IS */}
+                                <View style={[styles.section, styles.infoSection]}>
+                                    <Text style={styles.infoSectionTitle}>
+                                        {T.section2Title[language]}
+                                    </Text>
+                                    <Text style={styles.infoSectionContent}>
+                                        {T.section2Content[language]}
+                                    </Text>
+                                </View>
 
-                        {/* Section 3 - Responsibility */}
-                        <View style={[styles.section, styles.cautionSection, { backgroundColor: '#FEF3C7' }]}>
-                            <Text style={[styles.sectionTitle, { color: '#92400E' }]}>
-                                {T.section3Title[language]}
-                            </Text>
-                            <Text style={[styles.sectionContent, { color: '#78350F' }]}>
-                                {T.section3Content[language]}
-                            </Text>
-                        </View>
+                                {/* Section 3 - Responsibility */}
+                                <View style={[styles.section, styles.cautionSection]}>
+                                    <Text style={styles.cautionSectionTitle}>
+                                        {T.section3Title[language]}
+                                    </Text>
+                                    <Text style={styles.cautionSectionContent}>
+                                        {T.section3Content[language]}
+                                    </Text>
+                                </View>
 
-                        {/* Emergency Section */}
-                        <View style={[styles.emergencySection, { backgroundColor: '#1E40AF' }]}>
-                            <Text style={styles.emergencyTitle}>
-                                {T.emergencyTitle[language]}
-                            </Text>
-                            <Text style={styles.emergencyContent}>
-                                {T.emergencyContent[language]}
-                            </Text>
-                        </View>
-                    </ScrollView>
+                                {/* Emergency Section */}
+                                <LinearGradient
+                                    colors={['rgba(30, 64, 175, 0.9)', 'rgba(37, 99, 235, 0.9)']}
+                                    style={styles.emergencySection}
+                                >
+                                    <Text style={styles.emergencyTitle}>
+                                        {T.emergencyTitle[language]}
+                                    </Text>
+                                    <Text style={styles.emergencyContent}>
+                                        {T.emergencyContent[language]}
+                                    </Text>
+                                </LinearGradient>
+                            </ScrollView>
 
-                    {/* Footer with checkbox and button */}
-                    <View style={[styles.footer, { borderTopColor: colors.border }]}>
-                        {/* Checkbox */}
-                        <TouchableOpacity
-                            style={styles.checkboxContainer}
-                            onPress={() => setIsChecked(!isChecked)}
-                            activeOpacity={0.7}
-                        >
-                            <View style={[
-                                styles.checkbox,
-                                { borderColor: isChecked ? colors.primary : colors.border }
-                            ]}>
-                                {isChecked ? (
-                                    <CheckSquare size={24} color={colors.primary} />
-                                ) : (
-                                    <Square size={24} color={colors.textSecondary} />
+                            {/* Footer with checkbox and button */}
+                            <View style={styles.footer}>
+                                {/* Checkbox */}
+                                <TouchableOpacity
+                                    style={styles.checkboxContainer}
+                                    onPress={() => setIsChecked(!isChecked)}
+                                    activeOpacity={0.7}
+                                >
+                                    <View style={styles.checkbox}>
+                                        {isChecked ? (
+                                            <CheckSquare size={24} color="#0E7490" />
+                                        ) : (
+                                            <Square size={24} color="rgba(0,0,0,0.4)" />
+                                        )}
+                                    </View>
+                                    <Text style={styles.checkboxText}>
+                                        {T.checkboxText[language]}
+                                    </Text>
+                                </TouchableOpacity>
+
+                                {/* Accept Button */}
+                                <TouchableOpacity
+                                    style={[
+                                        styles.acceptButton,
+                                        !isChecked && styles.acceptButtonDisabled,
+                                    ]}
+                                    onPress={handleAccept}
+                                    disabled={!isChecked}
+                                    activeOpacity={0.8}
+                                >
+                                    <LinearGradient
+                                        colors={isChecked ? ['#0E7490', '#0891B2', '#06B6D4'] : ['rgba(156,163,175,0.6)', 'rgba(156,163,175,0.6)']}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 0 }}
+                                        style={styles.acceptButtonGradient}
+                                    >
+                                        {isChecked && <Check size={20} color="#FFFFFF" />}
+                                        <Text style={styles.acceptButtonText}>
+                                            {T.acceptButton[language]}
+                                        </Text>
+                                    </LinearGradient>
+                                </TouchableOpacity>
+
+                                {!isChecked && (
+                                    <Text style={styles.mustAcceptText}>
+                                        {T.mustAccept[language]}
+                                    </Text>
                                 )}
                             </View>
-                            <Text style={[styles.checkboxText, { color: colors.text }]}>
-                                {T.checkboxText[language]}
-                            </Text>
-                        </TouchableOpacity>
+                        </LinearGradient>
+                    </BlurView>
+                ) : (
+                    /* Android - No BlurView, use gradient background */
+                    <LinearGradient
+                        colors={['#FFFFFF', '#F8FAFC', '#F1F5F9']}
+                        style={[styles.modalContainer, styles.modalContainerAndroid]}
+                    >
+                        {/* Header */}
+                        <View style={styles.headerContent}>
+                            <View style={styles.headerIconContainer}>
+                                <LinearGradient
+                                    colors={['#DC2626', '#EF4444']}
+                                    style={styles.headerIcon}
+                                >
+                                    <AlertTriangle size={28} color="#FFFFFF" />
+                                </LinearGradient>
+                            </View>
+                            <View style={styles.headerTextContainer}>
+                                <Text style={styles.headerTitle}>
+                                    {T.title[language]}
+                                </Text>
+                                <Text style={styles.headerSubtitle}>
+                                    {T.subtitle[language]}
+                                </Text>
+                            </View>
+                        </View>
 
-                        {/* Accept Button */}
-                        <TouchableOpacity
-                            style={[
-                                styles.acceptButton,
-                                !isChecked && styles.acceptButtonDisabled,
-                            ]}
-                            onPress={handleAccept}
-                            disabled={!isChecked}
-                            activeOpacity={0.8}
+                        {/* Content */}
+                        <ScrollView
+                            style={styles.scrollView}
+                            contentContainerStyle={styles.scrollContent}
+                            showsVerticalScrollIndicator={false}
                         >
+                            {/* Section 1 - What app is NOT */}
+                            <View style={[styles.section, styles.warningSection]}>
+                                <Text style={styles.warningSectionTitle}>
+                                    {T.section1Title[language]}
+                                </Text>
+                                <Text style={styles.warningSectionContent}>
+                                    {T.section1Content[language]}
+                                </Text>
+                            </View>
+
+                            {/* Section 2 - What app IS */}
+                            <View style={[styles.section, styles.infoSection]}>
+                                <Text style={styles.infoSectionTitle}>
+                                    {T.section2Title[language]}
+                                </Text>
+                                <Text style={styles.infoSectionContent}>
+                                    {T.section2Content[language]}
+                                </Text>
+                            </View>
+
+                            {/* Section 3 - Responsibility */}
+                            <View style={[styles.section, styles.cautionSection]}>
+                                <Text style={styles.cautionSectionTitle}>
+                                    {T.section3Title[language]}
+                                </Text>
+                                <Text style={styles.cautionSectionContent}>
+                                    {T.section3Content[language]}
+                                </Text>
+                            </View>
+
+                            {/* Emergency Section */}
                             <LinearGradient
-                                colors={isChecked ? ['#0E7490', '#0891B2', '#06B6D4'] : ['#9CA3AF', '#9CA3AF']}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                                style={styles.acceptButtonGradient}
+                                colors={['rgba(30, 64, 175, 0.9)', 'rgba(37, 99, 235, 0.9)']}
+                                style={styles.emergencySection}
                             >
-                                {isChecked && <Check size={20} color="#FFFFFF" />}
-                                <Text style={styles.acceptButtonText}>
-                                    {T.acceptButton[language]}
+                                <Text style={styles.emergencyTitle}>
+                                    {T.emergencyTitle[language]}
+                                </Text>
+                                <Text style={styles.emergencyContent}>
+                                    {T.emergencyContent[language]}
                                 </Text>
                             </LinearGradient>
-                        </TouchableOpacity>
+                        </ScrollView>
 
-                        {!isChecked && (
-                            <Text style={[styles.mustAcceptText, { color: colors.textSecondary }]}>
-                                {T.mustAccept[language]}
-                            </Text>
-                        )}
-                    </View>
-                </View>
+                        {/* Footer with checkbox and button */}
+                        <View style={styles.footer}>
+                            {/* Checkbox */}
+                            <TouchableOpacity
+                                style={styles.checkboxContainer}
+                                onPress={() => setIsChecked(!isChecked)}
+                                activeOpacity={0.7}
+                            >
+                                <View style={styles.checkbox}>
+                                    {isChecked ? (
+                                        <CheckSquare size={24} color="#0E7490" />
+                                    ) : (
+                                        <Square size={24} color="rgba(0,0,0,0.4)" />
+                                    )}
+                                </View>
+                                <Text style={styles.checkboxText}>
+                                    {T.checkboxText[language]}
+                                </Text>
+                            </TouchableOpacity>
+
+                            {/* Accept Button */}
+                            <TouchableOpacity
+                                style={[
+                                    styles.acceptButton,
+                                    !isChecked && styles.acceptButtonDisabled,
+                                ]}
+                                onPress={handleAccept}
+                                disabled={!isChecked}
+                                activeOpacity={0.8}
+                            >
+                                <LinearGradient
+                                    colors={isChecked ? ['#0E7490', '#0891B2', '#06B6D4'] : ['rgba(156,163,175,0.6)', 'rgba(156,163,175,0.6)']}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                    style={styles.acceptButtonGradient}
+                                >
+                                    {isChecked && <Check size={20} color="#FFFFFF" />}
+                                    <Text style={styles.acceptButtonText}>
+                                        {T.acceptButton[language]}
+                                    </Text>
+                                </LinearGradient>
+                            </TouchableOpacity>
+
+                            {!isChecked && (
+                                <Text style={styles.mustAcceptText}>
+                                    {T.mustAccept[language]}
+                                </Text>
+                            )}
+                        </View>
+                    </LinearGradient>
+                )}
             </View>
         </Modal>
     );
@@ -284,7 +390,7 @@ export function MedicalConsentModal({ visible, onAccept, language }: MedicalCons
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.6)',
+        backgroundColor: 'rgba(0,0,0,0.5)',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -293,7 +399,8 @@ const styles = StyleSheet.create({
         maxHeight: SCREEN_HEIGHT * 0.85,
         borderRadius: 24,
         overflow: 'hidden',
-        flexDirection: 'column',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.3)',
         ...Platform.select({
             ios: {
                 shadowColor: '#000',
@@ -306,23 +413,19 @@ const styles = StyleSheet.create({
             },
         }),
     },
-    headerWrapper: {
-        width: '100%',
+    modalContainerAndroid: {
+        backgroundColor: 'rgba(255,255,255,0.95)',
     },
-    headerBlur: {
-        width: '100%',
-        padding: Spacing.lg,
-        paddingTop: Spacing.xl,
-    },
-    headerAndroid: {
-        width: '100%',
-        padding: Spacing.lg,
-        paddingTop: Spacing.xl,
+    modalInner: {
+        // Don't use flex:1 inside BlurView - gradient provides the background
+        borderRadius: 24,
     },
     headerContent: {
         flexDirection: 'row',
         alignItems: 'flex-start',
         gap: Spacing.md,
+        padding: Spacing.lg,
+        paddingTop: Spacing.xl,
     },
     headerIconContainer: {
         marginTop: 4,
@@ -342,14 +445,16 @@ const styles = StyleSheet.create({
         fontSize: 22,
         fontWeight: '700',
         marginBottom: 4,
+        color: '#1F2937',
     },
     headerSubtitle: {
         ...Typography.styles.caption,
         fontSize: 14,
         lineHeight: 20,
+        color: 'rgba(0,0,0,0.6)',
     },
     scrollView: {
-        flex: 1,
+        maxHeight: SCREEN_HEIGHT * 0.42,
     },
     scrollContent: {
         paddingHorizontal: Spacing.lg,
@@ -359,20 +464,61 @@ const styles = StyleSheet.create({
     section: {
         borderRadius: 16,
         padding: Spacing.md,
+        borderWidth: 1.5,
     },
-    warningSection: {},
-    infoSection: {},
-    cautionSection: {},
-    sectionTitle: {
+    // Warning section - Red theme with glassmorphism
+    warningSection: {
+        backgroundColor: 'rgba(254, 226, 226, 0.7)',
+        borderColor: 'rgba(239, 68, 68, 0.4)',
+    },
+    warningSectionTitle: {
         ...Typography.styles.h4,
         fontSize: 16,
         fontWeight: '600',
         marginBottom: 8,
+        color: '#991B1B',
     },
-    sectionContent: {
+    warningSectionContent: {
         ...Typography.styles.body,
         fontSize: 14,
         lineHeight: 22,
+        color: '#7F1D1D',
+    },
+    // Info section - Green theme with glassmorphism
+    infoSection: {
+        backgroundColor: 'rgba(220, 252, 231, 0.7)',
+        borderColor: 'rgba(34, 197, 94, 0.4)',
+    },
+    infoSectionTitle: {
+        ...Typography.styles.h4,
+        fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 8,
+        color: '#166534',
+    },
+    infoSectionContent: {
+        ...Typography.styles.body,
+        fontSize: 14,
+        lineHeight: 22,
+        color: '#14532D',
+    },
+    // Caution section - Yellow/Amber theme with glassmorphism
+    cautionSection: {
+        backgroundColor: 'rgba(254, 243, 199, 0.7)',
+        borderColor: 'rgba(245, 158, 11, 0.4)',
+    },
+    cautionSectionTitle: {
+        ...Typography.styles.h4,
+        fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 8,
+        color: '#92400E',
+    },
+    cautionSectionContent: {
+        ...Typography.styles.body,
+        fontSize: 14,
+        lineHeight: 22,
+        color: '#78350F',
     },
     emergencySection: {
         borderRadius: 16,
@@ -395,6 +541,7 @@ const styles = StyleSheet.create({
     footer: {
         padding: Spacing.lg,
         borderTopWidth: 1,
+        borderTopColor: 'rgba(0,0,0,0.1)',
         gap: Spacing.md,
     },
     checkboxContainer: {
@@ -410,6 +557,7 @@ const styles = StyleSheet.create({
         ...Typography.styles.body,
         fontSize: 13,
         lineHeight: 20,
+        color: '#1F2937',
     },
     acceptButton: {
         borderRadius: 16,
@@ -436,5 +584,6 @@ const styles = StyleSheet.create({
         ...Typography.styles.caption,
         fontSize: 12,
         textAlign: 'center',
+        color: 'rgba(0,0,0,0.5)',
     },
 });

@@ -44,7 +44,11 @@ import {
     User,
     Check,
     X,
+    Crown,
+    Zap,
 } from 'lucide-react-native';
+import { PaywallModal } from '@/components/PaywallModal';
+import { useSubscription } from '@/hooks/useSubscription';
 import { Spacing } from '@/constants/Spacing';
 import { Translations } from '@/constants/Translations';
 import { APP_VERSION } from '@/constants/Config';
@@ -88,6 +92,10 @@ export default function SettingsScreen() {
     const [isLoaded, setIsLoaded] = useState(false);
     const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
     const [isCheckingPermission, setIsCheckingPermission] = useState(false);
+    const [isPaywallVisible, setIsPaywallVisible] = useState(false);
+
+    // Subscription hook
+    const { subscriptionStatus, getRemainingAnalysesText, isPremium } = useSubscription();
     const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
     // Load settings from AsyncStorage on mount and check notification permission
@@ -317,6 +325,57 @@ export default function SettingsScreen() {
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
+                    {/* Subscription Section */}
+                    <View style={styles.sectionWrapper}>
+                        <View style={styles.sectionHeader}>
+                            <Crown size={20} color="#F59E0B" />
+                            <Text style={styles.sectionTitle}>
+                                {language === 'tr' ? 'Abonelik' : 'Subscription'}
+                            </Text>
+                        </View>
+                        <View style={styles.cardWrapper}>
+                            <GlassCard style={styles.cardBlur} innerStyle={styles.card}>
+                                <View style={styles.subscriptionInfo}>
+                                    <View style={styles.subscriptionHeader}>
+                                        <View style={[
+                                            styles.tierBadge,
+                                            subscriptionStatus?.tier === 'pro' && styles.tierBadgePro,
+                                            subscriptionStatus?.tier === 'basic' && styles.tierBadgeBasic,
+                                        ]}>
+                                            {subscriptionStatus?.tier === 'pro' ? (
+                                                <Crown size={14} color="#FFFFFF" />
+                                            ) : subscriptionStatus?.tier === 'basic' ? (
+                                                <Zap size={14} color="#FFFFFF" />
+                                            ) : (
+                                                <User size={14} color="#FFFFFF" />
+                                            )}
+                                            <Text style={styles.tierBadgeText}>
+                                                {subscriptionStatus?.tier === 'pro' ? 'Pro' :
+                                                    subscriptionStatus?.tier === 'basic' ? 'Basic' :
+                                                        (language === 'tr' ? 'Ücretsiz' : 'Free')}
+                                            </Text>
+                                        </View>
+                                        <Text style={styles.remainingText}>
+                                            {getRemainingAnalysesText(language)}
+                                        </Text>
+                                    </View>
+                                    {!isPremium() && (
+                                        <TouchableOpacity
+                                            style={styles.upgradeButton}
+                                            onPress={() => setIsPaywallVisible(true)}
+                                            activeOpacity={0.8}
+                                        >
+                                            <Crown size={18} color="#FFFFFF" />
+                                            <Text style={styles.upgradeButtonText}>
+                                                {language === 'tr' ? "Premium'a Yükselt" : 'Upgrade to Premium'}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                            </GlassCard>
+                        </View>
+                    </View>
+
                     {/* General Section */}
                     <View style={styles.sectionWrapper}>
                         <View style={styles.sectionHeader}>
@@ -591,6 +650,13 @@ export default function SettingsScreen() {
                     </Pressable>
                 </Pressable>
             </Modal>
+
+            {/* Paywall Modal */}
+            <PaywallModal
+                visible={isPaywallVisible}
+                onClose={() => setIsPaywallVisible(false)}
+                language={language}
+            />
         </ImageBackground>
     );
 }
@@ -939,5 +1005,54 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: '#64748B',
+    },
+
+    // Subscription Section
+    subscriptionInfo: {
+        gap: Spacing.md,
+    },
+    subscriptionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    tierBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        backgroundColor: '#6B7280',
+    },
+    tierBadgeBasic: {
+        backgroundColor: '#3B82F6',
+    },
+    tierBadgePro: {
+        backgroundColor: '#F59E0B',
+    },
+    tierBadgeText: {
+        color: '#FFFFFF',
+        fontSize: 13,
+        fontWeight: '600',
+    },
+    remainingText: {
+        fontSize: 13,
+        color: '#6B7280',
+    },
+    upgradeButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        backgroundColor: '#F59E0B',
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: 12,
+    },
+    upgradeButtonText: {
+        color: '#FFFFFF',
+        fontSize: 15,
+        fontWeight: '600',
     },
 });

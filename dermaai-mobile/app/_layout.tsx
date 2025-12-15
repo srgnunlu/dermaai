@@ -4,11 +4,12 @@ import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Asset } from 'expo-asset';
+import Purchases, { LOG_LEVEL } from 'react-native-purchases';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { queryClient } from '@/lib/queryClient';
@@ -17,6 +18,10 @@ import { TabBarVisibilityProvider } from '@/contexts/TabBarVisibilityContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { registerPushTokenWithBackend } from '@/lib/notifications';
 import * as Notifications from 'expo-notifications';
+
+// RevenueCat API Keys
+const REVENUECAT_IOS_API_KEY = 'test_NVaCJScnTJldnjDHXLEQeiXAGXk';
+const REVENUECAT_ANDROID_API_KEY = 'test_NVaCJScnTJldnjDHXLEQeiXAGXk';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -45,6 +50,29 @@ export default function RootLayout() {
     ...FontAwesome.font,
   });
   const [assetsLoaded, setAssetsLoaded] = useState(false);
+  const [revenueCatReady, setRevenueCatReady] = useState(false);
+
+  // Initialize RevenueCat on app startup
+  useEffect(() => {
+    const initRevenueCat = async () => {
+      try {
+        Purchases.setLogLevel(LOG_LEVEL.VERBOSE);
+
+        const apiKey = Platform.OS === 'ios'
+          ? REVENUECAT_IOS_API_KEY
+          : REVENUECAT_ANDROID_API_KEY;
+
+        await Purchases.configure({ apiKey });
+        setRevenueCatReady(true);
+        console.log('[RevenueCat] Initialized successfully');
+      } catch (error) {
+        console.error('[RevenueCat] Failed to initialize:', error);
+        setRevenueCatReady(true); // Continue anyway
+      }
+    };
+
+    initRevenueCat();
+  }, []);
 
   // Preload assets on mount
   useEffect(() => {
@@ -64,7 +92,9 @@ export default function RootLayout() {
   // Hide splash screen when both fonts and assets are loaded
   useEffect(() => {
     if (fontsLoaded && assetsLoaded) {
-      SplashScreen.hideAsync();
+      SplashScreen.hideAsync().catch(() => {
+        // Ignore error - splash screen may already be hidden during hot reload
+      });
     }
   }, [fontsLoaded, assetsLoaded]);
 
@@ -87,7 +117,7 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
@@ -109,15 +139,24 @@ function RootLayoutNav() {
     }
   }, [isAuthenticated, isLoading, segments]);
 
-  // Register push token when user is authenticated
+  // Register push token and sync RevenueCat user when authenticated
   useEffect(() => {
-    if (isAuthenticated && !isLoading) {
+    if (isAuthenticated && !isLoading && user?.id) {
       // Register push token in background (don't block app startup)
       registerPushTokenWithBackend().catch((err) => {
         console.log('Failed to register push token:', err);
       });
+
+      // Sync user with RevenueCat for subscription tracking
+      Purchases.logIn(user.id)
+        .then(({ customerInfo }) => {
+          console.log('[RevenueCat] User logged in:', user.id);
+        })
+        .catch((err) => {
+          console.log('[RevenueCat] Failed to log in user:', err);
+        });
     }
-  }, [isAuthenticated, isLoading]);
+  }, [isAuthenticated, isLoading, user?.id]);
 
   // Handle push notification taps
   useEffect(() => {

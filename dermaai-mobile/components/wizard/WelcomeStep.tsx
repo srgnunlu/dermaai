@@ -42,6 +42,7 @@ import { Translations } from '@/constants/Translations';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useRouter } from 'expo-router';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useSubscription } from '@/hooks/useSubscription';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -241,6 +242,7 @@ export function WelcomeStep({
 
     const { language, toggleLanguage } = useLanguage();
     const DAILY_TIPS = getDailyTips(language);
+    const { subscriptionStatus, getRemainingAnalysesText, isPremium } = useSubscription();
 
     const [currentTipIndex] = useState(() => Math.floor(Math.random() * 11));
 
@@ -406,6 +408,23 @@ export function WelcomeStep({
                         </TouchableOpacity>
                     </View>
                 </Animated.View>
+
+                {/* Subscription Badge - Remaining Analyses */}
+                <View style={styles.subscriptionBadgeContainer}>
+                    <BlurView intensity={60} tint="light" style={styles.subscriptionBadgeBlur}>
+                        <View style={styles.subscriptionBadgeContent}>
+                            <View style={[
+                                styles.tierIndicator,
+                                isPremium() && styles.tierIndicatorPremium
+                            ]}>
+                                <Zap size={12} color="#FFFFFF" />
+                            </View>
+                            <Text style={styles.subscriptionBadgeText}>
+                                {getRemainingAnalysesText(language)}
+                            </Text>
+                        </View>
+                    </BlurView>
+                </View>
 
                 {/* Start Diagnosis Button - Premium Enhanced */}
                 <Animated.View style={[
@@ -851,5 +870,45 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '500',
         color: '#64748B',
+    },
+    // Subscription Badge Styles
+    subscriptionBadgeContainer: {
+        marginBottom: Spacing.lg,
+        borderRadius: 14,
+        overflow: 'hidden',
+        alignSelf: 'flex-start',
+    },
+    subscriptionBadgeBlur: {
+        borderRadius: 14,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.5)',
+    },
+    subscriptionBadgeContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        gap: 8,
+        backgroundColor: Platform.select({
+            android: 'rgba(255, 255, 255, 0.2)',
+            ios: 'rgba(255, 255, 255, 0.15)',
+        }),
+    },
+    tierIndicator: {
+        width: 22,
+        height: 22,
+        borderRadius: 11,
+        backgroundColor: '#3B82F6',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    tierIndicatorPremium: {
+        backgroundColor: '#F59E0B',
+    },
+    subscriptionBadgeText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#1e293b',
     },
 });

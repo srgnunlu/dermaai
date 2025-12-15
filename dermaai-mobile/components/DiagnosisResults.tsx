@@ -45,6 +45,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { hasTutorialBeenShown } from '@/lib/storage';
 import { DiagnosisTutorial } from '@/components/DiagnosisTutorial';
 import { useAuth } from '@/hooks/useAuth';
+import { useSubscription } from '@/hooks/useSubscription';
+import { PaywallModal } from '@/components/PaywallModal';
+import { Crown } from 'lucide-react-native';
 import type { AnalysisResponse, DiagnosisResult } from '@/types/schema';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -134,6 +137,10 @@ export function DiagnosisResults({
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const flatListRef = useRef<FlatList>(null);
     const successModalAnim = useRef(new Animated.Value(0)).current;
+
+    // Subscription status for upgrade banner
+    const { isPremium, getRemainingAnalysesText } = useSubscription();
+    const [showPaywall, setShowPaywall] = useState(false);
 
     // Check if tutorial should be shown (first-time user - now user-based)
     useEffect(() => {
@@ -407,6 +414,32 @@ export function DiagnosisResults({
                 </Text>
             </View>
 
+            {/* Upgrade Banner for Free Users */}
+            {!isPremium() && (
+                <TouchableOpacity
+                    style={styles.upgradeBanner}
+                    onPress={() => setShowPaywall(true)}
+                    activeOpacity={0.8}
+                >
+                    <BlurView intensity={60} tint="light" style={styles.upgradeBannerBlur}>
+                        <View style={styles.upgradeBannerContent}>
+                            <View style={styles.upgradeBannerIcon}>
+                                <Crown size={16} color="#F59E0B" />
+                            </View>
+                            <View style={styles.upgradeBannerText}>
+                                <Text style={styles.upgradeBannerTitle}>
+                                    {language === 'tr' ? 'Premium\'a Yükselt' : 'Upgrade to Premium'}
+                                </Text>
+                                <Text style={styles.upgradeBannerSubtitle}>
+                                    {getRemainingAnalysesText(language)}
+                                </Text>
+                            </View>
+                            <Sparkles size={16} color="#F59E0B" />
+                        </View>
+                    </BlurView>
+                </TouchableOpacity>
+            )}
+
             {/* Action Buttons Row */}
             <View style={styles.buttonRow}>
                 <TouchableOpacity
@@ -534,6 +567,13 @@ export function DiagnosisResults({
                     </Animated.View>
                 </View>
             </Modal>
+
+            {/* Paywall Modal */}
+            <PaywallModal
+                visible={showPaywall}
+                onClose={() => setShowPaywall(false)}
+                language={language}
+            />
         </ImageBackground>
     );
 }
@@ -1200,5 +1240,51 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: '#FFFFFF',
         letterSpacing: 0.3,
+    },
+    // Upgrade Banner Styles
+    upgradeBanner: {
+        marginHorizontal: Spacing.lg,
+        marginTop: Spacing.sm,
+        borderRadius: 14,
+        overflow: 'hidden',
+    },
+    upgradeBannerBlur: {
+        borderRadius: 14,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(245, 158, 11, 0.3)',
+    },
+    upgradeBannerContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.sm + 2,
+        backgroundColor: Platform.select({
+            android: 'rgba(255, 251, 235, 0.4)',
+            ios: 'rgba(255, 251, 235, 0.3)',
+        }),
+    },
+    upgradeBannerIcon: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: 'rgba(245, 158, 11, 0.15)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: Spacing.sm,
+    },
+    upgradeBannerText: {
+        flex: 1,
+    },
+    upgradeBannerTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#92400E',
+    },
+    upgradeBannerSubtitle: {
+        fontSize: 12,
+        fontWeight: '500',
+        color: '#B45309',
+        marginTop: 1,
     },
 });

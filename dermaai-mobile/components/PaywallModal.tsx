@@ -207,7 +207,7 @@ type PlanType = 'basic' | 'pro';
 
 export function PaywallModal({ visible, onClose, language }: PaywallModalProps) {
     const [selectedPlan, setSelectedPlan] = useState<PlanType>('pro');
-    const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('yearly');
+    const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('monthly');
     const [isRestoring, setIsRestoring] = useState(false);
 
     // Animation values
@@ -217,6 +217,7 @@ export function PaywallModal({ visible, onClose, language }: PaywallModalProps) 
     const shimmerAnim = useRef(new Animated.Value(0)).current;
     const crownScale = useRef(new Animated.Value(1)).current;
     const buttonScale = useRef(new Animated.Value(1)).current;
+    const yearlyPulseAnim = useRef(new Animated.Value(1)).current;
 
     const {
         purchaseProduct,
@@ -250,6 +251,22 @@ export function PaywallModal({ visible, onClose, language }: PaywallModalProps) 
                     duration: 2000,
                     useNativeDriver: true,
                 })
+            ).start();
+
+            // Yearly tab pulse animation to attract attention
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(yearlyPulseAnim, {
+                        toValue: 1.05,
+                        duration: 800,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(yearlyPulseAnim, {
+                        toValue: 1,
+                        duration: 800,
+                        useNativeDriver: true,
+                    }),
+                ])
             ).start();
         }
     }, [visible]);
@@ -435,24 +452,29 @@ export function PaywallModal({ visible, onClose, language }: PaywallModalProps) 
                             {language === 'tr' ? 'Aylık' : 'Monthly'}
                         </Text>
                     </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[
-                            styles.billingOption,
-                            billingPeriod === 'yearly' && styles.billingOptionActive,
-                        ]}
-                        onPress={() => setBillingPeriod('yearly')}
-                    >
-                        <Text style={[
-                            styles.billingOptionText,
-                            billingPeriod === 'yearly' && styles.billingOptionTextActive,
-                        ]}>
-                            {language === 'tr' ? 'Yıllık' : 'Yearly'}
-                        </Text>
-                        <View style={styles.saveBadge}>
-                            <Sparkles size={10} color="#FFFFFF" />
-                            <Text style={styles.saveBadgeText}>-33%</Text>
-                        </View>
-                    </TouchableOpacity>
+                    <Animated.View style={[
+                        billingPeriod !== 'yearly' && { transform: [{ scale: yearlyPulseAnim }] }
+                    ]}>
+                        <TouchableOpacity
+                            style={[
+                                styles.billingOption,
+                                billingPeriod === 'yearly' && styles.billingOptionActive,
+                                billingPeriod !== 'yearly' && styles.yearlyTabHighlight,
+                            ]}
+                            onPress={() => setBillingPeriod('yearly')}
+                        >
+                            <Text style={[
+                                styles.billingOptionText,
+                                billingPeriod === 'yearly' && styles.billingOptionTextActive,
+                            ]}>
+                                {language === 'tr' ? 'Yıllık' : 'Yearly'}
+                            </Text>
+                            <View style={styles.saveBadge}>
+                                <Sparkles size={10} color="#FFFFFF" />
+                                <Text style={styles.saveBadgeText}>-33%</Text>
+                            </View>
+                        </TouchableOpacity>
+                    </Animated.View>
                 </View>
             </View>
 
@@ -816,6 +838,22 @@ const styles = StyleSheet.create({
     billingOptionTextActive: {
         color: '#1F2937',
         fontWeight: '700',
+    },
+    yearlyTabHighlight: {
+        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+        borderWidth: 1.5,
+        borderColor: '#F59E0B',
+        ...Platform.select({
+            ios: {
+                shadowColor: '#F59E0B',
+                shadowOffset: { width: 0, height: 0 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+            },
+            android: {
+                elevation: 4,
+            },
+        }),
     },
     saveBadge: {
         flexDirection: 'row',

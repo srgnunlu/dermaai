@@ -135,7 +135,7 @@ export interface IStorage {
   deleteLesionTracking(id: string, userId: string): Promise<boolean>;
   
   // Lesion snapshot operations
-  createLesionSnapshot(data: InsertLesionSnapshot): Promise<LesionSnapshot>;
+  createLesionSnapshot(data: InsertLesionSnapshot, originalDate?: Date): Promise<LesionSnapshot>;
   getLesionSnapshots(lesionTrackingId: string): Promise<LesionSnapshot[]>;
   getLesionSnapshot(id: string): Promise<LesionSnapshot | undefined>;
   
@@ -1255,7 +1255,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Lesion Snapshot operations
-  async createLesionSnapshot(data: InsertLesionSnapshot): Promise<LesionSnapshot> {
+  async createLesionSnapshot(data: InsertLesionSnapshot, originalDate?: Date): Promise<LesionSnapshot> {
     // Get current snapshot count
     const existingSnapshots = await this.getLesionSnapshots(data.lesionTrackingId);
     const snapshotOrder = existingSnapshots.length + 1;
@@ -1265,6 +1265,8 @@ export class DatabaseStorage implements IStorage {
       .values({
         ...data,
         snapshotOrder,
+        // Use original date if provided (e.g., from linked case), otherwise defaults to now()
+        ...(originalDate && { createdAt: originalDate }),
       })
       .returning();
 

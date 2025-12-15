@@ -2289,12 +2289,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (trackingData.initialCaseId) {
         const initialCase = await storage.getCase(trackingData.initialCaseId, userId);
         if (initialCase) {
+          // Use original case creation date, not today's date
+          const originalDate = initialCase.createdAt ? new Date(initialCase.createdAt) : undefined;
           await storage.createLesionSnapshot({
             lesionTrackingId: tracking.id,
             caseId: initialCase.id,
             imageUrls: initialCase.imageUrls || (initialCase.imageUrl ? [initialCase.imageUrl] : []),
             notes: null,
-          });
+          }, originalDate);
         }
       }
 

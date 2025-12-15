@@ -187,6 +187,8 @@ export function useAnalyzeCase() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['cases'] });
+            // Also refresh subscription status to update remaining analyses count
+            queryClient.invalidateQueries({ queryKey: ['subscription-status'] });
         },
     });
 

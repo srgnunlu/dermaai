@@ -4,7 +4,7 @@ const requirements = [
   {
     title: 'Network',
     items: [
-      'HTTPS access to api.dermaai.health and storage.dermaai.health on ports 443/80.',
+      'HTTPS access to api.corioscan.com and storage.corioscan.com on ports 443/80.',
       'Outbound access to Google Cloud Storage or Cloudinary (if configured for media hosting).',
       'Minimum 10 Mbps upload bandwidth per concurrent clinician for high-resolution imaging.',
     ],
@@ -20,7 +20,7 @@ const requirements = [
   {
     title: 'Security',
     items: [
-      'Single sign-on (SAML/OIDC) or DermaAI MFA for production environments.',
+      'Single sign-on (SAML/OIDC) or Corio Scan MFA for production environments.',
       'Role-based access configured for clinicians, supervisors, and administrators.',
       'Quarterly review of audit logs and AI override reports by clinical governance teams.',
     ],
@@ -44,10 +44,10 @@ export default function TechnicalRequirementsPage() {
             Technical Requirements
           </span>
           <h1 className="mt-4 text-4xl font-bold text-foreground">
-            Environment Checklist for DermaAI Deployment
+            Environment Checklist for Corio Scan Deployment
           </h1>
           <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
-            Prepare your infrastructure for DermaAI with the configuration checklist below. Meeting
+            Prepare your infrastructure for Corio Scan with the configuration checklist below. Meeting
             these requirements ensures reliable AI performance, secure case handling, and fast
             turnaround for dual-model consensus analyses.
           </p>
@@ -62,7 +62,7 @@ export default function TechnicalRequirementsPage() {
                 <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
                   {section.items.map((item) => (
                     <li key={item} className="flex items-start gap-3">
-                      <span className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-400" />
+                      <span className="mt-1 h-1.5 w-1.5 rounded-full bg-cyan-400" />
                       <span>{item}</span>
                     </li>
                   ))}

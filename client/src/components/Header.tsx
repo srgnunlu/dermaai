@@ -91,12 +91,12 @@ export default function Header() {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link href="/">
           <a className="flex items-center gap-3" data-testid="link-home">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-600 text-white">
               <Microscope className="h-5 w-5" />
             </span>
             <span className="flex flex-col leading-tight">
-              <span className="text-lg font-semibold text-white">DermaAI</span>
-              <span className="text-xs text-blue-200">Medical Support</span>
+              <span className="text-lg font-semibold text-white">Corio<span className="text-cyan-400"> Scan</span></span>
+              <span className="text-xs text-cyan-200">AI-Powered Skin Analysis</span>
             </span>
           </a>
         </Link>
@@ -108,11 +108,10 @@ export default function Header() {
             return (
               <Link key={item.name} href={item.href}>
                 <a
-                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-blue-600 text-white shadow-lg'
+                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${isActive
+                      ? 'bg-cyan-600 text-white shadow-lg'
                       : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                  }`}
+                    }`}
                   data-testid={`link-${item.name.toLowerCase().replace(' ', '-')}`}
                 >
                   <Icon className="h-4 w-4" />

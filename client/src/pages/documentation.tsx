@@ -12,7 +12,7 @@ const modules = [
     icon: Code,
     title: 'Integration API',
     description:
-      'REST endpoints for synchronising DermaAI cases with EHR systems, including webhook triggers for analysis completion and report exports.',
+      'REST endpoints for synchronising Corio Scan cases with EHR systems, including webhook triggers for analysis completion and report exports.',
   },
   {
     icon: ShieldCheck,
@@ -38,10 +38,10 @@ export default function DocumentationPage() {
               Documentation Portal
             </span>
             <h1 className="mt-4 text-4xl font-bold text-foreground">
-              Implementing DermaAI in Your Clinic
+              Implementing Corio Scan in Your Clinic
             </h1>
             <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
-              Access deployment guides, workflow diagrams, and API references to configure DermaAI
+              Access deployment guides, workflow diagrams, and API references to configure Corio Scan
               for your dermatology service. These resources assume a technical lead collaborating
               with clinical champions.
             </p>
@@ -66,12 +66,12 @@ export default function DocumentationPage() {
             <h3 className="text-lg font-semibold text-foreground">Getting Started Checklist</h3>
             <ol className="mt-4 list-decimal space-y-2 pl-6 text-sm text-muted-foreground">
               <li>
-                Review the onboarding guide with your clinical governance team and appoint a DermaAI
+                Review the onboarding guide with your clinical governance team and appoint a Corio Scan
                 administrator.
               </li>
               <li>
                 Configure secure S3 or Cloudinary storage (if required) and verify outbound network
-                policies to DermaAI endpoints.
+                policies to Corio Scan endpoints.
               </li>
               <li>
                 Execute a pilot with de-identified historic cases to familiarise clinicians with

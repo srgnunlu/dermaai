@@ -4,7 +4,7 @@ const clauses = [
   {
     title: 'Clinical Use',
     description:
-      'DermaAI provides clinical decision support and should be used by licensed healthcare professionals. All diagnoses and treatment plans remain the responsibility of the supervising clinician.',
+      'Corio Scan provides clinical decision support and should be used by licensed healthcare professionals. All diagnoses and treatment plans remain the responsibility of the supervising clinician.',
   },
   {
     title: 'Account Responsibilities',
@@ -14,12 +14,12 @@ const clauses = [
   {
     title: 'Data Ownership',
     description:
-      'Patient records and uploaded media remain the property of your organisation. DermaAI processes data on your behalf and does not claim ownership of the clinical content you generate.',
+      'Patient records and uploaded media remain the property of your organisation. Corio Scan processes data on your behalf and does not claim ownership of the clinical content you generate.',
   },
   {
     title: 'Service Availability',
     description:
-      'DermaAI targets 99.5% uptime. Planned maintenance windows are communicated at least 48 hours in advance. Critical incidents are reported through your nominated contact.',
+      'Corio Scan targets 99.5% uptime. Planned maintenance windows are communicated at least 48 hours in advance. Critical incidents are reported through your nominated contact.',
   },
   {
     title: 'Model Updates',
@@ -42,10 +42,10 @@ export default function TermsOfServicePage() {
             Terms of Service
           </span>
           <h1 className="mt-4 text-4xl font-bold text-foreground">
-            Professional Agreement for DermaAI
+            Professional Agreement for Corio Scan
           </h1>
           <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
-            These terms govern the use of DermaAI by healthcare providers and organisations. By
+            These terms govern the use of Corio Scan by healthcare providers and organisations. By
             accessing the platform you agree to follow the safeguards described below to protect
             patients, maintain compliance, and preserve service quality.
           </p>
@@ -73,7 +73,7 @@ export default function TermsOfServicePage() {
             <div>
               <h3 className="text-lg font-semibold text-foreground">Contact for Legal Notices</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                legal@dermaai.health • DermaAI Compliance, 18 Klinik Str, Zürich 8001, Switzerland.
+                legal@corioscan.com • Corio Scan, Istanbul, Turkey.
               </p>
             </div>
           </div>

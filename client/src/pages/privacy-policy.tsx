@@ -28,7 +28,7 @@ const sections = [
   {
     title: 'Your Rights',
     body: [
-      'Request a copy of personal data stored in DermaAI or ask for corrections when records are inaccurate.',
+      'Request a copy of personal data stored in Corio Scan or ask for corrections when records are inaccurate.',
       'Request deletion of information that is no longer required for clinical operations or regulatory compliance.',
       'Appoint a data protection contact to receive breach notifications and audit responses from our team.',
     ],
@@ -47,7 +47,7 @@ export default function PrivacyPolicyPage() {
             Protecting Clinical and Patient Privacy
           </h1>
           <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
-            DermaAI is designed for regulated clinical environments. We only collect the information
+            Corio Scan is designed for regulated clinical environments. We only collect the information
             required to deliver secure dermatological decision support and never use
             patient-identifiable data for marketing or third-party analytics.
           </p>
@@ -75,8 +75,8 @@ export default function PrivacyPolicyPage() {
             <p className="font-semibold">Questions about privacy?</p>
             <p className="mt-2">
               Email our Data Protection Officer at{' '}
-              <a href="mailto:privacy@dermaai.health" className="underline">
-                privacy@dermaai.health
+              <a href="mailto:privacy@corioscan.com" className="underline">
+                privacy@corioscan.com
               </a>
               . We respond to verified requests within 72 hours.
             </p>

@@ -1,10 +1,10 @@
 import SiteFooter from '@/components/SiteFooter';
 
 const statements = [
-  'DermaAI generates differential diagnoses and priority assessments based on submitted imagery and case notes. Outputs are advisory only.',
+  'Corio Scan generates differential diagnoses and priority assessments based on submitted imagery and case notes. Outputs are advisory only.',
   'Only qualified clinicians may make diagnostic or treatment decisions. Always confirm AI suggestions with patient examination, history, and relevant tests.',
   'Urgency indicators highlight potential risk but do not replace institutional escalation policies or emergency triage procedures.',
-  'DermaAI does not provide medical guidance directly to patients. Patient-facing use is prohibited without clinician supervision.',
+  'Corio Scan does not provide medical guidance directly to patients. Patient-facing use is prohibited without clinician supervision.',
   'The platform is not certified as a medical device in every jurisdiction. Ensure usage complies with local regulatory frameworks.',
   'Clinical governance teams should review periodic audit logs, model release notes, and documented limitations before expanding usage.',
 ];
@@ -21,7 +21,7 @@ export default function MedicalDisclaimerPage() {
             Clinical Oversight Remains Essential
           </h1>
           <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
-            DermaAI augments dermatology workflows with AI-driven insights. It does not replace
+            Corio Scan augments dermatology workflows with AI-driven insights. It does not replace
             professional judgement, diagnostic testing, or patient consultation. Review the
             statements below with your clinical governance team before deploying the platform.
           </p>
@@ -40,7 +40,7 @@ export default function MedicalDisclaimerPage() {
             <p className="font-semibold">Clinical Safety Lead</p>
             <p className="mt-2">
               Assign a safety officer responsible for reviewing AI-assisted cases, documenting
-              overrides, and coordinating feedback with the DermaAI medical science team.
+              overrides, and coordinating feedback with the Corio Scan medical science team.
             </p>
           </div>
         </div>

@@ -8,13 +8,13 @@ export function SiteFooter() {
         <div className="grid gap-10 md:grid-cols-3">
           <div>
             <div className="flex items-center mb-4">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-600 text-white">
                 <Microscope className="h-5 w-5" />
               </div>
               <div className="ml-3">
-                <p className="text-lg font-semibold text-foreground">DermaAI</p>
+                <p className="text-lg font-semibold text-foreground">Corio<span className="text-cyan-600"> Scan</span></p>
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Medical Support Platform
+                  AI-Powered Skin Analysis
                 </p>
               </div>
             </div>
@@ -69,8 +69,8 @@ export function SiteFooter() {
 
         <div className="border-t border-border mt-10 pt-6 text-center">
           <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} DermaAI. Clinical decision support for dermatology
-            specialists. Not a substitute for professional diagnosis.
+            © {new Date().getFullYear()} Corio Scan. AI-powered skin analysis for dermatology
+            professionals. Not a substitute for professional diagnosis.
           </p>
         </div>
       </div>

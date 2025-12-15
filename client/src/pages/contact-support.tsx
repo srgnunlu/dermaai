@@ -33,14 +33,14 @@ export default function ContactSupportPage() {
     <div className="min-h-screen bg-background flex flex-col">
       <main className="flex-1">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <span className="inline-flex items-center rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-blue-300">
+          <span className="inline-flex items-center rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-300">
             Contact Support
           </span>
           <h1 className="mt-4 text-4xl font-bold text-foreground">
             We're here to help your dermatology team succeed
           </h1>
           <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
-            Reach the DermaAI clinical success team for onboarding questions, security reviews, or
+            Reach the Corio Scan clinical success team for onboarding questions, security reviews, or
             escalation of urgent operational issues. Include as much detail as possible so we can
             respond quickly.
           </p>
@@ -108,14 +108,14 @@ export default function ContactSupportPage() {
               />
             </div>
             <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>Urgent incident hotline: +41 44 123 45 67 • support@dermaai.health</span>
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+              <span>Support: destek@corioscan.com</span>
+              <Button type="submit" className="bg-cyan-600 hover:bg-cyan-700">
                 Submit Request
               </Button>
             </div>
           </form>
 
-          <div className="mt-10 rounded-2xl border border-blue-500/30 bg-blue-500/5 p-6 text-sm text-blue-100">
+          <div className="mt-10 rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-6 text-sm text-cyan-100">
             <p className="font-semibold">Support hours</p>
             <p className="mt-2">
               Monday–Friday, 07:00–19:00 CET for standard requests. Critical incidents are monitored

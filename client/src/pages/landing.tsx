@@ -4,16 +4,24 @@ import { Stethoscope, Shield, Brain, Clock, FileText, Users } from 'lucide-react
 
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gradient-to-b from-cyan-50 via-white to-slate-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-12">
           <div className="flex justify-center mb-6">
-            <Stethoscope className="h-16 w-16 text-blue-600 dark:text-blue-400" />
+            <div className="relative">
+              <div className="absolute inset-0 bg-cyan-400/20 blur-xl rounded-full"></div>
+              <div className="relative bg-gradient-to-br from-cyan-500 to-teal-600 p-4 rounded-2xl shadow-lg">
+                <Stethoscope className="h-12 w-12 text-white" />
+              </div>
+            </div>
           </div>
-          <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">
-            AI-Powered Medical Diagnosis
+          <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-2">
+            Corio<span className="text-cyan-600"> Scan</span>
           </h1>
+          <p className="text-lg text-cyan-600 dark:text-cyan-400 font-medium mb-4">
+            AI-Powered Skin Analysis Platform
+          </p>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
             Advanced dermatological analysis using state-of-the-art AI models to assist healthcare
             professionals in diagnosis
@@ -50,9 +58,11 @@ export default function Landing() {
 
         {/* Features Grid */}
         <div className="grid md:grid-cols-3 gap-8 mt-16">
-          <Card data-testid="card-feature-ai">
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow bg-white/80 dark:bg-gray-800/80 backdrop-blur" data-testid="card-feature-ai">
             <CardHeader>
-              <Brain className="h-10 w-10 text-blue-600 dark:text-blue-400 mb-2" />
+              <div className="p-3 bg-cyan-100 dark:bg-cyan-900/30 rounded-xl w-fit mb-2">
+                <Brain className="h-8 w-8 text-cyan-600 dark:text-cyan-400" />
+              </div>
               <CardTitle>Dual AI Analysis</CardTitle>
             </CardHeader>
             <CardContent>
@@ -63,9 +73,11 @@ export default function Landing() {
             </CardContent>
           </Card>
 
-          <Card data-testid="card-feature-security">
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow bg-white/80 dark:bg-gray-800/80 backdrop-blur" data-testid="card-feature-security">
             <CardHeader>
-              <Shield className="h-10 w-10 text-green-600 dark:text-green-400 mb-2" />
+              <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl w-fit mb-2">
+                <Shield className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
+              </div>
               <CardTitle>Secure & Private</CardTitle>
             </CardHeader>
             <CardContent>
@@ -76,9 +88,11 @@ export default function Landing() {
             </CardContent>
           </Card>
 
-          <Card data-testid="card-feature-reports">
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow bg-white/80 dark:bg-gray-800/80 backdrop-blur" data-testid="card-feature-reports">
             <CardHeader>
-              <FileText className="h-10 w-10 text-purple-600 dark:text-purple-400 mb-2" />
+              <div className="p-3 bg-violet-100 dark:bg-violet-900/30 rounded-xl w-fit mb-2">
+                <FileText className="h-8 w-8 text-violet-600 dark:text-violet-400" />
+              </div>
               <CardTitle>Detailed Reports</CardTitle>
             </CardHeader>
             <CardContent>
@@ -89,9 +103,11 @@ export default function Landing() {
             </CardContent>
           </Card>
 
-          <Card data-testid="card-feature-history">
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow bg-white/80 dark:bg-gray-800/80 backdrop-blur" data-testid="card-feature-history">
             <CardHeader>
-              <Clock className="h-10 w-10 text-orange-600 dark:text-orange-400 mb-2" />
+              <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-xl w-fit mb-2">
+                <Clock className="h-8 w-8 text-amber-600 dark:text-amber-400" />
+              </div>
               <CardTitle>Case History</CardTitle>
             </CardHeader>
             <CardContent>
@@ -102,9 +118,11 @@ export default function Landing() {
             </CardContent>
           </Card>
 
-          <Card data-testid="card-feature-patient">
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow bg-white/80 dark:bg-gray-800/80 backdrop-blur" data-testid="card-feature-patient">
             <CardHeader>
-              <Users className="h-10 w-10 text-indigo-600 dark:text-indigo-400 mb-2" />
+              <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl w-fit mb-2">
+                <Users className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
+              </div>
               <CardTitle>Patient Management</CardTitle>
             </CardHeader>
             <CardContent>
@@ -115,9 +133,11 @@ export default function Landing() {
             </CardContent>
           </Card>
 
-          <Card data-testid="card-feature-urgent">
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow bg-white/80 dark:bg-gray-800/80 backdrop-blur" data-testid="card-feature-urgent">
             <CardHeader>
-              <Shield className="h-10 w-10 text-red-600 dark:text-red-400 mb-2" />
+              <div className="p-3 bg-rose-100 dark:bg-rose-900/30 rounded-xl w-fit mb-2">
+                <Shield className="h-8 w-8 text-rose-600 dark:text-rose-400" />
+              </div>
               <CardTitle>Urgency Detection</CardTitle>
             </CardHeader>
             <CardContent>
@@ -130,18 +150,18 @@ export default function Landing() {
         </div>
 
         {/* CTA Section */}
-        <div className="text-center mt-16 p-8 bg-blue-50 dark:bg-gray-800 rounded-lg">
+        <div className="text-center mt-16 p-8 bg-gradient-to-r from-cyan-50 to-teal-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl border border-cyan-100 dark:border-gray-600">
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
             Ready to Get Started?
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
-            Sign in with your Google account to access the full diagnostic platform
+            Sign in with your Google account to access the Corio Scan platform
           </p>
           <Button
             size="lg"
             onClick={() => (window.location.href = '/api/auth/google')}
             data-testid="button-get-started"
-            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg"
+            className="bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 text-white px-8 py-4 text-lg shadow-lg hover:shadow-xl transition-all"
           >
             Continue with Google
           </Button>

@@ -452,29 +452,24 @@ export function PaywallModal({ visible, onClose, language }: PaywallModalProps) 
                             {language === 'tr' ? 'Aylık' : 'Monthly'}
                         </Text>
                     </TouchableOpacity>
-                    <Animated.View style={[
-                        billingPeriod !== 'yearly' && { transform: [{ scale: yearlyPulseAnim }] }
-                    ]}>
-                        <TouchableOpacity
-                            style={[
-                                styles.billingOption,
-                                billingPeriod === 'yearly' && styles.billingOptionActive,
-                                billingPeriod !== 'yearly' && styles.yearlyTabHighlight,
-                            ]}
-                            onPress={() => setBillingPeriod('yearly')}
-                        >
-                            <Text style={[
-                                styles.billingOptionText,
-                                billingPeriod === 'yearly' && styles.billingOptionTextActive,
-                            ]}>
-                                {language === 'tr' ? 'Yıllık' : 'Yearly'}
-                            </Text>
-                            <View style={styles.saveBadge}>
-                                <Sparkles size={10} color="#FFFFFF" />
-                                <Text style={styles.saveBadgeText}>-33%</Text>
-                            </View>
-                        </TouchableOpacity>
-                    </Animated.View>
+                    <TouchableOpacity
+                        style={[
+                            styles.billingOption,
+                            billingPeriod === 'yearly' && styles.billingOptionActive,
+                        ]}
+                        onPress={() => setBillingPeriod('yearly')}
+                    >
+                        <Text style={[
+                            styles.billingOptionText,
+                            billingPeriod === 'yearly' && styles.billingOptionTextActive,
+                        ]}>
+                            {language === 'tr' ? 'Yıllık' : 'Yearly'}
+                        </Text>
+                        <View style={styles.saveBadge}>
+                            <Sparkles size={10} color="#FFFFFF" />
+                            <Text style={styles.saveBadgeText}>-33%</Text>
+                        </View>
+                    </TouchableOpacity>
                 </View>
             </View>
 

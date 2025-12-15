@@ -30,12 +30,10 @@ import {
     AlertTriangle,
     CheckCircle,
     Maximize2,
-    Minimize2,
     Palette,
     Circle,
     Layers,
     Clock,
-    Sparkles,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Spacing } from '@/constants/Spacing';
@@ -328,10 +326,6 @@ export default function ComparisonDetailScreen() {
                         <View style={styles.analysisCardWrapper}>
                             <BlurView intensity={65} tint="light" style={styles.analysisCardBlur}>
                                 <View style={styles.analysisCard}>
-                                    <View style={styles.aiIndicator}>
-                                        <Sparkles size={14} color="#0891B2" />
-                                        <Text style={styles.aiIndicatorText}>Gemini AI</Text>
-                                    </View>
                                     <Text style={styles.analysisText}>{analysis.detailedAnalysis}</Text>
                                 </View>
                             </BlurView>

@@ -622,22 +622,34 @@ export default function LesionDetailScreen() {
                             </TouchableOpacity>
                         </View>
 
-                        {snapshots.map((snapshot, index) => (
-                            <SnapshotCard
-                                key={snapshot.id}
-                                snapshot={snapshot}
-                                index={index}
-                                total={snapshots.length}
-                                language={language}
-                                dateLocale={dateLocale}
-                                onPress={() => {
-                                    if (snapshot.caseId) {
+                        {snapshots.map((snapshot, index) => {
+                            // Find comparison where this snapshot is the current (after) snapshot
+                            const relatedComparison = comparisons.find(
+                                c => c.currentSnapshotId === snapshot.id
+                            );
+                            
+                            return (
+                                <SnapshotCard
+                                    key={snapshot.id}
+                                    snapshot={snapshot}
+                                    index={index}
+                                    total={snapshots.length}
+                                    language={language}
+                                    dateLocale={dateLocale}
+                                    hasComparison={!!relatedComparison}
+                                    onPress={() => {
                                         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                                        router.push(`/case/${snapshot.caseId}`);
-                                    }
-                                }}
-                            />
-                        ))}
+                                        // If there's a comparison for this snapshot, go to comparison page
+                                        if (relatedComparison) {
+                                            router.push(`/lesion/compare/${relatedComparison.id}`);
+                                        } else if (snapshot.caseId) {
+                                            // Otherwise go to case page if available
+                                            router.push(`/case/${snapshot.caseId}`);
+                                        }
+                                    }}
+                                />
+                            );
+                        })}
                     </View>
 
                     {/* Delete Button */}
@@ -930,6 +942,7 @@ function SnapshotCard({
     total,
     language,
     dateLocale,
+    hasComparison,
     onPress,
 }: {
     snapshot: LesionSnapshot;
@@ -937,6 +950,7 @@ function SnapshotCard({
     total: number;
     language: 'tr' | 'en';
     dateLocale: typeof tr | typeof enUS;
+    hasComparison?: boolean;
     onPress: () => void;
 }) {
     const isFirst = index === 0;
@@ -948,6 +962,9 @@ function SnapshotCard({
 
     // Get diagnosis from case if available
     const topDiagnosis = snapshot.case?.geminiAnalysis?.diagnoses?.[0];
+    
+    // Card is clickable if there's a comparison or a case
+    const isClickable = hasComparison || !!snapshot.caseId;
 
     return (
         <View style={styles.timelineItem}>
@@ -961,8 +978,8 @@ function SnapshotCard({
             <TouchableOpacity
                 style={styles.snapshotCardWrapper}
                 onPress={onPress}
-                activeOpacity={snapshot.caseId ? 0.8 : 1}
-                disabled={!snapshot.caseId}
+                activeOpacity={isClickable ? 0.8 : 1}
+                disabled={!isClickable}
             >
                 <BlurView intensity={60} tint="light" style={styles.snapshotCardBlur}>
                     <View style={styles.snapshotCard}>
@@ -994,7 +1011,7 @@ function SnapshotCard({
                         </View>
 
                         {/* Arrow */}
-                        {snapshot.caseId && (
+                        {isClickable && (
                             <ChevronRight size={18} color="#94A3B8" />
                         )}
                     </View>

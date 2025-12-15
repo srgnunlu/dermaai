@@ -2407,17 +2407,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           if (previousSnapshot.imageUrls && previousSnapshot.imageUrls.length > 0) {
             try {
-              // Get previous case for diagnosis info
+              // Get previous case for diagnosis info and original date
               let previousDiagnosis = undefined;
+              let previousDate = previousSnapshot.createdAt?.toISOString().split('T')[0] || '';
+              
               if (previousSnapshot.caseId) {
                 const prevCase = await storage.getCaseForAdmin(previousSnapshot.caseId);
-                if (prevCase?.geminiAnalysis?.diagnoses?.[0]) {
-                  const diag = prevCase.geminiAnalysis.diagnoses[0];
-                  previousDiagnosis = {
-                    name: diag.name,
-                    confidence: diag.confidence,
-                    keyFeatures: diag.keyFeatures || [],
-                  };
+                if (prevCase) {
+                  // Use the original case creation date, not snapshot creation date
+                  if (prevCase.createdAt) {
+                    previousDate = prevCase.createdAt.toISOString().split('T')[0];
+                  }
+                  if (prevCase.geminiAnalysis?.diagnoses?.[0]) {
+                    const diag = prevCase.geminiAnalysis.diagnoses[0];
+                    previousDiagnosis = {
+                      name: diag.name,
+                      confidence: diag.confidence,
+                      keyFeatures: diag.keyFeatures || [],
+                    };
+                  }
                 }
               }
 
@@ -2428,7 +2436,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 language: language as 'tr' | 'en',
                 isHealthProfessional,
                 previousAnalysis: {
-                  date: previousSnapshot.createdAt?.toISOString().split('T')[0] || '',
+                  date: previousDate,
                   imageUrls: previousSnapshot.imageUrls,
                   topDiagnosis: previousDiagnosis,
                 },
@@ -2551,17 +2559,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userSettings = await storage.getUserSettings(userId);
       const isHealthProfessional = userSettings?.isHealthProfessional ?? false;
 
-      // Get previous diagnosis info
+      // Get previous diagnosis info and original date
       let previousDiagnosis = undefined;
+      let previousDate = prevSnapshot.createdAt?.toISOString().split('T')[0] || '';
+      
       if (prevSnapshot.caseId) {
         const prevCase = await storage.getCaseForAdmin(prevSnapshot.caseId);
-        if (prevCase?.geminiAnalysis?.diagnoses?.[0]) {
-          const diag = prevCase.geminiAnalysis.diagnoses[0];
-          previousDiagnosis = {
-            name: diag.name,
-            confidence: diag.confidence,
-            keyFeatures: diag.keyFeatures || [],
-          };
+        if (prevCase) {
+          // Use the original case creation date, not snapshot creation date
+          if (prevCase.createdAt) {
+            previousDate = prevCase.createdAt.toISOString().split('T')[0];
+          }
+          if (prevCase.geminiAnalysis?.diagnoses?.[0]) {
+            const diag = prevCase.geminiAnalysis.diagnoses[0];
+            previousDiagnosis = {
+              name: diag.name,
+              confidence: diag.confidence,
+              keyFeatures: diag.keyFeatures || [],
+            };
+          }
         }
       }
 
@@ -2572,7 +2588,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         language: language as 'tr' | 'en',
         isHealthProfessional,
         previousAnalysis: {
-          date: prevSnapshot.createdAt?.toISOString().split('T')[0] || '',
+          date: previousDate,
           imageUrls: prevSnapshot.imageUrls,
           topDiagnosis: previousDiagnosis,
         },

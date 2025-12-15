@@ -768,6 +768,88 @@ export const Translations = {
         tr: 'Lütfen adınızı girin',
         en: 'Please enter your name',
     },
+
+    // Pro Features - Favorites
+    addToFavorites: {
+        tr: 'Favorilere Ekle',
+        en: 'Add to Favorites',
+    },
+    removeFromFavorites: {
+        tr: 'Favorilerden Çıkar',
+        en: 'Remove from Favorites',
+    },
+    favorites: {
+        tr: 'Favoriler',
+        en: 'Favorites',
+    },
+    showFavorites: {
+        tr: 'Sadece Favoriler',
+        en: 'Favorites Only',
+    },
+    showAll: {
+        tr: 'Tümünü Göster',
+        en: 'Show All',
+    },
+    noFavorites: {
+        tr: 'Henüz favori vaka yok',
+        en: 'No favorite cases yet',
+    },
+    addedToFavorites: {
+        tr: 'Favorilere eklendi',
+        en: 'Added to favorites',
+    },
+    removedFromFavorites: {
+        tr: 'Favorilerden çıkarıldı',
+        en: 'Removed from favorites',
+    },
+
+    // Pro Features - Notes
+    addNote: {
+        tr: 'Not Ekle',
+        en: 'Add Note',
+    },
+    editNote: {
+        tr: 'Notu Düzenle',
+        en: 'Edit Note',
+    },
+    viewNote: {
+        tr: 'Notu Görüntüle',
+        en: 'View Note',
+    },
+    deleteNote: {
+        tr: 'Notu Sil',
+        en: 'Delete Note',
+    },
+    notePlaceholder: {
+        tr: 'Bu vaka hakkında notlarınızı yazın...',
+        en: 'Write your notes about this case...',
+    },
+    noteSaved: {
+        tr: 'Not kaydedildi',
+        en: 'Note saved',
+    },
+    noteDeleted: {
+        tr: 'Not silindi',
+        en: 'Note deleted',
+    },
+    caseNotes: {
+        tr: 'Vaka Notları',
+        en: 'Case Notes',
+    },
+
+    // Pro Features - General
+    proFeature: {
+        tr: 'Pro Özellik',
+        en: 'Pro Feature',
+    },
+    upgradeForFeature: {
+        tr: 'Bu özelliği kullanmak için Pro\'ya yükseltin',
+        en: 'Upgrade to Pro to use this feature',
+    },
+    upgradeToPro: {
+        tr: 'Pro\'ya Yükselt',
+        en: 'Upgrade to Pro',
+    },
 } as const;
 
 // Dynamic value translations (for database values)

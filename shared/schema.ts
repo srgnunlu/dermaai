@@ -118,6 +118,9 @@ export const cases = pgTable(
     status: text('status').default('pending'),
     selectedAnalysisProvider: text('selected_analysis_provider').default('gemini'), // 'gemini' | 'openai'
     isHidden: jsonb('is_hidden').default(false).$type<boolean>(), // Hidden from history when anonymization is enabled
+    // Pro user features: favorites and notes
+    isFavorite: jsonb('is_favorite').default(false).$type<boolean>(), // Favorited by user
+    userNotes: text('user_notes'), // User's personal notes about the case
     createdAt: timestamp('created_at').defaultNow(),
   },
   (table) => [

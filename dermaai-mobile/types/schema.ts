@@ -90,6 +90,9 @@ export interface Case {
     dermatologistDiagnosedAt: Date | null;
     status: string | null;
     selectedAnalysisProvider: 'gemini' | 'openai' | null;
+    // Pro user features
+    isFavorite: boolean | null;
+    userNotes: string | null;
     createdAt: Date | null;
 }
 

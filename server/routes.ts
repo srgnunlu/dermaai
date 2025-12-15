@@ -1127,6 +1127,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Toggle favorite status for a case (Pro feature)
+  app.patch('/api/mobile/cases/:id/favorite', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const idParam = req.params.id;
+      const { isFavorite } = req.body;
+
+      // Validate isFavorite
+      if (typeof isFavorite !== 'boolean') {
+        return res.status(400).json({ error: 'isFavorite must be a boolean' });
+      }
+
+      // Support both internal id and caseId (DR-2025-...) formats
+      let existingCase;
+      if (idParam.startsWith('DR-')) {
+        existingCase = await storage.getCaseByCaseId(idParam, userId);
+      } else {
+        existingCase = await storage.getCase(idParam, userId);
+      }
+
+      if (!existingCase) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      // Update the favorite status
+      const updatedCase = await storage.updateCase(existingCase.id, userId, {
+        isFavorite,
+      });
+
+      res.json(updatedCase);
+    } catch (error) {
+      logger.error('Error updating favorite status:', error);
+      res.status(500).json({ error: 'Failed to update favorite status' });
+    }
+  });
+
+  // Update user notes for a case (Pro feature)
+  app.patch('/api/mobile/cases/:id/notes', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const idParam = req.params.id;
+      const { notes } = req.body;
+
+      // Validate notes (can be null/empty to clear)
+      if (notes !== null && notes !== undefined && typeof notes !== 'string') {
+        return res.status(400).json({ error: 'notes must be a string or null' });
+      }
+
+      // Support both internal id and caseId (DR-2025-...) formats
+      let existingCase;
+      if (idParam.startsWith('DR-')) {
+        existingCase = await storage.getCaseByCaseId(idParam, userId);
+      } else {
+        existingCase = await storage.getCase(idParam, userId);
+      }
+
+      if (!existingCase) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      // Update the notes
+      const updatedCase = await storage.updateCase(existingCase.id, userId, {
+        userNotes: notes || null,
+      });
+
+      res.json(updatedCase);
+    } catch (error) {
+      logger.error('Error updating case notes:', error);
+      res.status(500).json({ error: 'Failed to update notes' });
+    }
+  });
+
   // Dermatologist diagnosis endpoints
   app.post('/api/cases/:id/dermatologist-diagnosis', isAuthenticated, requireAdmin, async (req: any, res) => {
     try {

@@ -35,13 +35,15 @@ import {
     X,
     Check,
     Camera,
+    Star,
 } from 'lucide-react-native';
 import { Colors } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
 import { Spacing } from '@/constants/Spacing';
 import { Translations } from '@/constants/Translations';
 import { useColorScheme } from '@/components/useColorScheme';
-import { useCases, useDeleteCase } from '@/hooks/useCases';
+import { useCases, useDeleteCase, useToggleFavorite, useUpdateCaseNotes } from '@/hooks/useCases';
+import { useSubscription } from '@/hooks/useSubscription';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { SwipeableCaseCard } from '@/components/SwipeableCaseCard';
 import {
@@ -49,6 +51,8 @@ import {
     LoadingSpinner,
     EmptyState,
 } from '@/components/ui';
+import { CaseContextMenu } from '@/components/CaseContextMenu';
+import { NoteModal } from '@/components/NoteModal';
 import type { Case } from '@/types/schema';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -62,6 +66,7 @@ interface FilterState {
     date: DateFilter;
     confidence: ConfidenceFilter;
     location: string | null;
+    favorites: boolean;
     sort: SortOption;
 }
 
@@ -69,6 +74,7 @@ const initialFilterState: FilterState = {
     date: 'all',
     confidence: 'all',
     location: null,
+    favorites: false,
     sort: 'newest',
 };
 
@@ -80,10 +86,19 @@ export default function HistoryScreen() {
 
     const { cases, isLoading, error, refetch } = useCases();
     const { deleteCase, isDeleting } = useDeleteCase();
+    const { toggleFavorite, isToggling } = useToggleFavorite();
+    const { updateNotes, isUpdating } = useUpdateCaseNotes();
+    const { subscriptionStatus } = useSubscription();
     const insets = useSafeAreaInsets();
     const [filterModalVisible, setFilterModalVisible] = useState(false);
     const [filters, setFilters] = useState<FilterState>(initialFilterState);
     const [tempFilters, setTempFilters] = useState<FilterState>(initialFilterState);
+
+    // Pro features state
+    const [contextMenuVisible, setContextMenuVisible] = useState(false);
+    const [noteModalVisible, setNoteModalVisible] = useState(false);
+    const [selectedCase, setSelectedCase] = useState<Case | null>(null);
+    const isPro = subscriptionStatus?.tier === 'pro';
 
     // Get unique locations from cases
     const uniqueLocations = useMemo(() => {
@@ -112,6 +127,11 @@ export default function HistoryScreen() {
                     default: return true;
                 }
             });
+        }
+
+        // Filter by favorites (Pro feature)
+        if (filters.favorites) {
+            result = result.filter(c => c.isFavorite === true);
         }
 
         // Filter by confidence
@@ -217,18 +237,70 @@ export default function HistoryScreen() {
     const hasActiveFilters = filters.date !== 'all' ||
         filters.confidence !== 'all' ||
         filters.location !== null ||
+        filters.favorites ||
         filters.sort !== 'newest';
+
+    // Pro feature handlers
+    const handleLongPress = useCallback((caseItem: Case) => {
+        setSelectedCase(caseItem);
+        setContextMenuVisible(true);
+    }, []);
+
+    const handleToggleFavorite = useCallback(async () => {
+        if (!selectedCase) return;
+        try {
+            await toggleFavorite({
+                caseId: selectedCase.id,
+                isFavorite: !selectedCase.isFavorite,
+            });
+            setContextMenuVisible(false);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } catch (err) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        }
+    }, [selectedCase, toggleFavorite]);
+
+    const handleOpenNoteModal = useCallback(() => {
+        setContextMenuVisible(false);
+        setNoteModalVisible(true);
+    }, []);
+
+    const handleSaveNotes = useCallback(async (notes: string | null) => {
+        if (!selectedCase) return;
+        try {
+            await updateNotes({
+                caseId: selectedCase.id,
+                notes,
+            });
+            setNoteModalVisible(false);
+            setSelectedCase(null);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } catch (err) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        }
+    }, [selectedCase, updateNotes]);
+
+    const handleCloseContextMenu = useCallback(() => {
+        setContextMenuVisible(false);
+        setSelectedCase(null);
+    }, []);
+
+    const handleCloseNoteModal = useCallback(() => {
+        setNoteModalVisible(false);
+        setSelectedCase(null);
+    }, []);
 
     const renderCaseItem = useCallback(({ item, index }: { item: Case; index: number }) => (
         <SwipeableCaseCard
             caseData={item}
             onPress={() => handleCasePress(item)}
             onDelete={() => handleDeleteCase(item)}
+            onLongPress={() => handleLongPress(item)}
             colors={colors}
             language={language}
             index={index}
         />
-    ), [handleCasePress, handleDeleteCase, colors, language]);
+    ), [handleCasePress, handleDeleteCase, handleLongPress, colors, language]);
 
     if (isLoading && cases.length === 0) {
         return (
@@ -327,6 +399,32 @@ export default function HistoryScreen() {
                 {/* Filter Bar */}
                 <View style={styles.filterBarWrapper}>
                     <BlurView intensity={60} tint="light" style={styles.filterBarBlur}>
+                        {/* Favorites Toggle (Pro feature) */}
+                        {isPro && (
+                            <TouchableOpacity
+                                style={[
+                                    styles.favoritesToggle,
+                                    filters.favorites && styles.favoritesToggleActive,
+                                ]}
+                                onPress={() => {
+                                    setFilters(prev => ({ ...prev, favorites: !prev.favorites }));
+                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                }}
+                                activeOpacity={0.7}
+                            >
+                                <Star
+                                    size={16}
+                                    color={filters.favorites ? '#FFFFFF' : '#F59E0B'}
+                                    fill={filters.favorites ? '#FFFFFF' : 'transparent'}
+                                />
+                                <Text style={[
+                                    styles.favoritesToggleText,
+                                    filters.favorites && styles.favoritesToggleTextActive,
+                                ]}>
+                                    {Translations.favorites[language]}
+                                </Text>
+                            </TouchableOpacity>
+                        )}
                         <TouchableOpacity
                             style={styles.filterButton}
                             onPress={openFilterModal}
@@ -385,6 +483,27 @@ export default function HistoryScreen() {
                     onReset={resetFilters}
                     locations={uniqueLocations}
                     language={language}
+                />
+
+                {/* Pro Feature: Context Menu */}
+                <CaseContextMenu
+                    visible={contextMenuVisible}
+                    onClose={handleCloseContextMenu}
+                    onToggleFavorite={handleToggleFavorite}
+                    onAddNote={handleOpenNoteModal}
+                    caseData={selectedCase}
+                    language={language}
+                    isPro={isPro}
+                />
+
+                {/* Pro Feature: Note Modal */}
+                <NoteModal
+                    visible={noteModalVisible}
+                    onClose={handleCloseNoteModal}
+                    onSave={handleSaveNotes}
+                    initialNotes={selectedCase?.userNotes || null}
+                    language={language}
+                    isLoading={isUpdating}
                 />
             </View>
         </ImageBackground>
@@ -794,6 +913,27 @@ const styles = StyleSheet.create({
     filterBadgeText: {
         fontSize: 10,
         color: '#EF4444',
+    },
+    favoritesToggle: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: Spacing.sm,
+        paddingHorizontal: Spacing.md,
+        borderRadius: 10,
+        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+        gap: 6,
+        marginRight: Spacing.sm,
+    },
+    favoritesToggleActive: {
+        backgroundColor: '#F59E0B',
+    },
+    favoritesToggleText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#F59E0B',
+    },
+    favoritesToggleTextActive: {
+        color: '#FFFFFF',
     },
 
     // List

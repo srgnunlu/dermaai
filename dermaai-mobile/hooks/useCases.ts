@@ -244,3 +244,49 @@ export function useDeleteCase() {
         error: mutation.error,
     };
 }
+
+// Toggle favorite status for a case (Pro feature)
+export function useToggleFavorite() {
+    const queryClient = useQueryClient();
+
+    const mutation = useMutation({
+        mutationFn: async ({ caseId, isFavorite }: { caseId: string; isFavorite: boolean }) => {
+            return api.patch<Case>(`/api/mobile/cases/${caseId}/favorite`, { isFavorite });
+        },
+        onSuccess: (updatedCase: Case) => {
+            // Update the specific case in cache
+            queryClient.setQueryData(['cases', updatedCase.id], updatedCase);
+            // Invalidate the cases list to refetch
+            queryClient.invalidateQueries({ queryKey: ['cases'] });
+        },
+    });
+
+    return {
+        toggleFavorite: mutation.mutateAsync,
+        isToggling: mutation.isPending,
+        error: mutation.error,
+    };
+}
+
+// Update user notes for a case (Pro feature)
+export function useUpdateCaseNotes() {
+    const queryClient = useQueryClient();
+
+    const mutation = useMutation({
+        mutationFn: async ({ caseId, notes }: { caseId: string; notes: string | null }) => {
+            return api.patch<Case>(`/api/mobile/cases/${caseId}/notes`, { notes });
+        },
+        onSuccess: (updatedCase: Case) => {
+            // Update the specific case in cache
+            queryClient.setQueryData(['cases', updatedCase.id], updatedCase);
+            // Invalidate the cases list to refetch
+            queryClient.invalidateQueries({ queryKey: ['cases'] });
+        },
+    });
+
+    return {
+        updateNotes: mutation.mutateAsync,
+        isUpdating: mutation.isPending,
+        error: mutation.error,
+    };
+}

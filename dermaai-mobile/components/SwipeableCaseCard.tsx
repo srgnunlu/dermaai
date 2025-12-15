@@ -25,13 +25,7 @@ import { BlurView } from 'expo-blur';
 import { format } from 'date-fns';
 import { tr, enUS } from 'date-fns/locale';
 import * as Haptics from 'expo-haptics';
-import {
-    Calendar,
-    MapPin,
-    ChevronRight,
-    Camera,
-    Trash2,
-} from 'lucide-react-native';
+import { Trash2, Camera, Calendar, MapPin, ChevronRight, Star, FileText } from 'lucide-react-native';
 import { Spacing } from '@/constants/Spacing';
 import { ConfidenceBadge } from '@/components/ui';
 import type { Case } from '@/types/schema';
@@ -45,6 +39,7 @@ interface SwipeableCaseCardProps {
     caseData: Case;
     onPress: () => void;
     onDelete: () => void;
+    onLongPress?: () => void;
     colors: typeof Colors.light;
     language?: 'tr' | 'en';
     index: number;
@@ -54,6 +49,7 @@ export function SwipeableCaseCard({
     caseData,
     onPress,
     onDelete,
+    onLongPress,
     colors,
     language = 'tr',
     index,
@@ -118,7 +114,16 @@ export function SwipeableCaseCard({
             }
         });
 
-    const composedGesture = Gesture.Race(panGesture, tapGesture);
+    const longPressGesture = Gesture.LongPress()
+        .minDuration(500)
+        .onStart(() => {
+            if (translateX.value === 0 && onLongPress) {
+                runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Heavy);
+                runOnJS(onLongPress)();
+            }
+        });
+
+    const composedGesture = Gesture.Race(panGesture, Gesture.Exclusive(longPressGesture, tapGesture));
 
     const cardAnimatedStyle = useAnimatedStyle(() => ({
         transform: [{ translateX: translateX.value }],
@@ -190,8 +195,17 @@ export function SwipeableCaseCard({
                                     )}
                                 </View>
 
-                                {/* Confidence Badge & Arrow */}
+                                {/* Confidence Badge, Icons & Arrow */}
                                 <View style={styles.rightSection}>
+                                    {/* Pro feature icons */}
+                                    <View style={styles.proIcons}>
+                                        {caseData.isFavorite && (
+                                            <Star size={14} color="#F59E0B" fill="#F59E0B" />
+                                        )}
+                                        {caseData.userNotes && (
+                                            <FileText size={14} color="#0891B2" />
+                                        )}
+                                    </View>
                                     {topDiagnosis && (
                                         <ConfidenceBadge confidence={topDiagnosis.confidence} size="sm" />
                                     )}
@@ -310,6 +324,10 @@ const styles = StyleSheet.create({
     locationText: {
         fontSize: 12,
         color: '#94A3B8',
+    },
+    proIcons: {
+        flexDirection: 'row',
+        gap: 6,
     },
     rightSection: {
         alignItems: 'flex-end',

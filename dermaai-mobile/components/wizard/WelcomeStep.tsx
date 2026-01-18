@@ -409,22 +409,24 @@ export function WelcomeStep({
                     </View>
                 </Animated.View>
 
-                {/* Subscription Badge - Remaining Analyses */}
-                <View style={styles.subscriptionBadgeContainer}>
-                    <BlurView intensity={60} tint="light" style={styles.subscriptionBadgeBlur}>
-                        <View style={styles.subscriptionBadgeContent}>
-                            <View style={[
-                                styles.tierIndicator,
-                                isPremium() && styles.tierIndicatorPremium
-                            ]}>
-                                <Zap size={12} color="#FFFFFF" />
+                {/* Subscription Badge - Remaining Analyses (only for non-Pro users) */}
+                {!isPremium() && (
+                    <View style={styles.subscriptionBadgeContainer}>
+                        <BlurView intensity={60} tint="light" style={styles.subscriptionBadgeBlur}>
+                            <View style={styles.subscriptionBadgeContent}>
+                                <View style={[
+                                    styles.tierIndicator,
+                                    isPremium() && styles.tierIndicatorPremium
+                                ]}>
+                                    <Zap size={12} color="#FFFFFF" />
+                                </View>
+                                <Text style={styles.subscriptionBadgeText}>
+                                    {getRemainingAnalysesText(language)}
+                                </Text>
                             </View>
-                            <Text style={styles.subscriptionBadgeText}>
-                                {getRemainingAnalysesText(language)}
-                            </Text>
-                        </View>
-                    </BlurView>
-                </View>
+                        </BlurView>
+                    </View>
+                )}
 
                 {/* Start Diagnosis Button - Premium Enhanced */}
                 <Animated.View style={[

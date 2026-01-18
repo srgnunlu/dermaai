@@ -78,20 +78,20 @@ export default function LesionDetailScreen() {
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [editName, setEditName] = useState('');
     const [editLocation, setEditLocation] = useState('');
-    
+
     // New Snapshot Modal State
     const [snapshotModalVisible, setSnapshotModalVisible] = useState(false);
     const [selectedImages, setSelectedImages] = useState<string[]>([]);
     const [snapshotNote, setSnapshotNote] = useState('');
     const [isUploading, setIsUploading] = useState(false);
-    
+
     // Background Analysis State
     const [backgroundAnalyzing, setBackgroundAnalyzing] = useState(false);
     const [lastComparisonResult, setLastComparisonResult] = useState<any>(null);
-    
+
     // Pulse animation for analysis banner
     const pulseAnim = useRef(new Animated.Value(1)).current;
-    
+
     useEffect(() => {
         if (backgroundAnalyzing) {
             const pulse = Animated.loop(
@@ -193,7 +193,7 @@ export default function LesionDetailScreen() {
             if (!permissionResult.granted) {
                 Alert.alert(
                     language === 'tr' ? 'İzin Gerekli' : 'Permission Required',
-                    language === 'tr' 
+                    language === 'tr'
                         ? 'Galeri erişimi için izin vermeniz gerekmektedir.'
                         : 'You need to grant permission to access the gallery.'
                 );
@@ -224,7 +224,7 @@ export default function LesionDetailScreen() {
             if (!permissionResult.granted) {
                 Alert.alert(
                     language === 'tr' ? 'İzin Gerekli' : 'Permission Required',
-                    language === 'tr' 
+                    language === 'tr'
                         ? 'Kamera erişimi için izin vermeniz gerekmektedir.'
                         : 'You need to grant permission to access the camera.'
                 );
@@ -268,7 +268,7 @@ export default function LesionDetailScreen() {
             const uploadedUrls: string[] = [];
             for (let i = 0; i < selectedImages.length; i++) {
                 const imageUri = selectedImages[i];
-                
+
                 try {
                     // Read the local file as base64
                     const response = await fetch(imageUri);
@@ -335,7 +335,7 @@ export default function LesionDetailScreen() {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
                 Alert.alert(
                     language === 'tr' ? 'Analiz Hatası' : 'Analysis Error',
-                    language === 'tr' 
+                    language === 'tr'
                         ? 'Görsel kaydedildi fakat analiz yapılamadı. Daha sonra tekrar deneyin.'
                         : 'Image saved but analysis failed. Please try again later.'
                 );
@@ -348,7 +348,7 @@ export default function LesionDetailScreen() {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             Alert.alert(
                 language === 'tr' ? 'Hata' : 'Error',
-                language === 'tr' 
+                language === 'tr'
                     ? 'Görsel yüklenirken bir hata oluştu.'
                     : 'An error occurred while uploading the image.'
             );
@@ -461,8 +461,8 @@ export default function LesionDetailScreen() {
                                         {language === 'tr' ? 'AI Analiz Yapıyor...' : 'AI Analyzing...'}
                                     </Text>
                                     <Text style={styles.analysisBannerSubtitle}>
-                                        {language === 'tr' 
-                                            ? 'Değişiklikler tespit ediliyor' 
+                                        {language === 'tr'
+                                            ? 'Değişiklikler tespit ediliyor'
                                             : 'Detecting changes'}
                                     </Text>
                                 </View>
@@ -529,8 +529,8 @@ export default function LesionDetailScreen() {
                                     <View style={styles.statItem}>
                                         <Calendar size={16} color="#64748B" />
                                         <Text style={styles.statValue}>
-                                            {tracking.createdAt
-                                                ? format(new Date(tracking.createdAt), 'dd MMM', { locale: dateLocale })
+                                            {snapshots[0]?.createdAt
+                                                ? format(new Date(snapshots[0].createdAt), 'dd MMM', { locale: dateLocale })
                                                 : '-'}
                                         </Text>
                                         <Text style={styles.statLabel}>
@@ -627,7 +627,7 @@ export default function LesionDetailScreen() {
                             const relatedComparison = comparisons.find(
                                 c => c.currentSnapshotId === snapshot.id
                             );
-                            
+
                             return (
                                 <SnapshotCard
                                     key={snapshot.id}
@@ -879,8 +879,8 @@ export default function LesionDetailScreen() {
                                             style={[styles.textInput, styles.noteInput]}
                                             value={snapshotNote}
                                             onChangeText={setSnapshotNote}
-                                            placeholder={language === 'tr' 
-                                                ? 'Değişiklikler hakkında not ekleyin...' 
+                                            placeholder={language === 'tr'
+                                                ? 'Değişiklikler hakkında not ekleyin...'
                                                 : 'Add a note about changes...'}
                                             placeholderTextColor="#94A3B8"
                                             multiline
@@ -892,7 +892,7 @@ export default function LesionDetailScreen() {
                                     <TouchableOpacity
                                         style={[
                                             styles.submitSnapshotButton,
-                                            (selectedImages.length === 0 || isUploading) && 
+                                            (selectedImages.length === 0 || isUploading) &&
                                             styles.submitSnapshotButtonDisabled
                                         ]}
                                         onPress={handleSubmitSnapshot}
@@ -962,7 +962,7 @@ function SnapshotCard({
 
     // Get diagnosis from case if available
     const topDiagnosis = snapshot.case?.geminiAnalysis?.diagnoses?.[0];
-    
+
     // Card is clickable if there's a comparison or a case
     const isClickable = hasComparison || !!snapshot.caseId;
 

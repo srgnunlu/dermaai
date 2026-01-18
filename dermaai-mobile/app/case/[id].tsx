@@ -40,6 +40,7 @@ import {
     Trash2,
     TrendingUp,
     Crown,
+    StickyNote,
 } from 'lucide-react-native';
 import { Colors, getConfidenceColor } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
@@ -411,6 +412,27 @@ export default function CaseDetailScreen() {
                         </View>
                     </View>
 
+                    {/* User Notes (Pro Feature) */}
+                    {caseData.userNotes && (
+                        <View style={styles.sectionWrapper}>
+                            <Text style={styles.sectionTitle}>
+                                📝 {language === 'tr' ? 'Notlarım' : 'My Notes'}
+                            </Text>
+                            <View style={styles.notesCardWrapper}>
+                                <BlurView intensity={60} tint="light" style={styles.notesCardBlur}>
+                                    <View style={styles.notesCard}>
+                                        <View style={styles.notesIconContainer}>
+                                            <StickyNote size={20} color="#F59E0B" />
+                                        </View>
+                                        <Text style={styles.notesText}>
+                                            {caseData.userNotes}
+                                        </Text>
+                                    </View>
+                                </BlurView>
+                            </View>
+                        </View>
+                    )}
+
                     {/* Symptoms */}
                     {caseData.symptoms && caseData.symptoms.length > 0 && (
                         <View style={styles.sectionWrapper}>
@@ -458,160 +480,6 @@ export default function CaseDetailScreen() {
                         </View>
                     )}
 
-
-                    {/* Delete Button */}
-                    {/* Pro Feature: Start Lesion Tracking */}
-                    {isPro && caseData.status === 'completed' && (
-                        <View style={styles.trackingButtonWrapper}>
-                            <TouchableOpacity
-                                style={styles.trackingButtonTouchable}
-                                onPress={async () => {
-                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                                    
-                                    Alert.prompt(
-                                        language === 'tr' ? 'Lezyon Takibi Başlat' : 'Start Lesion Tracking',
-                                        language === 'tr' 
-                                            ? 'Bu lezyona bir isim verin (örn: Sol koldaki ben)'
-                                            : 'Give this lesion a name (e.g: Mole on left arm)',
-                                        [
-                                            {
-                                                text: language === 'tr' ? 'İptal' : 'Cancel',
-                                                style: 'cancel',
-                                            },
-                                            {
-                                                text: language === 'tr' ? 'Başlat' : 'Start',
-                                                onPress: async (name?: string) => {
-                                                    if (!name?.trim()) {
-                                                        Alert.alert(
-                                                            language === 'tr' ? 'Hata' : 'Error',
-                                                            language === 'tr' ? 'Lezyon adı gereklidir.' : 'Lesion name is required.'
-                                                        );
-                                                        return;
-                                                    }
-                                                    
-                                                    try {
-                                                        setIsCreatingTracking(true);
-                                                        const tracking = await createTracking({
-                                                            name: name.trim(),
-                                                            bodyLocation: caseData.lesionLocation || undefined,
-                                                            initialCaseId: caseData.id,
-                                                        });
-                                                        
-                                                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                                                        Alert.alert(
-                                                            language === 'tr' ? 'Başarılı' : 'Success',
-                                                            language === 'tr' 
-                                                                ? 'Lezyon takibi başlatıldı!'
-                                                                : 'Lesion tracking started!',
-                                                            [
-                                                                {
-                                                                    text: language === 'tr' ? 'Takibe Git' : 'Go to Tracking',
-                                                                    onPress: () => router.push(`/lesion/${tracking.id}`),
-                                                                },
-                                                                {
-                                                                    text: language === 'tr' ? 'Tamam' : 'OK',
-                                                                    style: 'cancel',
-                                                                },
-                                                            ]
-                                                        );
-                                                    } catch (err) {
-                                                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-                                                        Alert.alert(
-                                                            language === 'tr' ? 'Hata' : 'Error',
-                                                            language === 'tr' 
-                                                                ? 'Takip oluşturulamadı.'
-                                                                : 'Failed to create tracking.'
-                                                        );
-                                                    } finally {
-                                                        setIsCreatingTracking(false);
-                                                    }
-                                                },
-                                            },
-                                        ],
-                                        'plain-text',
-                                        '',
-                                        'default'
-                                    );
-                                }}
-                                activeOpacity={0.7}
-                                disabled={isCreatingTracking}
-                            >
-                                <BlurView intensity={60} tint="light" style={styles.trackingButtonBlur}>
-                                    <View style={[styles.trackingButtonContent, isCreatingTracking && styles.trackingButtonDisabled]}>
-                                        {isCreatingTracking ? (
-                                            <ActivityIndicator size="small" color="#0891B2" />
-                                        ) : (
-                                            <TrendingUp size={20} color="#0891B2" />
-                                        )}
-                                        <Text style={styles.trackingButtonText}>
-                                            {language === 'tr' ? 'Takibe Başla' : 'Start Tracking'}
-                                        </Text>
-                                        <View style={styles.proBadgeMini}>
-                                            <Crown size={10} color="#F59E0B" />
-                                            <Text style={styles.proBadgeMiniText}>PRO</Text>
-                                        </View>
-                                    </View>
-                                </BlurView>
-                            </TouchableOpacity>
-                        </View>
-                    )}
-
-                    {/* Delete Case */}
-                    <View style={styles.deleteButtonWrapper}>
-                        <TouchableOpacity
-                            style={styles.deleteButtonTouchable}
-                            onPress={() => {
-                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                                Alert.alert(
-                                    Translations.deleteCase[language],
-                                    Translations.deleteCaseConfirm[language],
-                                    [
-                                        {
-                                            text: Translations.cancel[language],
-                                            style: 'cancel',
-                                        },
-                                        {
-                                            text: Translations.delete[language],
-                                            style: 'destructive',
-                                            onPress: async () => {
-                                                try {
-                                                    setIsDeleting(true);
-                                                    await deleteCase(id!);
-                                                    setIsDeleted(true); // Prevent query refetch
-                                                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                                                    router.back();
-                                                } catch (err) {
-                                                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-                                                    Alert.alert(
-                                                        Translations.error[language],
-                                                        Translations.deleteCaseError[language]
-                                                    );
-                                                } finally {
-                                                    setIsDeleting(false);
-                                                }
-                                            },
-                                        },
-                                    ]
-                                );
-                            }}
-                            activeOpacity={0.7}
-                            disabled={isDeleting}
-                        >
-                            <BlurView intensity={60} tint="light" style={styles.deleteButtonBlur}>
-                                <View style={[styles.deleteButtonContent, isDeleting && styles.deleteButtonDisabled]}>
-                                    {isDeleting ? (
-                                        <ActivityIndicator size="small" color="#FFFFFF" />
-                                    ) : (
-                                        <Trash2 size={20} color="#FFFFFF" />
-                                    )}
-                                    <Text style={styles.deleteButtonText}>
-                                        {Translations.deleteCase[language]}
-                                    </Text>
-                                </View>
-                            </BlurView>
-                        </TouchableOpacity>
-                    </View>
-
                     {/* Disclaimer */}
                     <View style={styles.disclaimerWrapper}>
                         <BlurView intensity={50} tint="light" style={styles.disclaimerBlur}>
@@ -624,6 +492,128 @@ export default function CaseDetailScreen() {
                         </BlurView>
                     </View>
                 </ScrollView>
+
+                {/* Floating Action Buttons */}
+                <View style={[styles.fabContainer, { bottom: insets.bottom + 20 }]}>
+                    {/* Left FAB - Start Tracking (Pro only) */}
+                    {isPro && caseData.status === 'completed' && (
+                        <TouchableOpacity
+                            style={styles.fabLeft}
+                            onPress={async () => {
+                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                Alert.prompt(
+                                    language === 'tr' ? 'Lezyon Takibi Başlat' : 'Start Lesion Tracking',
+                                    language === 'tr'
+                                        ? 'Bu lezyona bir isim verin (örn: Sol koldaki ben)'
+                                        : 'Give this lesion a name (e.g: Mole on left arm)',
+                                    [
+                                        { text: language === 'tr' ? 'İptal' : 'Cancel', style: 'cancel' },
+                                        {
+                                            text: language === 'tr' ? 'Başlat' : 'Start',
+                                            onPress: async (name?: string) => {
+                                                if (!name?.trim()) {
+                                                    Alert.alert(
+                                                        language === 'tr' ? 'Hata' : 'Error',
+                                                        language === 'tr' ? 'Lezyon adı gereklidir.' : 'Lesion name is required.'
+                                                    );
+                                                    return;
+                                                }
+                                                try {
+                                                    setIsCreatingTracking(true);
+                                                    const tracking = await createTracking({
+                                                        name: name.trim(),
+                                                        bodyLocation: caseData.lesionLocation || undefined,
+                                                        initialCaseId: caseData.id,
+                                                    });
+                                                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                                                    Alert.alert(
+                                                        language === 'tr' ? 'Başarılı' : 'Success',
+                                                        language === 'tr' ? 'Lezyon takibi başlatıldı!' : 'Lesion tracking started!',
+                                                        [
+                                                            { text: language === 'tr' ? 'Takibe Git' : 'Go to Tracking', onPress: () => router.push(`/lesion/${tracking.id}`) },
+                                                            { text: language === 'tr' ? 'Tamam' : 'OK', style: 'cancel' },
+                                                        ]
+                                                    );
+                                                } catch (err) {
+                                                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                                                    Alert.alert(language === 'tr' ? 'Hata' : 'Error', language === 'tr' ? 'Takip oluşturulamadı.' : 'Failed to create tracking.');
+                                                } finally {
+                                                    setIsCreatingTracking(false);
+                                                }
+                                            },
+                                        },
+                                    ],
+                                    'plain-text',
+                                    '',
+                                    'default'
+                                );
+                            }}
+                            activeOpacity={0.8}
+                            disabled={isCreatingTracking}
+                        >
+                            <BlurView intensity={80} tint="light" style={styles.fabBlur}>
+                                <View style={[styles.fabContent, styles.fabTracking, isCreatingTracking && styles.fabDisabled]}>
+                                    {isCreatingTracking ? (
+                                        <ActivityIndicator size="small" color="#FFFFFF" />
+                                    ) : (
+                                        <TrendingUp size={22} color="#FFFFFF" strokeWidth={2.5} />
+                                    )}
+                                </View>
+                            </BlurView>
+                            <View style={styles.fabLabelContainer}>
+                                <Text style={styles.fabLabel}>{language === 'tr' ? 'Takip' : 'Track'}</Text>
+                            </View>
+                        </TouchableOpacity>
+                    )}
+
+                    {/* Right FAB - Delete */}
+                    <TouchableOpacity
+                        style={styles.fabRight}
+                        onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                            Alert.alert(
+                                Translations.deleteCase[language],
+                                Translations.deleteCaseConfirm[language],
+                                [
+                                    { text: Translations.cancel[language], style: 'cancel' },
+                                    {
+                                        text: Translations.delete[language],
+                                        style: 'destructive',
+                                        onPress: async () => {
+                                            try {
+                                                setIsDeleting(true);
+                                                await deleteCase(id!);
+                                                setIsDeleted(true);
+                                                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                                                router.back();
+                                            } catch (err) {
+                                                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                                                Alert.alert(Translations.error[language], Translations.deleteCaseError[language]);
+                                            } finally {
+                                                setIsDeleting(false);
+                                            }
+                                        },
+                                    },
+                                ]
+                            );
+                        }}
+                        activeOpacity={0.8}
+                        disabled={isDeleting}
+                    >
+                        <BlurView intensity={80} tint="light" style={styles.fabBlur}>
+                            <View style={[styles.fabContent, styles.fabDelete, isDeleting && styles.fabDisabled]}>
+                                {isDeleting ? (
+                                    <ActivityIndicator size="small" color="#FFFFFF" />
+                                ) : (
+                                    <Trash2 size={22} color="#FFFFFF" strokeWidth={2.5} />
+                                )}
+                            </View>
+                        </BlurView>
+                        <View style={styles.fabLabelContainer}>
+                            <Text style={[styles.fabLabel, styles.fabLabelDelete]}>{language === 'tr' ? 'Sil' : 'Delete'}</Text>
+                        </View>
+                    </TouchableOpacity>
+                </View>
             </View>
         </ImageBackground>
     );
@@ -1336,5 +1326,91 @@ const styles = StyleSheet.create({
         fontSize: 9,
         fontWeight: '700',
         color: '#F59E0B',
+    },
+
+    // Floating Action Button Styles
+    fabContainer: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+    },
+    fabLeft: {
+        alignItems: 'center',
+    },
+    fabRight: {
+        alignItems: 'center',
+        marginLeft: 'auto',
+    },
+    fabBlur: {
+        borderRadius: 30,
+        overflow: 'hidden',
+    },
+    fabContent: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    fabTracking: {
+        backgroundColor: 'rgba(8, 145, 178, 0.9)',
+    },
+    fabDelete: {
+        backgroundColor: 'rgba(239, 68, 68, 0.9)',
+    },
+    fabDisabled: {
+        opacity: 0.6,
+    },
+    fabLabelContainer: {
+        marginTop: 6,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 10,
+    },
+    fabLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#FFFFFF',
+    },
+    fabLabelDelete: {
+        color: '#FFFFFF',
+    },
+
+    // User Notes Styles
+    notesCardWrapper: {
+        borderRadius: 16,
+        overflow: 'hidden',
+    },
+    notesCardBlur: {
+        borderRadius: 16,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(245, 158, 11, 0.3)',
+    },
+    notesCard: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        padding: 16,
+        backgroundColor: 'rgba(245, 158, 11, 0.08)',
+        gap: 12,
+    },
+    notesIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 10,
+        backgroundColor: 'rgba(245, 158, 11, 0.15)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    notesText: {
+        flex: 1,
+        fontSize: 15,
+        lineHeight: 22,
+        color: '#374151',
+        fontStyle: 'italic',
     },
 });

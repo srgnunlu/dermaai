@@ -181,6 +181,8 @@ export function useSubscription() {
     // Check if user can analyze (has remaining analyses)
     const canAnalyze = useCallback((): boolean => {
         if (!subscriptionStatus) return true; // Allow by default if status unknown
+        // Pro users always have unlimited analyses
+        if (subscriptionStatus.tier === 'pro') return true;
         return subscriptionStatus.remainingAnalyses > 0;
     }, [subscriptionStatus]);
 

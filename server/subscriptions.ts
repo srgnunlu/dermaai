@@ -83,8 +83,9 @@ export async function canUserAnalyze(userId: string): Promise<{
         }
 
         // Pro users have unlimited analyses
+        // Note: Use a large number instead of Infinity because JSON.stringify(Infinity) = null
         if (tier === 'pro') {
-            return { allowed: true, remainingAnalyses: Infinity, tier };
+            return { allowed: true, remainingAnalyses: 999999, tier };
         }
 
         // Check monthly limit
@@ -258,8 +259,10 @@ export async function getUserSubscriptionStatus(userId: string): Promise<{
 
     const limits = SUBSCRIPTION_LIMITS[tier];
     const currentCount = user.monthlyAnalysisCount || 0;
+    // Note: Use a large number instead of Infinity because JSON.stringify(Infinity) = null
+    // which causes canAnalyze() to return false on the mobile app
     const remaining = tier === 'pro'
-        ? Infinity
+        ? 999999
         : Math.max(0, limits.monthlyAnalysisLimit - currentCount);
 
     return {

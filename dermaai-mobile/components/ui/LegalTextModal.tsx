@@ -753,7 +753,7 @@ export function LegalTextModal({ visible, onClose, type, language }: LegalTextMo
                                     </View>
                                     <TouchableOpacity
                                         onPress={onClose}
-                                        style={[styles.closeButton, { backgroundColor: colors.backgroundSecondary }]}
+                                        style={[styles.closeButton, { backgroundColor: colors.secondary }]}
                                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                                     >
                                         <X size={20} color={colors.textSecondary} />
@@ -761,7 +761,7 @@ export function LegalTextModal({ visible, onClose, type, language }: LegalTextMo
                                 </View>
                             </BlurView>
                         ) : (
-                            <View style={[styles.headerAndroid, { backgroundColor: colors.backgroundSecondary }]}>
+                            <View style={[styles.headerAndroid, { backgroundColor: colors.secondary }]}>
                                 <View style={styles.headerContent}>
                                     <View style={styles.headerLeft}>
                                         <Icon size={24} color={colors.primary} />
@@ -874,7 +874,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
     },
     sectionTitle: {
-        ...Typography.styles.h5,
+        ...Typography.styles.h4,
         fontWeight: '600',
         marginBottom: Spacing.sm,
     },

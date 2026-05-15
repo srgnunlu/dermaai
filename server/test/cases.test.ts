@@ -54,7 +54,7 @@ describe('Case Analysis API', () => {
     mockStorage.getSystemSettings.mockResolvedValue({
       enableGemini: true,
       enableOpenAI: true,
-      openaiModel: 'gpt-4o-mini',
+      openaiModel: 'gpt-5.5',
       openaiAllowFallback: true,
     });
   });

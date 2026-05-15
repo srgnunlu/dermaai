@@ -28,7 +28,6 @@ import {
     Clock,
     ChevronRight,
     RefreshCw,
-    Infinity,
     FileText,
     Bell,
     Users,

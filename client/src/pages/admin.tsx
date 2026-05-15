@@ -1265,14 +1265,15 @@ export default function AdminPage() {
                   </div>
                 </div>
                 <Select
-                  value={systemSettings?.openaiModel || 'gpt-5.1'}
+                  value={systemSettings?.openaiModel || 'gpt-5.5'}
                   onValueChange={(v) => updateSystemSettingsMutation.mutate({ openaiModel: v })}
                 >
                   <SelectTrigger className="w-[200px]">
                     <SelectValue placeholder="Select model" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="gpt-5.1">gpt-5.1</SelectItem>
+                    <SelectItem value="gpt-5.5">gpt-5.5</SelectItem>
+                    <SelectItem value="gpt-5.5-pro">gpt-5.5-pro</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1580,7 +1581,7 @@ export default function AdminPage() {
                     <div className="mb-6">
                       <div className="flex items-center gap-2 mb-4 pb-3 border-b-2 border-green-300">
                         <div className="w-4 h-4 rounded bg-green-600"></div>
-                        <h4 className="text-base font-bold text-green-900">GPT-5.1 Analysis</h4>
+                        <h4 className="text-base font-bold text-green-900">GPT-5.5 Analysis</h4>
                       </div>
                       <div className="space-y-3">
                         {selectedCase.openaiAnalysis.diagnoses.slice(0, 5).map((diagnosis: any, index: number) => (

@@ -43,6 +43,14 @@ describe('DiagnosisResults', () => {
       analysisTime: 3.2,
     },
     finalDiagnoses: null,
+    dermatologistDiagnosis: null,
+    dermatologistNotes: null,
+    dermatologistDiagnosedBy: null,
+    dermatologistDiagnosedAt: null,
+    selectedAnalysisProvider: 'gemini',
+    isHidden: false,
+    isFavorite: false,
+    userNotes: null,
   };
 
   const mockHandlers = {
@@ -62,11 +70,11 @@ describe('DiagnosisResults', () => {
   it('should display both AI analysis results', () => {
     render(<DiagnosisResults caseData={mockCase} {...mockHandlers} />);
 
-    expect(screen.getByText('Gemini 2.5 Flash')).toBeInTheDocument();
+    expect(screen.getByText('Gemini 3')).toBeInTheDocument();
     expect(screen.getByText('Eczema')).toBeInTheDocument();
     expect(screen.getByText('85%')).toBeInTheDocument();
 
-    expect(screen.getByText('GPT-4o Mini')).toBeInTheDocument();
+    expect(screen.getByText('GPT-5.5')).toBeInTheDocument();
     expect(screen.getByText('Contact Dermatitis')).toBeInTheDocument();
     expect(screen.getByText('80%')).toBeInTheDocument();
   });

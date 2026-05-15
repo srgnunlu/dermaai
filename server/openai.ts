@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { DEFAULT_OPENAI_MODEL } from '@shared/schema';
 import logger from './logger';
 
 // Structured diagnostic error info
@@ -261,7 +262,7 @@ QUALITY CHECKLIST (verify before responding):
 ✓ Each diagnosis justified by visible features
 ✓ No absurd or unrelated conditions`;
 
-    const model = options.model || process.env.OPENAI_MODEL || 'gpt-5.1';
+    const model = options.model || process.env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL;
     logger.info(`[OpenAI] Starting analysis with model: ${model}, images: ${urlArray.length}`);
 
     // Build message content with all images

@@ -230,7 +230,7 @@ export const DiagnosisResults = memo(function DiagnosisResults({
 
         {/* OpenAI Analysis */}
         <AIAnalysisCard
-          title="GPT-5.1"
+          title="GPT-5.5"
           icon={<Zap className="h-5 w-5 text-green-600" />}
           analysis={openaiAnalysis}
           color="border-green-500/30"

@@ -225,7 +225,7 @@ export default function AnalyticsPage() {
                     <CardHeader>
                       <CardTitle className="text-lg flex items-center gap-2">
                         <Brain className="h-5 w-5 text-green-500" />
-                        GPT-5.1
+                        GPT-5.5
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2">

@@ -13,6 +13,7 @@ import Purchases, {
     PurchasesOffering,
 } from 'react-native-purchases';
 import { api } from '@/lib/api';
+import { getRevenueCatApiKey } from '@/constants/Config';
 
 // Subscription tier types
 export type SubscriptionTier = 'free' | 'basic' | 'pro';
@@ -24,10 +25,6 @@ export const PRODUCT_IDS = {
     pro_monthly: 'corio_pro_monthly',
     pro_yearly: 'corio_pro_yearly',
 } as const;
-
-// RevenueCat API Keys
-const REVENUECAT_IOS_API_KEY = 'test_NVaCJScnTJldnjDHXLEQeiXAGXk';
-const REVENUECAT_ANDROID_API_KEY = 'test_NVaCJScnTJldnjDHXLEQeiXAGXk';
 
 // Entitlement IDs in RevenueCat
 const ENTITLEMENTS = {
@@ -79,9 +76,12 @@ export async function initializeRevenueCat(appUserId?: string): Promise<void> {
     try {
         Purchases.setLogLevel(LOG_LEVEL.VERBOSE);
 
-        const apiKey = Platform.OS === 'ios'
-            ? REVENUECAT_IOS_API_KEY
-            : REVENUECAT_ANDROID_API_KEY;
+        const apiKey = getRevenueCatApiKey(Platform.OS);
+
+        if (!apiKey) {
+            console.warn('[RevenueCat] API key is not configured; skipping initialization');
+            return;
+        }
 
         if (appUserId) {
             await Purchases.configure({ apiKey, appUserID: appUserId });
@@ -144,6 +144,12 @@ export function useSubscription() {
 
     // Initialize RevenueCat and fetch offerings
     useEffect(() => {
+        if (!getRevenueCatApiKey(Platform.OS)) {
+            console.warn('[Subscription] RevenueCat API key is not configured; purchases disabled');
+            setIsRevenueCatReady(true);
+            return;
+        }
+
         const init = async () => {
             try {
                 // Get offerings from RevenueCat
@@ -226,6 +232,11 @@ export function useSubscription() {
 
     // Purchase a package
     const purchasePackage = useCallback(async (pkg: PurchasesPackage): Promise<boolean> => {
+        if (!getRevenueCatApiKey(Platform.OS)) {
+            console.error('[Subscription] Cannot purchase: RevenueCat API key is not configured');
+            return false;
+        }
+
         setIsPurchasing(true);
         try {
             const { customerInfo: newInfo } = await Purchases.purchasePackage(pkg);
@@ -263,6 +274,11 @@ export function useSubscription() {
 
     // Restore purchases
     const restorePurchases = useCallback(async (): Promise<boolean> => {
+        if (!getRevenueCatApiKey(Platform.OS)) {
+            console.error('[Subscription] Cannot restore: RevenueCat API key is not configured');
+            return false;
+        }
+
         try {
             const info = await Purchases.restorePurchases();
             setCustomerInfo(info);
@@ -282,6 +298,11 @@ export function useSubscription() {
     const refreshStatus = useCallback(async () => {
         await refetchStatus();
 
+        if (!getRevenueCatApiKey(Platform.OS)) {
+            queryClient.invalidateQueries({ queryKey: ['cases'] });
+            return;
+        }
+
         try {
             const info = await Purchases.getCustomerInfo();
             setCustomerInfo(info);
@@ -295,6 +316,10 @@ export function useSubscription() {
 
     // Log in user to RevenueCat (call after authentication)
     const loginToRevenueCat = useCallback(async (userId: string): Promise<void> => {
+        if (!getRevenueCatApiKey(Platform.OS)) {
+            return;
+        }
+
         try {
             const { customerInfo: newInfo } = await Purchases.logIn(userId);
             setCustomerInfo(newInfo);
@@ -307,6 +332,10 @@ export function useSubscription() {
 
     // Log out from RevenueCat (call on user logout)
     const logoutFromRevenueCat = useCallback(async (): Promise<void> => {
+        if (!getRevenueCatApiKey(Platform.OS)) {
+            return;
+        }
+
         try {
             const info = await Purchases.logOut();
             setCustomerInfo(info);

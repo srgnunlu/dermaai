@@ -26,6 +26,7 @@ import {
   lesionTrackings,
   lesionSnapshots,
   lesionComparisons,
+  DEFAULT_OPENAI_MODEL,
 } from '@shared/schema';
 import { db } from './db';
 import { eq, and, or, sql } from 'drizzle-orm';
@@ -809,13 +810,24 @@ export class DatabaseStorage implements IStorage {
   // System settings
   async getSystemSettings(): Promise<SystemSettings> {
     const [row] = await db.select().from(systemSettings).limit(1);
-    if (row) return row as SystemSettings;
+    if (row) {
+      const legacyDefaultModels = new Set(['gpt-4o-mini', 'gpt-5.1']);
+      if (!row.openaiModel || legacyDefaultModels.has(row.openaiModel)) {
+        const [updated] = await db
+          .update(systemSettings)
+          .set({ openaiModel: DEFAULT_OPENAI_MODEL, updatedAt: new Date() })
+          .where(eq(systemSettings.id, row.id))
+          .returning();
+        return updated as SystemSettings;
+      }
+      return row as SystemSettings;
+    }
     const [created] = await db
       .insert(systemSettings)
       .values({
         enableGemini: true,
         enableOpenAI: true,
-        openaiModel: 'gpt-4o-mini',
+        openaiModel: DEFAULT_OPENAI_MODEL,
         openaiAllowFallback: true,
       })
       .returning();

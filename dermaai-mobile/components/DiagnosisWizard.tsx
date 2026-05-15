@@ -586,7 +586,7 @@ export function DiagnosisWizard() {
         };
 
         switch (state.currentStep) {
-            case 0:
+            case 0: {
                 // Format cases for the welcome step
                 const dateLocale = language === 'tr' ? 'tr-TR' : 'en-US';
                 const recentScans = cases
@@ -605,6 +605,7 @@ export function DiagnosisWizard() {
                         onScanPress={handleScanPress}
                     />
                 );
+            }
             case 1:
                 return (
                     <ImageUploadStep
@@ -829,4 +830,3 @@ const styles = StyleSheet.create({
         lineHeight: 22,
     },
 });
-

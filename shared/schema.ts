@@ -3,6 +3,9 @@ import { pgTable, text, varchar, timestamp, integer, jsonb, index } from 'drizzl
 import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
 
+export const DEFAULT_OPENAI_MODEL = 'gpt-5.5' as const;
+export const OPENAI_MODEL_OPTIONS = ['gpt-5.5', 'gpt-5.5-pro'] as const;
+
 // Session storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 export const sessions = pgTable(
@@ -167,20 +170,18 @@ export const insertUserSchema = createInsertSchema(users).pick({
   role: true,
 });
 
-export const updateUserProfileSchema = createInsertSchema(users)
-  .pick({
-    firstName: true,
-    lastName: true,
-    phoneNumber: true,
-    medicalLicenseNumber: true,
-    specialization: true,
-    hospital: true,
-    yearsOfExperience: true,
-    profileImageUrl: true,
-    isHealthProfessional: true,
-    isProfileComplete: true,
-  })
-  .partial();
+export const updateUserProfileSchema = z.object({
+  firstName: z.string().nullable().optional(),
+  lastName: z.string().nullable().optional(),
+  phoneNumber: z.string().nullable().optional(),
+  medicalLicenseNumber: z.string().nullable().optional(),
+  specialization: z.string().nullable().optional(),
+  hospital: z.string().nullable().optional(),
+  yearsOfExperience: z.number().int().nullable().optional(),
+  profileImageUrl: z.string().nullable().optional(),
+  isHealthProfessional: z.boolean().nullable().optional(),
+  isProfileComplete: z.boolean().nullable().optional(),
+});
 
 export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;
 
@@ -240,7 +241,7 @@ export const systemSettings = pgTable('system_settings', {
     .default(sql`gen_random_uuid()`),
   enableGemini: jsonb('enable_gemini').default(true).$type<boolean>(),
   enableOpenAI: jsonb('enable_openai').default(true).$type<boolean>(),
-  openaiModel: text('openai_model').default('gpt-4o-mini'),
+  openaiModel: text('openai_model').default(DEFAULT_OPENAI_MODEL),
   openaiAllowFallback: jsonb('openai_allow_fallback').default(true).$type<boolean>(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
@@ -248,7 +249,7 @@ export const systemSettings = pgTable('system_settings', {
 export const updateSystemSettingsSchema = z.object({
   enableGemini: z.boolean().optional(),
   enableOpenAI: z.boolean().optional(),
-  openaiModel: z.enum(['gpt-5.1']).optional(),
+  openaiModel: z.enum(OPENAI_MODEL_OPTIONS).optional(),
   openaiAllowFallback: z.boolean().optional(),
 });
 
@@ -380,10 +381,11 @@ export const insertLesionTrackingSchema = createInsertSchema(lesionTrackings).om
   lastComparisonAt: true,
 });
 
-export const insertLesionSnapshotSchema = createInsertSchema(lesionSnapshots).omit({
-  id: true,
-  createdAt: true,
-  snapshotOrder: true,
+export const insertLesionSnapshotSchema = z.object({
+  lesionTrackingId: z.string(),
+  caseId: z.string().nullable().optional(),
+  imageUrls: z.array(z.string()).nullable().optional(),
+  notes: z.string().nullable().optional(),
 });
 
 export type InsertLesionTracking = z.infer<typeof insertLesionTrackingSchema>;

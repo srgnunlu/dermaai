@@ -10,9 +10,34 @@ import { storage } from './storage';
 import crypto from 'crypto';
 import logger from './logger';
 
-// JWT secrets - should be set in environment variables
-const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || 'dermaai-jwt-secret';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || JWT_SECRET + '-refresh';
+const isProduction = process.env.NODE_ENV === 'production';
+
+function getJwtSecret(name: 'JWT_SECRET' | 'JWT_REFRESH_SECRET'): string {
+    const value = process.env[name];
+
+    if (value) {
+        return value;
+    }
+
+    if (name === 'JWT_SECRET' && process.env.SESSION_SECRET) {
+        return process.env.SESSION_SECRET;
+    }
+
+    if (isProduction) {
+        throw new Error(`${name} must be configured in production`);
+    }
+
+    const fallback =
+        name === 'JWT_SECRET'
+            ? 'development-only-jwt-secret'
+            : 'development-only-jwt-refresh-secret';
+    logger.warn(`[MOBILE_AUTH] ${name} is not configured; using development-only fallback`);
+    return fallback;
+}
+
+// JWT secrets - production must provide these explicitly.
+const JWT_SECRET = getJwtSecret('JWT_SECRET');
+const JWT_REFRESH_SECRET = getJwtSecret('JWT_REFRESH_SECRET');
 
 // Token expiration times
 const ACCESS_TOKEN_EXPIRY = '1h'; // 1 hour

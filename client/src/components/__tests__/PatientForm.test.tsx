@@ -21,7 +21,7 @@ describe('PatientForm Component', () => {
     expect(screen.getByTestId('input-age')).toBeInTheDocument();
     expect(screen.getByTestId('select-gender')).toBeInTheDocument();
     expect(screen.getByTestId('select-skin-type')).toBeInTheDocument();
-    expect(screen.getByTestId('input-lesion-location')).toBeInTheDocument();
+    expect(screen.getByTestId('select-lesion-location')).toBeInTheDocument();
   });
 
   it('should update patient ID on input change', async () => {

@@ -9,18 +9,12 @@ import crypto from 'crypto';
 import logger from './logger';
 import { verifyAccessToken } from './mobileAuth';
 
-// Simple password hashing utility
-function hashPassword(password: string): string {
-  return crypto.createHash('sha256').update(password).digest('hex');
-}
-
-function verifyPassword(password: string, hash: string): boolean {
-  return hashPassword(password) === hash;
-}
-
 const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
 const isProduction = process.env.NODE_ENV === 'production';
 const sameSiteMode: 'lax' | 'none' = isProduction ? 'none' : 'lax';
+const isLocalAuthEnabled =
+  process.env.LOCAL_AUTH_ENABLED === 'true' ||
+  (!isProduction && process.env.LOCAL_AUTH_ENABLED !== 'false');
 
 const sessionCookieSettings = {
   httpOnly: true,
@@ -34,6 +28,10 @@ const clearCookieSettings = {
 };
 
 export function getSession() {
+  if (!process.env.SESSION_SECRET) {
+    throw new Error('SESSION_SECRET must be configured for session authentication');
+  }
+
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
@@ -43,7 +41,7 @@ export function getSession() {
     tableName: 'sessions',
   });
   return session({
-    secret: process.env.SESSION_SECRET!,
+    secret: process.env.SESSION_SECRET,
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
@@ -54,17 +52,39 @@ export function getSession() {
   });
 }
 
-// Simple user object for local auth
-interface LocalUser {
-  id: string;
-  email: string;
-  firstName?: string;
-  lastName?: string;
-  role?: string;
+function safeCompare(value: string, expected: string): boolean {
+  const valueBuffer = Buffer.from(value);
+  const expectedBuffer = Buffer.from(expected);
+
+  if (valueBuffer.length !== expectedBuffer.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(valueBuffer, expectedBuffer);
 }
 
-async function createDefaultUser(email: string, password: string) {
-  const hashedPassword = hashPassword(password);
+function canUseLocalCredentials(email: string, password: string): boolean {
+  if (!isLocalAuthEnabled) {
+    return false;
+  }
+
+  const configuredEmail = process.env.LOCAL_AUTH_EMAIL;
+  const configuredPassword = process.env.LOCAL_AUTH_PASSWORD;
+
+  if (configuredEmail || configuredPassword) {
+    return Boolean(
+      configuredEmail &&
+      configuredPassword &&
+      safeCompare(email, configuredEmail) &&
+      safeCompare(password, configuredPassword)
+    );
+  }
+
+  // Development convenience only. Production must use Google OAuth or explicit local credentials.
+  return !isProduction;
+}
+
+async function getOrCreateLocalUser(email: string) {
   const role = email === process.env.ADMIN_EMAIL ? 'admin' : 'user';
 
   // Check if user already exists
@@ -75,7 +95,7 @@ async function createDefaultUser(email: string, password: string) {
       return user;
     }
   } catch (error) {
-    // User doesn't exist, continue to create
+    logger.debug(`[AUTH] getUserByEmail failed for local user ${email}:`, error);
   }
 
   // Create user in database
@@ -93,7 +113,7 @@ async function createDefaultUser(email: string, password: string) {
 }
 
 export async function setupAuth(app: Express) {
-  logger.debug('[AUTH] Setting up local authentication...');
+  logger.debug('[AUTH] Setting up authentication...');
 
   app.set('trust proxy', 1);
   app.use(getSession());
@@ -109,9 +129,12 @@ export async function setupAuth(app: Express) {
       },
       async (email: string, password: string, done) => {
         try {
-          // For demo purposes, accept any email/password combination
-          // In production, you'd verify against a user database
-          const user = await createDefaultUser(email, password);
+          if (!canUseLocalCredentials(email, password)) {
+            logger.warn(`[AUTH] Rejected local login attempt for ${email}`);
+            return done(null, false, { message: 'Invalid local login credentials' });
+          }
+
+          const user = await getOrCreateLocalUser(email);
           return done(null, { id: user.id, email: user.email, role: user.role });
         } catch (error) {
           return done(error);
@@ -196,12 +219,33 @@ export async function setupAuth(app: Express) {
   logger.debug('[AUTH] Local authentication setup complete');
 
   // Login endpoint
-  app.post('/api/login', passport.authenticate('local'), (req, res) => {
-    res.json({ user: req.user, message: 'Login successful' });
+  app.post('/api/login', (req, res, next) => {
+    passport.authenticate('local', (err: Error | null, user: Express.User | false) => {
+      if (err) {
+        return next(err);
+      }
+
+      if (!user) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      req.login(user, (loginErr) => {
+        if (loginErr) {
+          return next(loginErr);
+        }
+        res.json({ user: req.user, message: 'Login successful' });
+      });
+    })(req, res, next);
   });
 
   // Simple login form endpoint for development
   app.get('/api/login', (req, res) => {
+    if (!isLocalAuthEnabled) {
+      return res
+        .status(404)
+        .send('Local login is disabled. Use Google OAuth or set LOCAL_AUTH_ENABLED=true.');
+    }
+
     res.send(`
       <html>
         <body>

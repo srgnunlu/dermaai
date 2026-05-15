@@ -18,10 +18,7 @@ import { TabBarVisibilityProvider } from '@/contexts/TabBarVisibilityContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { registerPushTokenWithBackend } from '@/lib/notifications';
 import * as Notifications from 'expo-notifications';
-
-// RevenueCat API Keys
-const REVENUECAT_IOS_API_KEY = 'test_NVaCJScnTJldnjDHXLEQeiXAGXk';
-const REVENUECAT_ANDROID_API_KEY = 'test_NVaCJScnTJldnjDHXLEQeiXAGXk';
+import { getRevenueCatApiKey } from '@/constants/Config';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -50,7 +47,7 @@ export default function RootLayout() {
     ...FontAwesome.font,
   });
   const [assetsLoaded, setAssetsLoaded] = useState(false);
-  const [revenueCatReady, setRevenueCatReady] = useState(false);
+  const [_revenueCatReady, setRevenueCatReady] = useState(false);
 
   // Initialize RevenueCat on app startup
   useEffect(() => {
@@ -58,9 +55,13 @@ export default function RootLayout() {
       try {
         Purchases.setLogLevel(LOG_LEVEL.VERBOSE);
 
-        const apiKey = Platform.OS === 'ios'
-          ? REVENUECAT_IOS_API_KEY
-          : REVENUECAT_ANDROID_API_KEY;
+        const apiKey = getRevenueCatApiKey(Platform.OS);
+
+        if (!apiKey) {
+          console.warn('[RevenueCat] API key is not configured; skipping initialization');
+          setRevenueCatReady(true);
+          return;
+        }
 
         await Purchases.configure({ apiKey });
         setRevenueCatReady(true);

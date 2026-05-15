@@ -1,9 +1,13 @@
 // API Configuration
-// API Configuration
-export const API_BASE_URL = 'https://dermaai-1d9i.onrender.com';
-// export const API_BASE_URL = __DEV__
-//     ? 'http://localhost:5000'
-//     : 'https://dermaai-1d9i.onrender.com'; // Production URL
+const PRODUCTION_API_BASE_URL = 'https://dermaai-1d9i.onrender.com';
+const DEVELOPMENT_API_BASE_URL = 'http://localhost:5000';
+
+const normalizeUrl = (url: string) => url.replace(/\/+$/, '');
+
+export const API_BASE_URL = normalizeUrl(
+    process.env.EXPO_PUBLIC_API_BASE_URL ||
+    (process.env.NODE_ENV === 'production' ? PRODUCTION_API_BASE_URL : DEVELOPMENT_API_BASE_URL)
+);
 
 export const API_TIMEOUT = 30000; // 30 seconds for normal requests
 export const ANALYSIS_TIMEOUT = 120000; // 120 seconds (2 min) for AI analysis
@@ -13,10 +17,20 @@ export const APP_NAME = 'Corio Scan';
 export const APP_VERSION = '1.0.0';
 
 // Google OAuth Configuration
-export const GOOGLE_CLIENT_ID = '777356876175-obvv7v2lpshqlp2llqt8pv9cmom7088n.apps.googleusercontent.com';
+export const GOOGLE_CLIENT_ID =
+    process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ||
+    '777356876175-obvv7v2lpshqlp2llqt8pv9cmom7088n.apps.googleusercontent.com';
 // iOS and Android client IDs (create in Google Cloud Console if needed)
-export const GOOGLE_IOS_CLIENT_ID = ''; // Add iOS client ID if needed
-export const GOOGLE_ANDROID_CLIENT_ID = ''; // Add Android client ID if needed
+export const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '';
+export const GOOGLE_ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '';
+
+// RevenueCat Configuration
+export const REVENUECAT_IOS_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY || '';
+export const REVENUECAT_ANDROID_API_KEY =
+    process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY || '';
+
+export const getRevenueCatApiKey = (platform: string) =>
+    platform === 'ios' ? REVENUECAT_IOS_API_KEY : REVENUECAT_ANDROID_API_KEY;
 
 // Image Configuration
 export const MAX_IMAGES = 3;

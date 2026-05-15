@@ -147,7 +147,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="use-openai">Use GPT-5.1</Label>
+                  <Label htmlFor="use-openai">Use GPT-5.5</Label>
                   <Switch
                     id="use-openai"
                     checked={formData.useOpenAI ?? false}

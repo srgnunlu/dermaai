@@ -1855,7 +1855,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .fillColor('#000000')
         .text(
           sanitizeTextForPDF(
-            '• Gemini 2.5 Flash: Google\'s advanced vision-language model specialized in image analysis'
+            '• Gemini 3: Google\'s advanced vision-language model specialized in image analysis'
           ),
           50,
           doc.y,
@@ -1866,7 +1866,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       doc.text(
         sanitizeTextForPDF(
-          '• GPT-5 Mini: OpenAI\'s efficient multimodal model with dermatological knowledge'
+          '• GPT-5.5: OpenAI\'s advanced multimodal model with dermatological knowledge'
         ),
         50,
         doc.y,
@@ -2388,9 +2388,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'At least one image URL is required' });
       }
 
-      // Get user settings to check if health professional
-      const userSettings = await storage.getUserSettings(userId);
-      const isHealthProfessional = userSettings?.isHealthProfessional ?? false;
+      // Health-professional status lives on users, not user_settings.
+      const currentUser = await storage.getUser(userId);
+      const isHealthProfessional = currentUser?.isHealthProfessional === true;
 
       // Create the snapshot
       const snapshot = await storage.createLesionSnapshot({
@@ -2557,9 +2557,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Both snapshots must have images' });
       }
 
-      // Get user settings to check if health professional
-      const userSettings = await storage.getUserSettings(userId);
-      const isHealthProfessional = userSettings?.isHealthProfessional ?? false;
+      // Health-professional status lives on users, not user_settings.
+      const currentUser = await storage.getUser(userId);
+      const isHealthProfessional = currentUser?.isHealthProfessional === true;
 
       // Get previous diagnosis info and original date
       let previousDiagnosis = undefined;

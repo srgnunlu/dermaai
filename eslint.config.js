@@ -42,6 +42,7 @@ export default [
         document: 'readonly',
         navigator: 'readonly',
         fetch: 'readonly',
+        setImmediate: 'readonly',
         setTimeout: 'readonly',
         setInterval: 'readonly',
         clearTimeout: 'readonly',
@@ -53,6 +54,7 @@ export default [
         sessionStorage: 'readonly',
         FormData: 'readonly',
         File: 'readonly',
+        FileReader: 'readonly',
         Blob: 'readonly',
 
         // HTML Element types
@@ -83,8 +85,12 @@ export default [
 
         // Web APIs
         URL: 'readonly',
+        URLSearchParams: 'readonly',
         Response: 'readonly',
         Request: 'readonly',
+        HeadersInit: 'readonly',
+        RequestInit: 'readonly',
+        AbortController: 'readonly',
 
         // React & TypeScript
         React: 'readonly',

@@ -1,6 +1,6 @@
 # DermaAssistAI
 
-DermaAssistAI, yapay zeka destekli cilt hastalıkları teşhis sistemidir. OpenAI GPT-5-mini ve Google Gemini-2.5-flash modellerini kullanarak cilt lezyonlarını analiz eder ve teşhis önerileri sunar.
+DermaAssistAI, yapay zeka destekli cilt hastalıkları teşhis sistemidir. OpenAI GPT-5.5 ve Google Gemini modellerini kullanarak cilt lezyonlarını analiz eder ve teşhis önerileri sunar.
 
 ## 🚀 Özellikler
 
@@ -14,7 +14,7 @@ DermaAssistAI, yapay zeka destekli cilt hastalıkları teşhis sistemidir. OpenA
 
 - **Node.js** 18+
 - **PostgreSQL** veritabanı (Neon Database önerilir)
-- **OpenAI API Key** (GPT-5-mini model erişimi için)
+- **OpenAI API Key** (GPT-5.5 model erişimi için)
 - **Gemini API Key** (Google AI Studio'dan alınabilir)
 
 ## 🛠 Kurulum
@@ -54,6 +54,14 @@ GEMINI_API_KEY=your_gemini_api_key_here
 PORT=5000
 NODE_ENV=development
 SESSION_SECRET=your_random_session_secret
+JWT_SECRET=your_random_jwt_secret
+JWT_REFRESH_SECRET=your_random_jwt_refresh_secret
+
+# Local password login is development-only by default.
+# Production'da Google OAuth tercih edin; local login gerekiyorsa bu alanlari ozellikle ayarlayin.
+LOCAL_AUTH_ENABLED=false
+LOCAL_AUTH_EMAIL=admin@yourdomain.com
+LOCAL_AUTH_PASSWORD=your_strong_local_login_password
 
 # File Upload
 UPLOAD_DIR=./uploads
@@ -86,13 +94,35 @@ npm start
 
 Uygulama `http://localhost:3000` adresinde çalışacaktır.
 
+### Mobil Uygulama Environment
+
+Mobil uygulama icin `dermaai-mobile/.env.example` dosyasini `dermaai-mobile/.env` olarak kopyalayin:
+
+```bash
+cd dermaai-mobile
+cp .env.example .env
+```
+
+Baslica mobil environment variables:
+
+```env
+EXPO_PUBLIC_API_BASE_URL=http://localhost:5000
+EXPO_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id
+EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=your_ios_google_client_id
+EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=your_android_google_client_id
+EXPO_PUBLIC_REVENUECAT_IOS_API_KEY=appl_your_revenuecat_ios_public_key
+EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY=goog_your_revenuecat_android_public_key
+```
+
+Not: Android emulator lokal backend icin genellikle `http://10.0.2.2:5000` kullanir; fiziksel cihazlarda bilgisayarin LAN IP adresi gerekir.
+
 ## 🔑 API Keys Nasıl Alınır
 
 ### OpenAI API Key
 
 1. [OpenAI Platform](https://platform.openai.com) hesabınızla giriş yapın
 2. API Keys bölümünden yeni bir key oluşturun
-3. GPT-5-mini model erişiminiz olduğundan emin olun
+3. GPT-5.5 model erişiminiz olduğundan emin olun
 
 ### Gemini API Key
 

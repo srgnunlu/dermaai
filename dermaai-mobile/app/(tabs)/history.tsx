@@ -42,6 +42,7 @@ import {
     Crown,
     Plus,
     AlertTriangle,
+    ClipboardList,
 } from 'lucide-react-native';
 import { Colors } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
@@ -358,7 +359,7 @@ export default function HistoryScreen() {
             >
                 <View style={[styles.container, styles.centered]}>
                     <EmptyState
-                        emoji="📋"
+                        icon={<ClipboardList size={64} color="#0891B2" strokeWidth={1.5} />}
                         title={Translations.noScansYet[language]}
                         description={language === 'tr'
                             ? 'İlk tanı analizinizi yapmak için Tanı sekmesine gidin.'
@@ -635,7 +636,8 @@ function CaseCard({
 
     const topDiagnosis = caseData.finalDiagnoses?.[0] ||
         selectedDiagnoses?.[0] ||
-        caseData.geminiAnalysis?.diagnoses?.[0];
+        caseData.geminiAnalysis?.diagnoses?.[0] ||
+        caseData.openaiAnalysis?.diagnoses?.[0];
 
     const createdDate = caseData.createdAt
         ? format(new Date(caseData.createdAt), 'dd MMM yyyy', { locale: language === 'tr' ? tr : enUS })

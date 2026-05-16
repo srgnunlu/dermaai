@@ -930,6 +930,14 @@ export const ValueTranslations: Record<string, { tr: string; en: string }> = {
     'months': { tr: 'Aylar', en: 'Months' },
     'years': { tr: 'Yıllar', en: 'Years' },
 
+    // Symptom duration slugs (as stored by older case wizard versions)
+    'less-than-1-day': { tr: '1 günden az', en: 'Less than 1 day' },
+    '1-7-days': { tr: '1-7 gün', en: '1-7 days' },
+    'less-than-1-week': { tr: '1 haftadan az', en: 'Less than 1 week' },
+    '1-4-weeks': { tr: '1-4 hafta', en: '1-4 weeks' },
+    '1-6-months': { tr: '1-6 ay', en: '1-6 months' },
+    'more-than-6-months': { tr: '6 aydan fazla', en: 'More than 6 months' },
+
     // Turkish durations (for when stored in Turkish)
     'gün': { tr: 'Günler', en: 'Days' },
     'günler': { tr: 'Günler', en: 'Days' },

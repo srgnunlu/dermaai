@@ -42,7 +42,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useQueryClient } from '@tanstack/react-query';
-import { hasTutorialBeenShown } from '@/lib/storage';
+import { hasTutorialBeenShown, markTutorialAsShown } from '@/lib/storage';
 import { DiagnosisTutorial } from '@/components/DiagnosisTutorial';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -130,7 +130,14 @@ export function DiagnosisResults({
 
     const router = useRouter();
     const [activeIndex, setActiveIndex] = useState(0);
-    const [activeProvider, setActiveProvider] = useState<'gemini' | 'openai'>('gemini');
+    // Default to whichever provider has results. If both empty, keep gemini (canonical primary).
+    const initialProvider: 'gemini' | 'openai' =
+        (caseData.geminiAnalysis?.diagnoses?.length ?? 0) > 0
+            ? 'gemini'
+            : (caseData.openaiAnalysis?.diagnoses?.length ?? 0) > 0
+                ? 'openai'
+                : 'gemini';
+    const [activeProvider, setActiveProvider] = useState<'gemini' | 'openai'>(initialProvider);
     const [isSelecting, setIsSelecting] = useState(false);
     const [isSelected, setIsSelected] = useState(false);
     const [showTutorial, setShowTutorial] = useState(false);
@@ -142,14 +149,16 @@ export function DiagnosisResults({
     const { isPremium, getRemainingAnalysesText } = useSubscription();
     const [showPaywall, setShowPaywall] = useState(false);
 
-    // Check if tutorial should be shown (first-time user - now user-based)
+    // Check if tutorial should be shown (first-time user - now user-based).
+    // We mark it as shown immediately on first display so users who dismiss the screen
+    // before completing all steps don't see it again on subsequent visits.
     useEffect(() => {
         const checkTutorial = async () => {
-            // Use user ID for user-specific tutorial tracking
             const hasBeenShown = await hasTutorialBeenShown(user?.id);
             if (!hasBeenShown) {
-                // Small delay to let the UI render first
                 setTimeout(() => setShowTutorial(true), 500);
+                // Fire-and-forget: mark as shown so leaving early still counts.
+                markTutorialAsShown(user?.id).catch(() => {});
             }
         };
         checkTutorial();
@@ -395,9 +404,20 @@ export function DiagnosisResults({
                         <View style={styles.noResults}>
                             <Stethoscope size={48} color={colors.textMuted} />
                             <Text style={[styles.noResultsText, { color: colors.textSecondary }]}>
-                                {language === 'tr'
-                                    ? 'Analiz sonucu bulunamadı.\nLütfen tekrar deneyin.'
-                                    : 'No analysis results found.\nPlease try again.'}
+                                {(() => {
+                                    const otherProvider = activeProvider === 'gemini' ? 'openai' : 'gemini';
+                                    const otherHas = activeProvider === 'gemini'
+                                        ? openaiDiagnoses.length > 0
+                                        : geminiDiagnoses.length > 0;
+                                    if (otherHas) {
+                                        return language === 'tr'
+                                            ? `Bu AI sonuç vermedi.\nDiğer AI sonuçlarını görmek için ${activeProvider === 'gemini' ? 'Alternatif' : 'Birincil'} AI sekmesine geç.`
+                                            : `This AI returned no results.\nSwitch to the ${activeProvider === 'gemini' ? 'Alternative' : 'Primary'} AI tab to see the other results.`;
+                                    }
+                                    return language === 'tr'
+                                        ? 'Analiz tamamlanamadı.\nLütfen yeni bir analiz başlatın.'
+                                        : 'Analysis could not be completed.\nPlease start a new analysis.';
+                                })()}
                             </Text>
                         </View>
                     </BlurView>
@@ -673,7 +693,7 @@ function DiagnosisCard({
                             {diagnosis.keyFeatures && diagnosis.keyFeatures.length > 0 && (
                                 <View style={styles.featuresSection}>
                                     <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                                        📋 {language === 'tr' ? 'Temel Özellikler' : 'Key Features'}
+                                        {language === 'tr' ? 'Temel Özellikler' : 'Key Features'}
                                     </Text>
                                     {diagnosis.keyFeatures.slice(0, 4).map((feature, idx) => (
                                         <View key={idx} style={styles.featureRow}>
@@ -690,7 +710,7 @@ function DiagnosisCard({
                             {diagnosis.recommendations && diagnosis.recommendations.length > 0 && (
                                 <View style={styles.recommendationsSection}>
                                     <Text style={[styles.sectionTitle, { color: '#0E7490' }]}>
-                                        💡 {Translations.recommendations[language]}
+                                        {Translations.recommendations[language]}
                                     </Text>
                                     {diagnosis.recommendations.slice(0, 4).map((rec, idx) => (
                                         <Text key={idx} style={styles.recommendationText}>

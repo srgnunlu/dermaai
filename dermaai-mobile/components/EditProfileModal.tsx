@@ -155,7 +155,7 @@ export default function EditProfileModal({ visible, onClose, isHealthProfessiona
                     {/* Personal Information Section */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>
-                            👤 {Translations.personalInfo[language]}
+                            {Translations.personalInfo[language]}
                         </Text>
                         <View style={styles.card}>
                             <FormField
@@ -189,7 +189,7 @@ export default function EditProfileModal({ visible, onClose, isHealthProfessiona
                     {isHealthProfessional && (
                         <View style={styles.section}>
                             <Text style={styles.sectionTitle}>
-                                🏥 {Translations.professionalInfoTitle[language]}
+                                {Translations.professionalInfoTitle[language]}
                             </Text>
                             <View style={styles.card}>
                                 <FormField

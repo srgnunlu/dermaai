@@ -380,7 +380,7 @@ export default function LesionDetailScreen() {
                 <Stack.Screen options={{ headerShown: false }} />
                 <View style={[styles.container, styles.centered, { paddingTop: insets.top }]}>
                     <EmptyState
-                        emoji="❌"
+                        icon={<AlertTriangle size={64} color="#EF4444" strokeWidth={1.5} />}
                         title={language === 'tr' ? 'Takip bulunamadı' : 'Tracking not found'}
                         description={language === 'tr'
                             ? 'Bu lezyon takibi mevcut değil.'
@@ -546,7 +546,7 @@ export default function LesionDetailScreen() {
                     {latestComparison && latestComparison.comparisonAnalysis && (
                         <View style={styles.sectionWrapper}>
                             <Text style={styles.sectionTitle}>
-                                {language === 'tr' ? '📊 Son Karşılaştırma' : '📊 Latest Comparison'}
+                                {language === 'tr' ? 'Son Karşılaştırma' : 'Latest Comparison'}
                             </Text>
                             <TouchableOpacity
                                 onPress={() => {
@@ -606,7 +606,7 @@ export default function LesionDetailScreen() {
                     <View style={styles.sectionWrapper}>
                         <View style={styles.sectionTitleRow}>
                             <Text style={styles.sectionTitle}>
-                                {language === 'tr' ? '📅 Zaman Çizelgesi' : '📅 Timeline'}
+                                {language === 'tr' ? 'Zaman Çizelgesi' : 'Timeline'}
                             </Text>
                             <TouchableOpacity
                                 style={styles.addButton}

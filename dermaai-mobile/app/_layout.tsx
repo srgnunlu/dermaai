@@ -4,7 +4,18 @@ import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Alert, LogBox, Platform } from 'react-native';
+
+// Hide non-actionable noise from the LogBox red toast.
+// RevenueCat init failure is expected when the public key is not configured locally;
+// the backend still drives Pro/Free state via the subscription endpoint.
+LogBox.ignoreLogs([
+  '[RevenueCat]',
+  '[Subscription]',
+  'Error configuring Purchases',
+  'Invalid API key',
+  'SafeAreaView has been deprecated',
+]);
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -67,8 +78,10 @@ export default function RootLayout() {
         setRevenueCatReady(true);
         console.log('[RevenueCat] Initialized successfully');
       } catch (error) {
-        console.error('[RevenueCat] Failed to initialize:', error);
-        setRevenueCatReady(true); // Continue anyway
+        // Use warn (not error) so the RN LogBox/Toast doesn't surface this to users.
+        // Pro/Free status comes from backend; RevenueCat is only needed for in-app purchase UI.
+        console.warn('[RevenueCat] Failed to initialize (continuing without IAP):', error);
+        setRevenueCatReady(true);
       }
     };
 
@@ -199,6 +212,22 @@ function RootLayoutNav() {
           options={{
             headerShown: false,
             animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="lesion/[id]"
+          options={{
+            headerShown: false,
+            animation: 'slide_from_right',
+            gestureEnabled: true,
+          }}
+        />
+        <Stack.Screen
+          name="lesion/compare/[id]"
+          options={{
+            headerShown: false,
+            animation: 'slide_from_right',
+            gestureEnabled: true,
           }}
         />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />

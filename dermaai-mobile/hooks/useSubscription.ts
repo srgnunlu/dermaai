@@ -91,7 +91,10 @@ export async function initializeRevenueCat(appUserId?: string): Promise<void> {
 
         console.log('[RevenueCat] Initialized successfully');
     } catch (error) {
-        console.error('[RevenueCat] Initialization failed:', error);
+        // Warn (not error) so LogBox doesn't show a red toast for an expected dev-env failure.
+        if (__DEV__) {
+            console.warn('[RevenueCat] Initialization failed (purchases disabled):', error);
+        }
         throw error;
     }
 }
@@ -164,7 +167,12 @@ export function useSubscription() {
 
                 setIsRevenueCatReady(true);
             } catch (error) {
-                console.error('[Subscription] Failed to initialize RevenueCat:', error);
+                // Warn instead of error so the RN LogBox red toast doesn't surface this.
+                // Subscription tier is also driven by the backend (/api/subscription) and works
+                // without RevenueCat client SDK — only IAP purchases need this.
+                if (__DEV__) {
+                    console.warn('[Subscription] RevenueCat init failed (purchases disabled):', error);
+                }
             }
         };
 

@@ -137,8 +137,10 @@ class ApiClient {
             // e.g., when accessing a recently deleted case during cache invalidation
             const isAuthError = error instanceof Error && error.message === 'Authentication failed';
             const isAccessDenied = error instanceof Error && error.message === 'Access denied';
-            if (!isAuthError && !isAccessDenied) {
-                console.error('[API Debug]', endpoint, error);
+            // Use warn (not error) so RN LogBox doesn't surface a red toast to end users.
+            // In production builds (__DEV__ === false) we stay silent — the caller decides UX.
+            if (__DEV__ && !isAuthError && !isAccessDenied) {
+                console.warn('[API]', endpoint, error);
             }
 
             if (error instanceof Error && error.name === 'AbortError') {

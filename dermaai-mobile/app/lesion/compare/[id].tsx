@@ -87,7 +87,7 @@ export default function ComparisonDetailScreen() {
                 <Stack.Screen options={{ headerShown: false }} />
                 <View style={[styles.container, styles.centered, { paddingTop: insets.top }]}>
                     <EmptyState
-                        emoji="❌"
+                        icon={<AlertTriangle size={64} color="#EF4444" strokeWidth={1.5} />}
                         title={language === 'tr' ? 'Karşılaştırma bulunamadı' : 'Comparison not found'}
                         description={language === 'tr'
                             ? 'Bu karşılaştırma mevcut değil.'
@@ -222,7 +222,7 @@ export default function ComparisonDetailScreen() {
                             <View style={styles.imageComparison}>
                                 <View style={styles.imageColumn}>
                                     <Text style={styles.imageLabel}>
-                                        {language === 'tr' ? '📅 Önceki' : '📅 Before'}
+                                        {language === 'tr' ? 'Önceki' : 'Before'}
                                     </Text>
                                     <Text style={styles.imageDateText}>{previousDate}</Text>
                                     {previousSnapshot?.imageUrls?.[0] ? (
@@ -244,7 +244,7 @@ export default function ComparisonDetailScreen() {
 
                                 <View style={styles.imageColumn}>
                                     <Text style={styles.imageLabel}>
-                                        {language === 'tr' ? '📅 Şimdi' : '📅 After'}
+                                        {language === 'tr' ? 'Şimdi' : 'After'}
                                     </Text>
                                     <Text style={styles.imageDateText}>{currentDate}</Text>
                                     {currentSnapshot?.imageUrls?.[0] ? (
@@ -266,7 +266,7 @@ export default function ComparisonDetailScreen() {
                     {/* Change Summary */}
                     <View style={styles.sectionWrapper}>
                         <Text style={styles.sectionTitle}>
-                            {language === 'tr' ? '📋 Değişim Özeti' : '📋 Change Summary'}
+                            {language === 'tr' ? 'Değişim Özeti' : 'Change Summary'}
                         </Text>
                         <View style={styles.summaryCardWrapper}>
                             <BlurView intensity={65} tint="light" style={styles.summaryCardBlur}>

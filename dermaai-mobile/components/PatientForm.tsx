@@ -242,7 +242,7 @@ export function PatientForm({
                 loading={isLoading}
                 style={styles.submitButton}
             >
-                🔬 AI Analizi Başlat
+                AI Analizi Başlat
             </Button>
 
             {!hasImages && (

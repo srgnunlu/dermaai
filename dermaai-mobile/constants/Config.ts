@@ -1,6 +1,6 @@
 // API Configuration
 const PRODUCTION_API_BASE_URL = 'https://dermaai-1d9i.onrender.com';
-const DEVELOPMENT_API_BASE_URL = 'http://localhost:5000';
+const DEVELOPMENT_API_BASE_URL = 'http://localhost:5001';
 
 const normalizeUrl = (url: string) => url.replace(/\/+$/, '');
 

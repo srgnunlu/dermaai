@@ -34,6 +34,7 @@ import {
     FileCheck,
     Camera,
     Phone,
+    Crown,
 } from 'lucide-react-native';
 import { Colors } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
@@ -42,6 +43,7 @@ import { Translations } from '@/constants/Translations';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useAuth } from '@/hooks/useAuth';
 import { useCases } from '@/hooks/useCases';
+import { useSubscription } from '@/hooks/useSubscription';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { api } from '@/lib/api';
 import {
@@ -58,6 +60,8 @@ export default function ProfileScreen() {
     const { user, isLoading: authLoading, updateProfile, isUpdatingProfile, refetch } = useAuth();
     const { cases } = useCases();
     const { language } = useLanguage();
+    const { isPremium } = useSubscription();
+    const userIsPro = isPremium();
     const insets = useSafeAreaInsets();
 
     // State for edit modal and photo upload
@@ -204,7 +208,7 @@ export default function ProfileScreen() {
             >
                 <View style={[styles.container, styles.centered, { paddingTop: insets.top }]}>
                     <EmptyState
-                        emoji="👤"
+                        icon={<User size={64} color="#0891B2" strokeWidth={1.5} />}
                         title={language === 'tr' ? 'Giriş yapın' : 'Login required'}
                         description={language === 'tr'
                             ? 'Profilinizi görüntülemek için giriş yapmanız gerekmektedir.'
@@ -293,15 +297,23 @@ export default function ProfileScreen() {
                             <Text style={styles.userName}>{fullName}</Text>
                             <Text style={styles.userEmail}>{user.email}</Text>
 
-                            {/* Role Badge */}
-                            <View style={styles.roleBadge}>
-                                <Text style={styles.roleBadgeText}>
-                                    {user.role === 'admin'
-                                        ? (language === 'tr' ? '👨‍⚕️ Yönetici' : '👨‍⚕️ Admin')
-                                        : user.isHealthProfessional
-                                            ? (language === 'tr' ? '🩺 Doktor' : '🩺 Doctor')
-                                            : (language === 'tr' ? '👤 Kullanıcı' : '👤 User')}
-                                </Text>
+                            {/* Role + Pro Badges */}
+                            <View style={styles.badgeRow}>
+                                <View style={styles.roleBadge}>
+                                    <Text style={styles.roleBadgeText}>
+                                        {user.role === 'admin'
+                                            ? (language === 'tr' ? 'Yönetici' : 'Admin')
+                                            : user.isHealthProfessional
+                                                ? (language === 'tr' ? 'Doktor' : 'Doctor')
+                                                : (language === 'tr' ? 'Kullanıcı' : 'User')}
+                                    </Text>
+                                </View>
+                                {userIsPro && (
+                                    <View style={styles.proBadge}>
+                                        <Crown size={12} color="#FFFFFF" strokeWidth={2.5} />
+                                        <Text style={styles.proBadgeText}>PRO</Text>
+                                    </View>
+                                )}
                             </View>
                         </GlassCard>
                     </View>
@@ -309,7 +321,7 @@ export default function ProfileScreen() {
                     {/* Statistics Card */}
                     <View style={styles.sectionWrapper}>
                         <Text style={styles.sectionTitle}>
-                            {language === 'tr' ? '📊 İstatistikler' : '📊 Statistics'}
+                            {language === 'tr' ? 'İstatistikler' : 'Statistics'}
                         </Text>
                         <View style={styles.statsCardWrapper}>
                             <GlassCard style={styles.statsCardBlur} innerStyle={styles.statsCard}>
@@ -338,7 +350,7 @@ export default function ProfileScreen() {
                     {user.isHealthProfessional && (
                         <View style={styles.sectionWrapper}>
                             <Text style={styles.sectionTitle}>
-                                {language === 'tr' ? '🏥 Profesyonel Bilgiler' : '🏥 Professional Info'}
+                                {language === 'tr' ? 'Profesyonel Bilgiler' : 'Professional Info'}
                             </Text>
                             <View style={styles.infoCardWrapper}>
                                 <BlurView intensity={60} tint="light" style={styles.infoCardBlur}>
@@ -372,7 +384,7 @@ export default function ProfileScreen() {
                     {!user.isHealthProfessional && (
                         <View style={styles.sectionWrapper}>
                             <Text style={styles.sectionTitle}>
-                                {language === 'tr' ? '👤 Kişisel Bilgiler' : '👤 Personal Info'}
+                                {language === 'tr' ? 'Kişisel Bilgiler' : 'Personal Info'}
                             </Text>
                             <View style={styles.infoCardWrapper}>
                                 <BlurView intensity={60} tint="light" style={styles.infoCardBlur}>
@@ -559,6 +571,11 @@ const styles = StyleSheet.create({
         color: '#64748B',
         marginBottom: Spacing.md,
     },
+    badgeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
     roleBadge: {
         paddingHorizontal: 16,
         paddingVertical: 8,
@@ -571,6 +588,26 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: '600',
         color: '#0891B2',
+    },
+    proBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 20,
+        backgroundColor: '#F59E0B',
+        shadowColor: '#F59E0B',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    proBadgeText: {
+        fontSize: 12,
+        fontWeight: '800',
+        color: '#FFFFFF',
+        letterSpacing: 0.5,
     },
 
     // Section

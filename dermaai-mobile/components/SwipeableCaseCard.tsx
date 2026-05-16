@@ -65,7 +65,8 @@ export function SwipeableCaseCard({
 
     const topDiagnosis = caseData.finalDiagnoses?.[0] ||
         selectedDiagnoses?.[0] ||
-        caseData.geminiAnalysis?.diagnoses?.[0];
+        caseData.geminiAnalysis?.diagnoses?.[0] ||
+        caseData.openaiAnalysis?.diagnoses?.[0];
 
     const createdDate = caseData.createdAt
         ? format(new Date(caseData.createdAt), 'dd MMM yyyy', { locale: language === 'tr' ? tr : enUS })

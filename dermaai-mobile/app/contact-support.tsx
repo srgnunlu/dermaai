@@ -5,7 +5,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Linking, Alert } from 'react-native';
 import { Stack } from 'expo-router';
-import { Mail, Phone, MessageCircle, HelpCircle, ExternalLink } from 'lucide-react-native';
+import { Mail, MessageCircle, HelpCircle, ExternalLink } from 'lucide-react-native';
 import { Colors } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
 import { Spacing } from '@/constants/Spacing';
@@ -49,10 +49,6 @@ export default function ContactSupportScreen() {
         Linking.openURL('mailto:destek@corioscan.com');
     };
 
-    const handlePhone = () => {
-        Linking.openURL('tel:+902121234567');
-    };
-
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
             <Stack.Screen options={{ title: 'Destek' }} />
@@ -69,7 +65,7 @@ export default function ContactSupportScreen() {
                         <HelpCircle size={32} color={colors.primary} />
                         <View style={styles.headerText}>
                             <Text style={[styles.headerTitle, { color: colors.primary }]}>
-                                Yardım mı lazım?
+                                Yardıma ihtiyacın var mı?
                             </Text>
                             <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
                                 Size yardımcı olmaktan mutluluk duyarız
@@ -88,13 +84,6 @@ export default function ContactSupportScreen() {
                                 label="E-posta"
                                 value="destek@corioscan.com"
                                 onPress={handleEmail}
-                                colors={colors}
-                            />
-                            <ContactButton
-                                icon={<Phone size={20} color={colors.primary} />}
-                                label="Telefon"
-                                value="+90 212 123 45 67"
-                                onPress={handlePhone}
                                 colors={colors}
                             />
                         </View>

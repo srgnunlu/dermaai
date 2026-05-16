@@ -321,7 +321,7 @@ export default function CaseDetailScreen() {
                                     <ActivityIndicator size="small" color="#0891B2" />
                                     <View style={styles.analyzingTextContainer}>
                                         <Text style={styles.analyzingTitle}>
-                                            {language === 'tr' ? '🔬 Analiz Devam Ediyor...' : '🔬 Analyzing...'}
+                                            {language === 'tr' ? 'Analiz Devam Ediyor...' : 'Analyzing...'}
                                         </Text>
                                         <Text style={styles.analyzingSubtitle}>
                                             {language === 'tr'
@@ -465,7 +465,7 @@ export default function CaseDetailScreen() {
                         <View style={styles.sectionWrapper}>
                             <View style={styles.sectionTitleRow}>
                                 <Text style={styles.sectionTitle}>
-                                    🩺 {language === 'tr' ? 'AI Analiz Sonuçları' : 'AI Analysis Results'}
+                                    {language === 'tr' ? 'AI Analiz Sonuçları' : 'AI Analysis Results'}
                                 </Text>
                             </View>
                             {diagnoses.map((diagnosis: DiagnosisResult, index: number) => (

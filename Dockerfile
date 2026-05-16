@@ -1,60 +1,62 @@
-# Multi-stage build for DermaAssistAI
+# Multi-stage build for DermaAssistAI (pnpm-based)
 FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Enable pnpm via corepack (bundled with Node 16+; preferred over npm install -g)
+RUN corepack enable
 
-# Install all dependencies (including dev dependencies for build)
-RUN npm ci
+# Copy lockfile + manifest first so install layer is cached when source changes
+COPY package.json pnpm-lock.yaml ./
+
+# Install all dependencies (including dev) for the build step
+RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY . .
 
 # Build the application
-RUN npm run build
+RUN pnpm build
 
 # Production stage
 FROM node:18-alpine AS production
 
 WORKDIR /app
 
-# Install dumb-init and curl (for HEALTHCHECK)
+# System deps for healthcheck and signal handling
 RUN apk add --no-cache dumb-init curl
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nextjs -u 1001
+# Non-root user
+RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
 
-# Copy package files and install only production dependencies
-COPY package*.json ./
-RUN npm ci --omit=dev && npm cache clean --force \
-  && npm install --no-save drizzle-kit@0.30.4
+# pnpm via corepack in the runtime image too (needed for drizzle-kit at startup)
+RUN corepack enable
 
-# Copy built application from builder stage
+# Production install: only prod deps, frozen lockfile
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --prod --frozen-lockfile && pnpm store prune
+
+# Drizzle-kit pinned version for migrations at container start
+RUN pnpm add drizzle-kit@0.30.4
+
+# Copy built artifacts from the builder stage
 COPY --from=builder --chown=nextjs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nextjs:nodejs /app/shared ./shared
 COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.mjs ./drizzle.config.mjs
 
-# Create uploads directory with proper permissions
+# Ensure uploads + migrations directories exist with correct ownership
 RUN mkdir -p uploads/images migrations && chown -R nextjs:nodejs uploads migrations
 
-# Ensure production environment
 ENV NODE_ENV=production
 
-# Switch to non-root user
 USER nextjs
 
-# Expose port
 EXPOSE 5000
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:5000/api/health || exit 1
 
-# Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
-# Run lightweight schema push with npx, then start app
-CMD ["sh", "-lc", "./node_modules/.bin/drizzle-kit push --config=drizzle.config.mjs && node dist/index.js"]
+# Use pnpm exec so drizzle-kit resolves correctly under pnpm's node_modules layout
+CMD ["sh", "-lc", "pnpm exec drizzle-kit push --config=drizzle.config.mjs && node dist/index.js"]

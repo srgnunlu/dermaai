@@ -1,5 +1,54 @@
 # DermaAssistAI
 
+> **AI-powered dermatology decision support** — analyzes skin-lesion images with OpenAI and Google Gemini to surface a ranked differential diagnosis and generate clinician-ready reports.
+
+**English** · [Türkçe](#turkce)
+
+> ⚠️ **Medical disclaimer:** For research and educational use only. This is **not** a medical device and does not provide medical advice — always consult a qualified clinician.
+
+## Overview
+
+DermaAssistAI is an open-source clinical decision-support tool for dermatology, built and maintained by a practicing emergency-medicine physician. It analyzes uploaded skin-lesion images with two AI models (OpenAI GPT-5.5 and Google Gemini), returns a ranked differential diagnosis, manages patient cases, and produces PDF reports across web and mobile clients.
+
+## Key features
+
+- **Dual-model lesion analysis** — cross-checks OpenAI and Gemini for more robust suggestions
+- **Patient & case management** — history, follow-up, and structured records
+- **PDF diagnostic reports** — shareable, clinician-ready output
+- **Admin dashboard** — usage statistics and system management
+- **Web + mobile** — React/TypeScript web app and an Expo (React Native) client
+
+## Tech stack
+
+React · TypeScript · Tailwind CSS · Node.js · Express · PostgreSQL (Neon) · OpenAI GPT-5.5 · Google Gemini 2.5 Flash · Expo · Docker · GitHub Actions CI · Semgrep
+
+## Status
+
+Actively developed (**150+ commits**). Early-stage, single-maintainer project — issues and contributions are welcome.
+
+## Quick start
+
+```bash
+git clone https://github.com/srgnunlu/dermaai.git
+cd dermaai
+npm install
+cp .env.example .env      # add your OpenAI / Gemini / PostgreSQL keys
+npm run db:push
+npm run dev
+```
+
+Full setup — database, API keys, mobile app, and deployment — is documented in Turkish below.
+
+## License
+
+[MIT](LICENSE) © 2026 Sergen Ünlü
+
+---
+
+<a id="turkce"></a>
+
+## 🇹🇷 Türkçe
+
 DermaAssistAI, yapay zeka destekli cilt hastalıkları teşhis sistemidir. OpenAI GPT-5.5 ve Google Gemini modellerini kullanarak cilt lezyonlarını analiz eder ve teşhis önerileri sunar.
 
 ## 🚀 Özellikler

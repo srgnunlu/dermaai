@@ -31,10 +31,10 @@ Actively developed (**150+ commits**). Early-stage, single-maintainer project �
 ```bash
 git clone https://github.com/srgnunlu/dermaai.git
 cd dermaai
-npm install
+pnpm install
 cp .env.example .env      # add your OpenAI / Gemini / PostgreSQL keys
-npm run db:push
-npm run dev
+pnpm db:push
+pnpm dev
 ```
 
 Full setup — database, API keys, mobile app, and deployment — is documented in Turkish below.

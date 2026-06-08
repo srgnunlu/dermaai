@@ -45,6 +45,38 @@ export class CloudinaryStorageService {
     }
   }
 
+  async deleteImage(imageUrl: string): Promise<boolean> {
+    try {
+      const url = new URL(imageUrl);
+      if (!url.hostname.endsWith('cloudinary.com')) {
+        return false;
+      }
+
+      const uploadMarker = '/upload/';
+      const uploadIndex = url.pathname.indexOf(uploadMarker);
+      if (uploadIndex === -1) {
+        return false;
+      }
+
+      const pathAfterUpload = decodeURIComponent(url.pathname.slice(uploadIndex + uploadMarker.length));
+      const withoutVersion = pathAfterUpload.replace(/^v\d+\//, '');
+      const publicId = withoutVersion.replace(/\.[^/.]+$/, '');
+      if (!publicId.startsWith('derma-assist/')) {
+        logger.warn('Refusing to delete Cloudinary image outside Corio Scan folder');
+        return false;
+      }
+
+      const result = await cloudinary.uploader.destroy(publicId, { resource_type: 'image' });
+      return result.result === 'ok' || result.result === 'not found';
+    } catch (error) {
+      logger.warn('Cloudinary image cleanup failed', {
+        imageUrl,
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return false;
+    }
+  }
+
   // Get image data from URL for AI analysis
   async getImageForAnalysis(imageUrl: string): Promise<{
     buffer: Buffer;

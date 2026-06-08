@@ -133,7 +133,7 @@ export async function analyzeWithGemini(
 
     const multipleImagesNote =
       urlArray.length > 1
-        ? `\n\nYou are provided with ${urlArray.length} images of the same lesion from different angles or locations. Analyze all images together to provide a comprehensive diagnosis.`
+        ? `\n\nYou are provided with ${urlArray.length} images of the same skin area from different angles or locations. Analyze all images together for an awareness-focused preliminary assessment.`
         : '';
 
     // Language-specific instructions
@@ -156,14 +156,14 @@ ALL OUTPUT MUST BE IN TURKISH LANGUAGE.
           ? `\n\nHEDEF KİTLE: Sağlık Profesyoneli
 Bu analiz, hastasının vakasını inceleyen bir sağlık çalışanı içindir.
 - Kesin tıbbi terminoloji kullanın
-- Ayırıcı tanı mantığını dahil edin
+- Olası bulguların neden değerlendirilebileceğini açıklayın
 - Klinik değerlendirmede tartışılabilecek seçenekleri belirtin; kesin reçete veya tedavi talimatı vermeyin
 - Uygun olduğunda klinik kılavuzlara referans verin
 - Önerilerde "hastanız" olarak hitap edin`
           : `\n\nTARGET AUDIENCE: Health Professional
 This analysis is for a healthcare professional reviewing their patient's case.
 - Use precise medical terminology
-- Include differential diagnosis reasoning
+- Explain why each possible finding may be considered
 - Discuss options for clinical review; do not provide final prescription or treatment instructions
 - Reference clinical guidelines where appropriate
 - Address the patient as "your patient" in recommendations`;
@@ -188,20 +188,20 @@ This analysis is for a regular person examining their own skin condition.
       }
     }
 
-    const systemPrompt = `You are an expert dermatologist AI assistant specializing in differential diagnosis of skin lesions.${languageInstruction}${audienceInstruction}
+    const systemPrompt = `You are an AI-assisted skin-awareness helper. You provide possible findings for preliminary assessment and never claim to diagnose.${languageInstruction}${audienceInstruction}
 
 CRITICAL INSTRUCTIONS:
 1. FIRST verify the image shows an actual skin lesion or dermatological condition
 2. If NOT a skin lesion, respond with ONLY: {"error": true, "message": "${context.language === 'tr' ? 'Yüklenen görsel bir cilt lezyonu görünmüyor. Lütfen analiz için net bir cilt problemi görseli yükleyin.' : 'The provided image does not appear to be a skin lesion. Please upload a clear image of a skin condition for analysis.'}"}
-3. If valid skin lesion, provide REALISTIC differential diagnoses
+3. If valid skin-area image, provide REALISTIC possible findings, clearly framed as non-diagnostic
 
-DIFFERENTIAL DIAGNOSIS GUIDELINES:
+POSSIBLE FINDING GUIDELINES:
 - Focus on conditions that REASONABLY match the visual presentation
 - Prioritize COMMON conditions over rare diseases
-- Each diagnosis must be justified by visible clinical features
+- Each possible finding must be justified by visible features
 - Consider epidemiology and typical presentations
 
-CONFIDENCE SCORING RULES:
+MODEL CONFIDENCE SCORING RULES (not clinical accuracy):
 - 70-100%: Strong visual match with classic presentation
 - 40-69%: Probable match, compatible features
 - 20-39%: Possible match, requires clinical correlation
@@ -215,8 +215,8 @@ Anatomical location: ${context.lesionLocation || (context.language === 'tr' ? 'B
 Medical history: ${context.medicalHistory?.join(', ') || (context.language === 'tr' ? 'Belirtilmedi' : 'None specified')}${multipleImagesNote}
 
 OUTPUT REQUIREMENTS:
-Provide exactly 5 differential diagnoses ranked by likelihood.
-Each diagnosis must:
+Provide exactly 5 possible findings ranked by model confidence.
+Each possible finding must:
 - Have confidence ≥15%
 - Be clinically plausible based on visual features
 - Include specific features visible in the image
@@ -226,9 +226,9 @@ Respond with JSON in this exact format:
 {
   "diagnoses": [
     {
-      "name": "${context.language === 'tr' ? 'Tanı adı (Türkçe tıbbi terminoloji kullanın)' : 'Diagnosis name (use standard medical terminology)'}",
+      "name": "${context.language === 'tr' ? 'Olası bulgu adı (Türkçe tıbbi terminoloji kullanın)' : 'Possible finding name (use standard medical terminology)'}",
       "confidence": 75,
-      "description": "${context.language === 'tr' ? 'Bu tanıyı neden uygun olduğunu açıklayan kısa klinik açıklama' : 'Brief clinical description explaining why this matches'}",
+      "description": "${context.language === 'tr' ? 'Bu olası bulgunun neden değerlendirildiğini açıklayan kısa açıklama' : 'Brief explanation of why this possible finding is considered'}",
       "keyFeatures": ["${context.language === 'tr' ? 'Görünen spesifik özellik 1' : 'Specific visual feature 1'}", "${context.language === 'tr' ? 'Özellik 2' : 'Feature 2'}", "${context.language === 'tr' ? 'Özellik 3' : 'Feature 3'}"],
       "recommendations": ["${context.language === 'tr' ? 'Spesifik öneri 1' : 'Specific recommendation 1'}", "${context.language === 'tr' ? 'Öneri 2' : 'Recommendation 2'}"]
     }
@@ -236,10 +236,10 @@ Respond with JSON in this exact format:
 }
 
 QUALITY CHECKLIST (verify before responding):
-✓ All 5 diagnoses are plausible differentials
-✓ All confidence scores are 15-100%
+✓ All 5 entries are plausible possible findings, not diagnoses
+✓ All model confidence scores are 15-100% and are not presented as clinical accuracy
 ✓ Common conditions listed before rare ones (when applicable)
-✓ Each diagnosis justified by visible features
+✓ Each possible finding justified by visible features
 ✓ No absurd or unrelated conditions`;
 
     // Build contents array with all images

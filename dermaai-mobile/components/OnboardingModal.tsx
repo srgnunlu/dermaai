@@ -22,7 +22,7 @@ import {
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Stethoscope, User as UserIcon, Heart, ArrowRight } from 'lucide-react-native';
+import { Stethoscope, Heart, ArrowRight, Square, CheckSquare } from 'lucide-react-native';
 import { Colors, Gradients } from '@/constants/Colors';
 import { Translations } from '@/constants/Translations';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -43,6 +43,7 @@ export function OnboardingModal({ visible, user, onComplete }: OnboardingModalPr
     const [firstName, setFirstName] = useState(user.firstName || '');
     const [lastName, setLastName] = useState(user.lastName || '');
     const [isHealthProfessional, setIsHealthProfessional] = useState<boolean | null>(null);
+    const [isAdultConfirmed, setIsAdultConfirmed] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showError, setShowError] = useState(false);
 
@@ -95,7 +96,7 @@ export function OnboardingModal({ visible, user, onComplete }: OnboardingModalPr
             return;
         }
 
-        if (isHealthProfessional === null) {
+        if (isHealthProfessional === null || !isAdultConfirmed) {
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             return;
         }
@@ -108,6 +109,7 @@ export function OnboardingModal({ visible, user, onComplete }: OnboardingModalPr
             lastName: lastName.trim() || null,
             isHealthProfessional,
             isProfileComplete: true,
+            adultConfirmedAt: new Date().toISOString(),
         });
 
         try {
@@ -116,6 +118,7 @@ export function OnboardingModal({ visible, user, onComplete }: OnboardingModalPr
                 lastName: lastName.trim() || null,
                 isHealthProfessional,
                 isProfileComplete: true,
+                adultConfirmedAt: new Date().toISOString(),
             });
             console.log('[OnboardingModal] onComplete finished successfully');
             // Modal should close via parent state - don't reset isSubmitting
@@ -125,7 +128,7 @@ export function OnboardingModal({ visible, user, onComplete }: OnboardingModalPr
         }
     };
 
-    const canSubmit = firstName.trim() && isHealthProfessional !== null && !isSubmitting;
+    const canSubmit = firstName.trim() && isHealthProfessional !== null && isAdultConfirmed && !isSubmitting;
 
     return (
         <Modal visible={visible} animationType="none" transparent statusBarTranslucent>
@@ -223,6 +226,9 @@ export function OnboardingModal({ visible, user, onComplete }: OnboardingModalPr
                                         <TouchableOpacity
                                             onPress={() => handleOptionSelect(true)}
                                             activeOpacity={0.8}
+                                            accessibilityRole="radio"
+                                            accessibilityState={{ selected: isHealthProfessional === true }}
+                                            accessibilityLabel={Translations.onboardingHealthProfessional[language]}
                                         >
                                             <View
                                                 style={[
@@ -262,6 +268,9 @@ export function OnboardingModal({ visible, user, onComplete }: OnboardingModalPr
                                         <TouchableOpacity
                                             onPress={() => handleOptionSelect(false)}
                                             activeOpacity={0.8}
+                                            accessibilityRole="radio"
+                                            accessibilityState={{ selected: isHealthProfessional === false }}
+                                            accessibilityLabel={Translations.onboardingRegularUser[language]}
                                         >
                                             <View
                                                 style={[
@@ -298,12 +307,34 @@ export function OnboardingModal({ visible, user, onComplete }: OnboardingModalPr
                                         </TouchableOpacity>
                                     </View>
 
+                                    <TouchableOpacity
+                                        style={styles.ageConfirmation}
+                                        onPress={() => setIsAdultConfirmed(value => !value)}
+                                        accessibilityRole="checkbox"
+                                        accessibilityState={{ checked: isAdultConfirmed }}
+                                        accessibilityLabel={language === 'tr' ? '18 yaşında veya daha büyük olduğumu onaylıyorum' : 'I confirm that I am 18 years of age or older'}
+                                    >
+                                        {isAdultConfirmed ? (
+                                            <CheckSquare size={24} color="#0891B2" />
+                                        ) : (
+                                            <Square size={24} color="#64748B" />
+                                        )}
+                                        <Text style={styles.ageConfirmationText}>
+                                            {language === 'tr'
+                                                ? '18 yaşında veya daha büyük olduğumu onaylıyorum.'
+                                                : 'I confirm that I am 18 years of age or older.'}
+                                        </Text>
+                                    </TouchableOpacity>
+
                                     {/* Submit Button */}
                                     <TouchableOpacity
                                         onPress={handleSubmit}
                                         disabled={!canSubmit}
                                         activeOpacity={0.8}
                                         style={styles.submitButtonWrapper}
+                                        accessibilityRole="button"
+                                        accessibilityLabel={Translations.onboardingStart[language]}
+                                        accessibilityState={{ disabled: !canSubmit }}
                                     >
                                         <LinearGradient
                                             colors={
@@ -440,7 +471,22 @@ const styles = StyleSheet.create({
     },
     optionsContainer: {
         gap: 14,
-        marginBottom: 24,
+        marginBottom: 16,
+    },
+    ageConfirmation: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        padding: 14,
+        marginBottom: 20,
+        borderRadius: 16,
+        backgroundColor: 'rgba(255, 255, 255, 0.65)',
+    },
+    ageConfirmationText: {
+        flex: 1,
+        color: '#334155',
+        fontSize: 14,
+        lineHeight: 20,
     },
     optionCard: {
         flexDirection: 'row',

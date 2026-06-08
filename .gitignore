@@ -99,3 +99,4 @@ dermaai-mobile/1
 .local/
 .config/.semgrep/
 .mcp.json
+.playwright-mcp/

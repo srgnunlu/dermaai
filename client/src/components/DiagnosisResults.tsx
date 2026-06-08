@@ -241,10 +241,10 @@ export const DiagnosisResults = memo(function DiagnosisResults({
       <Card className="border-yellow-500/30 bg-yellow-500/5">
         <CardContent className="p-4">
           <p className="text-sm text-muted-foreground">
-            <strong>Medical Disclaimer:</strong> These AI-generated diagnoses are for informational
-            purposes only. Please consult with a qualified healthcare professional for accurate
-            diagnosis and treatment. The results from both AI models are shown independently for
-            comparison.
+            <strong>Medical Disclaimer:</strong> These AI-assisted possible findings are for
+            awareness and preliminary assessment only. They do not provide a diagnosis or treatment
+            recommendation. Consult a qualified healthcare professional for medical concerns. The
+            results from both AI models are shown independently for comparison.
           </p>
         </CardContent>
       </Card>

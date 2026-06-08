@@ -5,24 +5,24 @@ const sections = [
     title: 'Information We Collect',
     body: [
       'Account details such as name, email address, and professional credentials provided during registration.',
-      'Case data uploaded by clinicians, including lesion imagery, structured patient history, and clinician annotations.',
-      'System telemetry that helps us improve the service (for example browser type, usage metrics, and diagnostic performance).',
+      'Skin-area images, optional health context, and notes submitted by personal or professional users.',
+      'Limited system telemetry used for security, reliability, and support.',
     ],
   },
   {
     title: 'How We Use Information',
     body: [
-      'Deliver dermatological AI analysis and maintain a longitudinal case history for your clinical teams.',
-      'Generate anonymised analytics that help improve model accuracy and platform reliability.',
+      'Deliver the user-requested AI-assisted preliminary assessment and maintain account history.',
+      'Maintain platform security and reliability. User images and health data are not used for model training or AI improvement.',
       'Comply with legal obligations and respond to required audits or quality assurance assessments.',
     ],
   },
   {
     title: 'Data Protection',
     body: [
-      'All content in transit is encrypted using TLS 1.2+ and is stored in encrypted databases within the European Union.',
-      'Access to case data is restricted to authenticated clinical users within your organisation, and every access is logged.',
-      'Backups are retained for 30 days in secure storage to support disaster recovery and continuity of care.',
+      'Service traffic uses HTTPS/TLS in transit, and access to account data is restricted.',
+      'Access to account data is restricted to authenticated users and authorised service providers.',
+      'Service-provider backups follow the providers’ retention cycles and applicable legal requirements.',
     ],
   },
   {
@@ -44,12 +44,12 @@ export default function PrivacyPolicyPage() {
             Privacy Policy
           </span>
           <h1 className="mt-4 text-4xl font-bold text-foreground">
-            Protecting Clinical and Patient Privacy
+            Protecting Your Privacy
           </h1>
           <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
-            Corio Scan is designed for regulated clinical environments. We only collect the information
-            required to deliver secure dermatological decision support and never use
-            patient-identifiable data for marketing or third-party analytics.
+            Corio Scan supports personal and professional skin-awareness workflows. We process only
+            the information required to provide the requested service and never use user images or
+            health data for model training, advertising, or marketing.
           </p>
 
           <div className="mt-10 grid gap-8">
@@ -74,9 +74,9 @@ export default function PrivacyPolicyPage() {
           <div className="mt-12 rounded-2xl border border-blue-500/30 bg-blue-500/5 p-6 text-sm text-blue-100">
             <p className="font-semibold">Questions about privacy?</p>
             <p className="mt-2">
-              Email our Data Protection Officer at{' '}
-              <a href="mailto:privacy@corioscan.com" className="underline">
-                privacy@corioscan.com
+              Email Corio Scan at{' '}
+              <a href="mailto:destek@corioscan.com" className="underline">
+                destek@corioscan.com
               </a>
               . We respond to verified requests within 72 hours.
             </p>

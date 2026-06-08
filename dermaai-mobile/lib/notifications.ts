@@ -84,14 +84,10 @@ export async function getExpoPushToken(): Promise<string | undefined> {
  */
 export async function registerPushTokenWithBackend(): Promise<boolean> {
     try {
-        // First check/request permissions
+        // Never prompt implicitly. Permission requests are initiated from Settings.
         const hasPermission = await checkNotificationPermissions();
         if (!hasPermission) {
-            const granted = await requestNotificationPermissions();
-            if (!granted) {
-                console.log('Notification permission not granted');
-                return false;
-            }
+            return false;
         }
 
         // Get push token

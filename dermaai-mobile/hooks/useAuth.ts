@@ -9,6 +9,9 @@ import { getAccessToken, clearTokens, saveUserData, getUserData, saveTokens } fr
 import type { User, AuthResponse, UpdateProfileData } from '@/types/schema';
 import { useEffect, useState } from 'react';
 import { API_BASE_URL } from '@/constants/Config';
+import Purchases from 'react-native-purchases';
+import { Platform } from 'react-native';
+import { getRevenueCatApiKey } from '@/constants/Config';
 
 export function useAuth() {
     const queryClient = useQueryClient();
@@ -80,6 +83,32 @@ export function useAuth() {
         },
     });
 
+    const appleLoginMutation = useMutation({
+        mutationFn: async (credentials: {
+            identityToken: string;
+            firstName?: string;
+            lastName?: string;
+        }) => {
+            const response = await fetch(`${API_BASE_URL}/api/auth/mobile/apple`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(credentials),
+            });
+
+            if (!response.ok) {
+                const authError = await response.json().catch(() => ({ error: 'Apple login failed' }));
+                throw new Error(authError.message || authError.error);
+            }
+
+            return response.json() as Promise<AuthResponse>;
+        },
+        onSuccess: async (data: AuthResponse) => {
+            await saveTokens(data.accessToken, data.refreshToken);
+            await saveUserData(data.user);
+            queryClient.setQueryData(['auth', 'user'], data.user);
+        },
+    });
+
     // Update profile mutation
     const updateProfileMutation = useMutation({
         mutationFn: async (profileData: UpdateProfileData) => {
@@ -99,6 +128,9 @@ export function useAuth() {
     // Logout mutation
     const logoutMutation = useMutation({
         mutationFn: async () => {
+            if (getRevenueCatApiKey(Platform.OS)) {
+                await Purchases.logOut().catch(() => undefined);
+            }
             await clearTokens();
         },
         onSuccess: () => {
@@ -122,8 +154,9 @@ export function useAuth() {
 
         // Google OAuth login
         loginWithGoogle: googleLoginMutation.mutateAsync,
-        isLoggingIn: googleLoginMutation.isPending,
-        loginError: googleLoginMutation.error,
+        loginWithApple: appleLoginMutation.mutateAsync,
+        isLoggingIn: googleLoginMutation.isPending || appleLoginMutation.isPending,
+        loginError: googleLoginMutation.error || appleLoginMutation.error,
 
         // Update profile
         updateProfile: updateProfileMutation.mutateAsync,
@@ -137,4 +170,3 @@ export function useAuth() {
         refetch: refetchUser,
     };
 }
-

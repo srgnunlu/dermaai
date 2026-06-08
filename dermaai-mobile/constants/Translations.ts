@@ -1,5 +1,5 @@
 /**
- * Translations for the DermaAssist AI mobile app
+ * Translations for the Corio Scan mobile app
  * Supports Turkish (tr) and English (en)
  */
 
@@ -504,8 +504,8 @@ export const Translations = {
         en: 'Analysis Results',
     },
     confidence: {
-        tr: 'Güven',
-        en: 'Confidence',
+        tr: 'Model Güven Skoru',
+        en: 'Model Confidence Score',
     },
     keyFeatures: {
         tr: 'Temel Özellikler',
@@ -677,7 +677,7 @@ export const Translations = {
     allTime: { tr: 'Tümü', en: 'All Time' },
 
     // Filter by Confidence
-    filterByConfidence: { tr: 'Güven Oranına Göre', en: 'By Confidence' },
+    filterByConfidence: { tr: 'Model Güven Skoruna Göre', en: 'By Model Confidence Score' },
     highConfidence: { tr: 'Yüksek (>80%)', en: 'High (>80%)' },
     mediumConfidence: { tr: 'Orta (50-80%)', en: 'Medium (50-80%)' },
     lowConfidence: { tr: 'Düşük (<50%)', en: 'Low (<50%)' },
@@ -689,8 +689,8 @@ export const Translations = {
     sortBy: { tr: 'Sırala', en: 'Sort By' },
     newestFirst: { tr: 'En Yeni', en: 'Newest First' },
     oldestFirst: { tr: 'En Eski', en: 'Oldest First' },
-    highestConfidence: { tr: 'En Yüksek Güven', en: 'Highest Confidence' },
-    lowestConfidence: { tr: 'En Düşük Güven', en: 'Lowest Confidence' },
+    highestConfidence: { tr: 'En Yüksek Model Skoru', en: 'Highest Model Score' },
+    lowestConfidence: { tr: 'En Düşük Model Skoru', en: 'Lowest Model Score' },
 
     // Empty state for filtered results
     noMatchingCases: { tr: 'Eşleşen vaka bulunamadı', en: 'No matching cases found' },
@@ -749,16 +749,16 @@ export const Translations = {
         en: 'I am a Health Professional',
     },
     onboardingHealthProfessionalDesc: {
-        tr: 'Hastalarımı analiz edeceğim',
-        en: 'I will analyze my patients',
+        tr: 'Dokümantasyon ve ön değerlendirme yardımı',
+        en: 'Documentation and preliminary assessment assistance',
     },
     onboardingRegularUser: {
         tr: 'Kendi Sağlığımı Takip Ediyorum',
         en: 'I am Tracking My Own Health',
     },
     onboardingRegularUserDesc: {
-        tr: 'Kendi cildimi kontrol edeceğim',
-        en: 'I will check my own skin',
+        tr: 'Kişisel cilt farkındalığı ve takip',
+        en: 'Personal skin awareness and tracking',
     },
     onboardingStart: {
         tr: 'Başlayalım',
@@ -1042,4 +1042,3 @@ export const translateValue = (value: string | null | undefined, language: 'tr' 
 
 // Type-safe translation key
 export type TranslationKey = keyof typeof Translations;
-

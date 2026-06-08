@@ -151,6 +151,30 @@ export class LocalFileStorageService {
     }
   }
 
+  async deleteFile(reference: string): Promise<boolean> {
+    try {
+      let filePath = reference;
+      if (reference.startsWith('http://') || reference.startsWith('https://')) {
+        filePath = new URL(reference).pathname;
+      }
+      filePath = filePath.replace(/^\/files\//, '');
+
+      const fullPath = this.resolveUploadPath(filePath);
+      if (!fullPath) {
+        return false;
+      }
+
+      await fs.unlink(fullPath);
+      return true;
+    } catch (error: any) {
+      if (error?.code === 'ENOENT') {
+        return true;
+      }
+      console.warn('Local image cleanup failed:', error);
+      return false;
+    }
+  }
+
   // Normalize object entity path (convert from old Google Storage URLs)
   normalizeObjectEntityPath(rawPath: string): string {
     // If it's already a local path, return as is

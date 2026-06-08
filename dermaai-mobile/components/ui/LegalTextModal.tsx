@@ -44,22 +44,22 @@ const PRIVACY_T = {
 
     section1Title: { tr: '1. Giriş', en: '1. Introduction' },
     section1Content: {
-        tr: `Corio Teknoloji A.Ş. ("Şirket", "biz", "bizim") olarak kişisel verilerinizin gizliliğine ve güvenliğine büyük önem veriyoruz. Bu Gizlilik Politikası, Corio Scan mobil uygulaması ("Uygulama") aracılığıyla toplanan kişisel verilerin nasıl işlendiğini, korunduğunu ve haklarınızı açıklamaktadır.
+        tr: `Corio Scan ("biz", "bizim") olarak kişisel verilerinizin gizliliğine ve güvenliğine büyük önem veriyoruz. Bu Gizlilik Politikası, Corio Scan mobil uygulaması ("Uygulama") aracılığıyla toplanan kişisel verilerin nasıl işlendiğini, korunduğunu ve haklarınızı açıklamaktadır.
 
 Bu politika, 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK), Avrupa Birliği Genel Veri Koruma Tüzüğü (GDPR) ve diğer ilgili mevzuat kapsamında hazırlanmıştır.`,
-        en: `At Corio Technology Inc. ("Company", "we", "our"), we place great importance on the privacy and security of your personal data. This Privacy Policy explains how personal data collected through the Corio Scan mobile application ("Application") is processed, protected, and your rights.
+        en: `At Corio Scan ("we", "our"), we place great importance on the privacy and security of your personal data. This Privacy Policy explains how personal data collected through the Corio Scan mobile application ("Application") is processed, protected, and your rights.
 
 This policy has been prepared in accordance with the Turkish Personal Data Protection Law (KVKK), the European Union General Data Protection Regulation (GDPR), and other relevant legislation.`
     },
 
     section2Title: { tr: '2. Veri Sorumlusu', en: '2. Data Controller' },
     section2Content: {
-        tr: `Corio Teknoloji A.Ş.
+        tr: `Corio Scan
 Adres: İstanbul, Türkiye
 E-posta: destek@corioscan.com
 
 Kişisel verilerinizle ilgili tüm sorularınız için yukarıdaki iletişim bilgilerini kullanabilirsiniz.`,
-        en: `Corio Technology Inc.
+        en: `Corio Scan
 Address: Istanbul, Turkey
 Email: destek@corioscan.com
 
@@ -69,32 +69,30 @@ You can use the contact information above for all questions regarding your perso
     section3Title: { tr: '3. Toplanan Kişisel Veriler', en: '3. Personal Data Collected' },
     section3Content: {
         tr: `3.1 Doğrudan Sağladığınız Veriler
-• Hesap Bilgileri: Ad, soyad, e-posta adresi, şifre (şifrelenmiş)
+• Hesap Bilgileri: Ad, soyad, e-posta adresi ve kimlik sağlayıcı bilgileri
 • Profil Bilgileri: Profil fotoğrafı, meslek, uzmanlık alanı
 • Sağlık Verileri: Yüklenen cilt/lezyon görselleri, belirti açıklamaları, tıbbi geçmiş notları
 • Demografik Veriler: Yaş, cinsiyet, bölge bilgisi
 • İletişim Verileri: Destek talepleri, geri bildirimler
 
 3.2 Otomatik Olarak Toplanan Veriler
-• Cihaz Bilgileri: Cihaz modeli, işletim sistemi, benzersiz cihaz tanımlayıcısı
-• Kullanım Verileri: Uygulama kullanım süresi, tıklanan özellikler, analiz sayısı
-• Teknik Veriler: IP adresi, tarayıcı türü, zaman damgaları
-• Performans Verileri: Çökme raporları, hata günlükleri
+• Bildirim Verileri: Bildirimleri etkinleştirirseniz push tokenı ve cihaz platformu
+• Hizmet Verileri: Analiz sayısı, abonelik durumu, güvenlik ve hata günlükleri
+• Teknik Veriler: Sunucu taleplerinde IP adresi ve zaman damgaları
 
 3.3 Özel Nitelikli Kişisel Veriler
 Yüklediğiniz sağlık verileri (cilt görselleri, tıbbi geçmiş) KVKK kapsamında "özel nitelikli kişisel veri" olarak kabul edilmektedir ve ek güvenlik önlemleriyle korunmaktadır.`,
         en: `3.1 Data You Directly Provide
-• Account Information: Name, surname, email address, password (encrypted)
+• Account Information: Name, surname, email address, and identity-provider information
 • Profile Information: Profile photo, profession, specialty
 • Health Data: Uploaded skin/lesion images, symptom descriptions, medical history notes
 • Demographic Data: Age, gender, region information
 • Communication Data: Support requests, feedback
 
 3.2 Automatically Collected Data
-• Device Information: Device model, operating system, unique device identifier
-• Usage Data: App usage time, clicked features, number of analyses
-• Technical Data: IP address, browser type, timestamps
-• Performance Data: Crash reports, error logs
+• Notification Data: Push token and device platform if you enable notifications
+• Service Data: Analysis count, subscription status, security and error logs
+• Technical Data: IP address and timestamps in server requests
 
 3.3 Sensitive Personal Data
 The health data you upload (skin images, medical history) is considered "sensitive personal data" under KVKK and is protected with additional security measures.`
@@ -107,16 +105,14 @@ The health data you upload (skin images, medical history) is considered "sensiti
 • Uygulama kayıt ve giriş formları
 • Profil düzenleme ekranları
 • Görsel yükleme ve analiz özellikleri
-• Otomatik tanımlama çerezleri (cookies) ve benzeri teknolojiler
-• Üçüncü taraf analitik araçları (Firebase Analytics, vb.)
+• Hizmet güvenliği ve hata kayıtları
 • Destek ve iletişim kanalları`,
         en: `Your personal data is collected through the following methods:
 
 • Application registration and login forms
 • Profile editing screens
 • Image upload and analysis features
-• Automatic identification cookies and similar technologies
-• Third-party analytics tools (Firebase Analytics, etc.)
+• Service security and error logs
 • Support and communication channels`
     },
 
@@ -129,7 +125,7 @@ The health data you upload (skin images, medical history) is considered "sensiti
 • Vaka geçmişinin saklanması ve yönetimi
 
 5.2 Hizmet İyileştirme
-• Yapay zeka modellerinin eğitimi ve iyileştirilmesi (anonimleştirilmiş verilerle)
+• Kullanıcı görselleri ve sağlık verileri model eğitimi veya AI iyileştirmesi için kullanılmaz
 • Kullanıcı deneyiminin geliştirilmesi
 • Teknik sorunların tespit edilmesi ve giderilmesi
 
@@ -149,7 +145,7 @@ The health data you upload (skin images, medical history) is considered "sensiti
 • Storing and managing case history
 
 5.2 Service Improvement
-• Training and improving AI models (with anonymized data)
+• User images and health data are not used for model training or AI improvement
 • Enhancing user experience
 • Identifying and resolving technical issues
 
@@ -184,33 +180,21 @@ The health data you upload (skin images, medical history) is considered "sensiti
     section7Content: {
         tr: `7.1 Teknik Önlemler
 • SSL/TLS şifrelemesi (aktarım sırasında)
-• AES-256 şifrelemesi (depolama sırasında)
-• Güvenli bulut altyapısı
-• Düzenli güvenlik açığı taramaları
-• Penetrasyon testleri
 • Erişim kontrolü ve yetkilendirme sistemleri
-• İki faktörlü kimlik doğrulama (2FA) desteği
+• Kimlik doğrulama tokenlarının cihazın güvenli depolamasında saklanması
+• Hassas dosyalara kontrollü erişim
 
 7.2 Organizasyonel Önlemler
-• Çalışan gizlilik eğitimleri
 • Erişim kısıtlamaları ("need-to-know" prensibi)
-• Veri işleme sözleşmeleri
-• Düzenli güvenlik denetimleri
 • Olay müdahale prosedürleri`,
         en: `7.1 Technical Measures
 • SSL/TLS encryption (during transmission)
-• AES-256 encryption (during storage)
-• Secure cloud infrastructure
-• Regular vulnerability scans
-• Penetration testing
 • Access control and authorization systems
-• Two-factor authentication (2FA) support
+• Authentication tokens stored using the device's secure storage
+• Controlled access to sensitive files
 
 7.2 Organizational Measures
-• Employee privacy training
 • Access restrictions ("need-to-know" principle)
-• Data processing agreements
-• Regular security audits
 • Incident response procedures`
     },
 
@@ -224,7 +208,7 @@ Verileriniz aşağıdaki koşullarda paylaşılabilir:
 • Yasal Gereksinimler: Mahkeme kararı veya yasal zorunluluk
 
 8.2 Yurt Dışına Aktarım
-Verileriniz, KVKK'nın 9. maddesi kapsamında yeterli koruma sağlanan ülkelere veya açık rızanız ile diğer ülkelere aktarılabilir. Aktarım yapılan tüm taraflarla veri işleme sözleşmeleri imzalanmaktadır.
+Hizmet sağlayıcıların altyapısı nedeniyle verileriniz yurt dışında işlenebilir. Bu aktarım, yürürlükteki mevzuat ve geçerli aktarım mekanizmaları kapsamında gerçekleştirilir.
 
 8.3 Paylaşılmayan Veriler
 Kişisel verileriniz hiçbir koşulda:
@@ -239,7 +223,7 @@ Your data may be shared under the following conditions:
 • Legal Requirements: Court order or legal obligation
 
 8.2 International Transfer
-Your data may be transferred to countries providing adequate protection under KVKK Article 9 or to other countries with your explicit consent. Data processing agreements are signed with all parties receiving data.
+Your data may be processed outside your country because of service-provider infrastructure. Transfers are handled under applicable law and valid transfer mechanisms.
 
 8.3 Data Not Shared
 Your personal data will under no circumstances:
@@ -253,24 +237,22 @@ Your personal data will under no circumstances:
         tr: `9.1 Aktif Hesaplar
 • Hesap bilgileri: Hesap aktif olduğu sürece
 • Analiz geçmişi: Kullanıcı tercihine bağlı olarak hesap aktif olduğu sürece
-• Kullanım verileri: Son 24 ay
+• Hizmet ve güvenlik kayıtları: Hizmetin işletilmesi ve yasal yükümlülükler için gerekli süre boyunca
 
 9.2 Hesap Silme Sonrası
-• Kişisel veriler: 30 gün içinde kalıcı olarak silinir
-• Yedeklemeler: 90 gün sonra silinir
-• Anonimleştirilmiş istatistiksel veriler: Süresiz saklanabilir
+• Uygulama hesabına bağlı aktif kayıtlar ve desteklenen yüklenmiş dosyalar silme talebi işlendiğinde silinir
+• Hizmet sağlayıcı yedekleri kendi saklama döngüleri içinde silinebilir
 
 9.3 Yasal Saklama
 Yasal düzenlemeler gereği bazı veriler belirtilen sürelerde saklanmak zorundadır (örn: mali kayıtlar 10 yıl).`,
         en: `9.1 Active Accounts
 • Account information: As long as the account is active
 • Analysis history: As long as the account is active, based on user preference
-• Usage data: Last 24 months
+• Service and security logs: For as long as needed to operate the service and meet legal obligations
 
 9.2 After Account Deletion
-• Personal data: Permanently deleted within 30 days
-• Backups: Deleted after 90 days
-• Anonymized statistical data: May be retained indefinitely
+• Active account-linked records and supported uploaded files are deleted when the deletion request is processed
+• Service-provider backups may be removed according to their backup retention cycles
 
 9.3 Legal Retention
 Some data must be retained for specified periods due to legal regulations (e.g., financial records for 10 years).`
@@ -314,20 +296,8 @@ If you become aware that data from a person under 18 has been collected, please 
 
     section12Title: { tr: '12. Çerezler ve İzleme Teknolojileri', en: '12. Cookies and Tracking Technologies' },
     section12Content: {
-        tr: `Uygulama, hizmet kalitesini artırmak için çerezler ve benzeri teknolojiler kullanabilir:
-
-• Zorunlu Çerezler: Uygulamanın çalışması için gerekli
-• Analitik Çerezler: Kullanım istatistikleri (devre dışı bırakılabilir)
-• Performans Çerezleri: Uygulama performansının izlenmesi
-
-Cihaz ayarlarından çerez tercihlerinizi yönetebilirsiniz.`,
-        en: `The Application may use cookies and similar technologies to improve service quality:
-
-• Essential Cookies: Required for the Application to function
-• Analytics Cookies: Usage statistics (can be disabled)
-• Performance Cookies: Monitoring Application performance
-
-You can manage your cookie preferences through device settings.`
+        tr: `Mobil Uygulama reklam amaçlı takip çerezleri kullanmaz. Web sürümü, oturum açma ve güvenlik gibi zorunlu işlevler için gerekli oturum teknolojilerini kullanabilir.`,
+        en: `The mobile Application does not use advertising tracking cookies. The web version may use session technologies required for sign-in and security.`
     },
 
     section13Title: { tr: '13. Politika Değişiklikleri', en: '13. Policy Changes' },
@@ -385,12 +355,12 @@ const TERMS_T = {
 
 Bu Şartları kabul etmiyorsanız, Uygulamayı kullanmamalısınız. Uygulamayı kullanmaya devam etmeniz, Şartlardaki değişiklikleri de kabul ettiğiniz anlamına gelir.
 
-Corio Teknoloji A.Ş. ("Şirket", "biz", "bizim") bu Şartları herhangi bir zamanda değiştirme hakkını saklı tutar. Değişiklikler, Uygulama içinde yayınlandığı tarihte yürürlüğe girer.`,
+Corio Scan ("biz", "bizim") bu Şartları herhangi bir zamanda değiştirme hakkını saklı tutar. Değişiklikler, Uygulama içinde yayınlandığı tarihte yürürlüğe girer.`,
         en: `By downloading, installing, or using the Corio Scan mobile application ("Application"), you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions ("Terms").
 
 If you do not accept these Terms, you should not use the Application. Your continued use of the Application signifies your acceptance of any changes to the Terms.
 
-Corio Technology Inc. ("Company", "we", "our") reserves the right to modify these Terms at any time. Changes become effective upon publication within the Application.`
+Corio Scan ("we", "our") reserves the right to modify these Terms at any time. Changes become effective upon publication within the Application.`
     },
 
     section2Title: { tr: '2. Hizmet Tanımı', en: '2. Service Description' },
@@ -400,23 +370,23 @@ Corio Technology Inc. ("Company", "we", "our") reserves the right to modify thes
 • Ciltteki lezyonların görsel analizi
 • Yapay zeka destekli ön değerlendirme raporları
 • Vaka geçmişi yönetimi
-• Profesyonel kullanıcılar için tanı destek araçları
+• Profesyonel kullanıcılar için dokümantasyon ve ön değerlendirme araçları
 
-ÖNEMLİ UYARI: Bu Uygulama, kesinlikle tıbbi tanı koymak, tedavi önermek veya bir sağlık profesyonelinin değerlendirmesinin yerini almak amacıyla tasarlanmamıştır. Uygulama yalnızca bilgilendirme ve karar destek aracı olarak kullanılmalıdır.`,
+ÖNEMLİ UYARI: Bu Uygulama tıbbi değerlendirme yapmak, tedavi önermek veya bir sağlık profesyonelinin değerlendirmesinin yerini almak amacıyla tasarlanmamıştır. Yalnızca farkındalık, dokümantasyon ve yardımcı ön değerlendirme amacıyla kullanılmalıdır.`,
         en: `Corio Scan is a mobile application that helps analyze dermatological images using artificial intelligence technology. The Application offers the following services:
 
 • Visual analysis of skin lesions
 • AI-powered preliminary assessment reports
 • Case history management
-• Diagnostic support tools for professional users
+• Documentation and preliminary assessment tools for professional users
 
-IMPORTANT WARNING: This Application is not designed to provide medical diagnosis, recommend treatment, or replace the evaluation of a healthcare professional. The Application should only be used as an informational and decision support tool.`
+IMPORTANT WARNING: This Application is not designed to provide medical assessment, recommend treatment, or replace a healthcare professional. It is only for awareness, documentation, and assisted preliminary assessment.`
     },
 
     section3Title: { tr: '3. Kullanıcı Yeterliliği ve Hesap', en: '3. User Eligibility and Account' },
     section3Content: {
         tr: `3.1 Yaş Sınırı
-Uygulamayı kullanmak için en az 18 yaşında olmanız veya yasal vasinizin onayını almış olmanız gerekmektedir.
+Uygulamayı kullanmak için en az 18 yaşında olmanız gerekmektedir. Veli veya vasi onayı 18 yaş altı kullanıma izin vermez.
 
 3.2 Hesap Oluşturma
 Bazı özellikleri kullanmak için hesap oluşturmanız gerekebilir. Hesap oluştururken doğru ve güncel bilgiler vermeyi kabul edersiniz.
@@ -430,7 +400,7 @@ Bazı özellikleri kullanmak için hesap oluşturmanız gerekebilir. Hesap oluş
 3.4 Profesyonel Kullanıcılar
 Sağlık profesyoneli olarak kayıt oluyorsanız, geçerli bir lisansa sahip olduğunuzu ve mesleki yetkinliğinizi beyan etmiş olursunuz.`,
         en: `3.1 Age Requirement
-You must be at least 18 years old or have the consent of your legal guardian to use the Application.
+You must be at least 18 years old to use the Application. Parent or guardian consent does not permit use by anyone under 18.
 
 3.2 Account Creation
 You may need to create an account to use certain features. You agree to provide accurate and current information when creating an account.
@@ -578,7 +548,7 @@ Hesabınızı istediğiniz zaman Ayarlar menüsünden veya destek@corioscan.com 
 • Uzun süreli hesap inaktivitesi
 
 9.3 Fesih Sonrası
-Hesap feshinden sonra verileriniz 30 gün içinde kalıcı olarak silinir. Yasal zorunluluklar gereği bazı veriler daha uzun süre saklanabilir.`,
+Hesap feshinde, aktif hesap kayıtları ve desteklenen yüklenmiş dosyalar silme talebi işlendiğinde silinir. Yasal saklama gereksinimleri ve hizmet sağlayıcı yedek döngüleri uygulanmaya devam edebilir.`,
         en: `9.1 Termination by You
 You can delete your account at any time through the Settings menu or by sending an email to destek@corioscan.com.
 
@@ -590,7 +560,7 @@ The Company may suspend or terminate your account in the following cases:
 • Extended account inactivity
 
 9.3 After Termination
-After account termination, your data will be permanently deleted within 30 days. Some data may be retained longer due to legal requirements.`
+After account termination, active account records and supported uploaded files are deleted when the request is processed. Legal retention requirements and service-provider backup cycles may continue to apply.`
     },
 
     section10Title: { tr: '10. Hizmet Değişiklikleri', en: '10. Service Changes' },
@@ -667,7 +637,7 @@ You may not transfer your rights under these Terms without the written consent o
     section14Content: {
         tr: `Bu Kullanım Şartları ile ilgili sorularınız için:
 
-Corio Teknoloji A.Ş.
+Corio Scan
 📧 E-posta: destek@corioscan.com
 📧 Destek: destek@corioscan.com
 🌐 Web: www.corioscan.com
@@ -675,7 +645,7 @@ Corio Teknoloji A.Ş.
 Yanıt süresi: İş günlerinde 48 saat içinde`,
         en: `For questions regarding these Terms of Service:
 
-Corio Technology Inc.
+Corio Scan
 📧 Email: destek@corioscan.com
 📧 Support: destek@corioscan.com
 🌐 Web: www.corioscan.com

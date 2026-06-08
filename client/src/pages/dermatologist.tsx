@@ -46,7 +46,7 @@ export default function DermatologistPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save diagnosis');
+        throw new Error('Failed to save professional finding');
       }
 
       return response.json();
@@ -59,14 +59,14 @@ export default function DermatologistPage() {
       setDiagnosis('');
       setNotes('');
       toast({
-        title: 'Diagnosis Saved',
-        description: 'Your diagnosis has been successfully saved.',
+        title: 'Finding Saved',
+        description: 'Your professional finding has been successfully saved.',
       });
     },
     onError: (error) => {
       toast({
         title: 'Error',
-        description: 'Failed to save diagnosis. Please try again.',
+        description: 'Failed to save the professional finding. Please try again.',
         variant: 'destructive',
       });
     },
@@ -75,8 +75,8 @@ export default function DermatologistPage() {
   const handleSaveDiagnosis = (caseId: string) => {
     if (!diagnosis.trim()) {
       toast({
-        title: 'Diagnosis Required',
-        description: 'Please enter a diagnosis before saving.',
+        title: 'Finding Required',
+        description: 'Please enter a professional finding before saving.',
         variant: 'destructive',
       });
       return;
@@ -133,7 +133,7 @@ export default function DermatologistPage() {
             <h1 className="text-3xl font-bold text-foreground">Dermatologist Review Panel</h1>
           </div>
           <p className="text-muted-foreground">
-            Review cases and provide your expert diagnosis (AI analysis hidden for blind review)
+            Review cases and document your independent professional findings
           </p>
         </div>
 
@@ -170,7 +170,7 @@ export default function DermatologistPage() {
                         {caseItem.dermatologistDiagnosis ? (
                           <Badge variant="default" className="bg-green-600">
                             <CheckCircle className="h-3 w-3 mr-1" />
-                            Diagnosed
+                            Reviewed
                           </Badge>
                         ) : (
                           <Badge variant="secondary">Pending</Badge>
@@ -190,7 +190,7 @@ export default function DermatologistPage() {
                         </p>
                         {caseItem.dermatologistDiagnosis && (
                           <div className="mt-2 pt-2 border-t">
-                            <p className="font-medium text-green-700">Your Diagnosis:</p>
+                            <p className="font-medium text-green-700">Your Finding:</p>
                             <p className="text-sm">{caseItem.dermatologistDiagnosis}</p>
                           </div>
                         )}
@@ -209,7 +209,7 @@ export default function DermatologistPage() {
               </div>
             </div>
 
-            {/* Case Details & Diagnosis Form */}
+            {/* Case details and professional finding form */}
             <div className="lg:sticky lg:top-8 h-fit">
               {selectedCase ? (
                 <Card>
@@ -287,19 +287,19 @@ export default function DermatologistPage() {
                       </div>
                     </div>
 
-                    {/* Diagnosis Form */}
+                    {/* Professional finding form */}
                     <div className="border-t pt-6">
                       <h3 className="font-semibold mb-4 text-lg">
-                        {editingCaseId ? 'Edit Your Diagnosis' : 'Your Diagnosis'}
+                        {editingCaseId ? 'Edit Your Finding' : 'Your Finding'}
                       </h3>
 
                       {editingCaseId === selectedCase.id ? (
                         <div className="space-y-4">
                           <div>
-                            <Label htmlFor="diagnosis">Diagnosis *</Label>
+                            <Label htmlFor="diagnosis">Professional Finding *</Label>
                             <Input
                               id="diagnosis"
-                              placeholder="Enter your diagnosis..."
+                              placeholder="Enter your professional finding..."
                               value={diagnosis}
                               onChange={(e) => setDiagnosis(e.target.value)}
                               className="mt-1"
@@ -325,7 +325,7 @@ export default function DermatologistPage() {
                               className="flex-1"
                             >
                               <Save className="h-4 w-4 mr-2" />
-                              {saveDiagnosisMutation.isPending ? 'Saving...' : 'Save Diagnosis'}
+                              {saveDiagnosisMutation.isPending ? 'Saving...' : 'Save Finding'}
                             </Button>
                             {selectedCase.dermatologistDiagnosis && (
                               <Button
@@ -345,9 +345,9 @@ export default function DermatologistPage() {
                         <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
                           <div>
                             <p className="font-medium text-sm text-muted-foreground mb-1">
-                              Diagnosis
+                              Professional Finding
                             </p>
-                            <p className="text-base">{diagnosis || 'Not yet diagnosed'}</p>
+                            <p className="text-base">{diagnosis || 'Not yet reviewed'}</p>
                           </div>
                           {notes && (
                             <div>
@@ -360,7 +360,7 @@ export default function DermatologistPage() {
                           {selectedCase.dermatologistDiagnosedAt && (
                             <div>
                               <p className="font-medium text-sm text-muted-foreground mb-1">
-                                Diagnosed At
+                                Reviewed At
                               </p>
                               <p className="text-sm">
                                 {new Date(selectedCase.dermatologistDiagnosedAt).toLocaleString()}
@@ -374,9 +374,9 @@ export default function DermatologistPage() {
                     {/* Important Notice */}
                     <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                       <p className="text-sm text-amber-800">
-                        <strong>Note:</strong> AI analysis results are intentionally hidden to ensure
-                        an unbiased blind review. Your diagnosis will be compared with AI predictions
-                        for research purposes.
+                        <strong>Note:</strong> AI-assisted results are intentionally hidden while you
+                        document an independent professional finding. This workflow is for
+                        documentation and preliminary assessment support, not clinical decision-making.
                       </p>
                     </div>
                   </CardContent>

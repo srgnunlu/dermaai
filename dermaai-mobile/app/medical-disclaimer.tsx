@@ -199,26 +199,26 @@ For general skin health:
     section6Content: {
         tr: `6.1 Sağlık Verilerinin Hassasiyeti
 Yüklediğiniz cilt görüntüleri ve sağlık bilgileri özel nitelikli kişisel verilerdir. Bu veriler:
-• Şifrelenmiş olarak saklanır
+• Hizmeti sunmak için kontrollü erişimle işlenir
 • Yalnızca analiz amacıyla kullanılır
 • İzniniz olmadan üçüncü taraflarla paylaşılmaz
 • Talep ettiğinizde silinir
 
 6.2 Dikkat Edilmesi Gerekenler
 • Başkalarının görüntülerini izinsiz yüklemeyin
-• Çocukların görüntüleri için veli izni gereklidir
+• Uygulama 18+ olduğu için çocuklara ait görüntüleri yüklemeyin
 • Mahrem bölge görüntüleri için ekstra dikkat gösterin
 • Görüntülerin yanlış ellere geçme riskini değerlendirin`,
         en: `6.1 Sensitivity of Health Data
 The skin images and health information you upload are sensitive personal data. This data:
-• Is stored encrypted
+• Is processed with controlled access to provide the service
 • Is used only for analysis purposes
 • Is not shared with third parties without your permission
 • Is deleted upon your request
 
 6.2 Points to Consider
 • Do not upload images of others without permission
-• Parental consent is required for children's images
+• Do not upload children's images because the Application is strictly 18+
 • Exercise extra caution with images of intimate areas
 • Evaluate the risk of images falling into wrong hands`
     },
@@ -299,7 +299,7 @@ Healthcare professionals using this application:
 ✓ "Endişelenecek bir şey yok" sonucu bile %100 güvenilir değildir
 ✓ Şüphe durumunda mutlaka profesyonel görüş alın
 ✓ Düzenli cilt kontrollerini ihmal etmeyin
-✓ Erken tanı hayat kurtarır - şüphelendiğinizde hekime başvurun
+✓ Erken profesyonel değerlendirme önemlidir - şüphelendiğinizde hekime başvurun
 
 Sağlığınız değerlidir - teknolojiyi bir yardımcı araç olarak kullanın, profesyonel tıbbi bakımın yerini almasına izin vermeyin.`,
         en: `PLEASE REMEMBER:
@@ -319,14 +319,14 @@ Your health is valuable - use technology as a supporting tool, don't let it repl
     section10Content: {
         tr: `Tıbbi uyarı veya uygulama kullanımı hakkında sorularınız için:
 
-Corio Scan Geliştiricileri
+Corio Scan
 📧 Genel Destek: destek@corioscan.com
 🌐 Web: www.corioscan.com
 
 ⚠️ Tıbbi acil durumlar için 112'yi arayın!`,
         en: `For questions about the medical disclaimer or Application usage:
 
-Corio Scan Developers
+Corio Scan
 📧 General Support: destek@corioscan.com
 🌐 Web: www.corioscan.com
 

@@ -137,10 +137,10 @@ export function CaseHistory() {
                       Patient ID
                     </th>
                     <th className="text-left py-3 px-4 font-medium text-muted-foreground">
-                      Top Diagnosis
+                      Top Possible Finding
                     </th>
                     <th className="text-left py-3 px-4 font-medium text-muted-foreground">
-                      Confidence
+                      Model Confidence Score
                     </th>
                     <th className="text-left py-3 px-4 font-medium text-muted-foreground">
                       Actions
@@ -313,10 +313,10 @@ export function CaseHistory() {
                 </div>
               </div>
 
-              {/* Diagnoses */}
+              {/* Possible findings */}
               {getAllDiagnoses(selectedCase).length > 0 && (
                 <div>
-                  <h4 className="font-semibold mb-3">AI Diagnosis Results</h4>
+                  <h4 className="font-semibold mb-3">AI-Assisted Possible Findings</h4>
                   <div className="space-y-3">
                     {getAllDiagnoses(selectedCase).map((diagnosis, index) => (
                       <div key={index} className="border rounded-lg p-3">

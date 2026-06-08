@@ -55,7 +55,7 @@ export default function Header() {
   const recentCases = useMemo(() => cases.slice(0, 10), [cases]);
 
   const navigation = [
-    { name: 'Diagnosis', href: '/diagnosis', icon: Activity },
+    { name: 'Analysis', href: '/diagnosis', icon: Activity },
     { name: 'Case History', href: '/case-history', icon: History },
     { name: 'Settings', href: '/settings', icon: Settings },
     { name: 'Profile', href: '/profile', icon: UserIcon },
@@ -281,7 +281,7 @@ export default function Header() {
                             </span>
                           </div>
                           <p className="text-muted-foreground">
-                            {caseItem.finalDiagnoses?.[0]?.name || 'Awaiting diagnosis'}
+                            {caseItem.finalDiagnoses?.[0]?.name || 'Awaiting analysis'}
                           </p>
                         </li>
                       ))}

@@ -59,12 +59,14 @@ const ImageThumbnail = ({
     onRemove,
     onPreview,
     colors,
+    language,
 }: {
     uri: string;
     index: number;
     onRemove: () => void;
     onPreview: () => void;
     colors: typeof Colors.light;
+    language: 'tr' | 'en';
 }) => {
     const scaleAnim = useRef(new Animated.Value(0)).current;
 
@@ -91,7 +93,13 @@ const ImageThumbnail = ({
         <Animated.View
             style={[styles.thumbnailContainer, { transform: [{ scale: scaleAnim }] }]}
         >
-            <TouchableOpacity onPress={onPreview} activeOpacity={0.9}>
+            <TouchableOpacity
+                onPress={onPreview}
+                activeOpacity={0.9}
+                accessibilityRole="button"
+                accessibilityLabel={language === 'tr' ? `Görsel ${index + 1}` : `Image ${index + 1}`}
+                accessibilityHint={language === 'tr' ? 'Önizlemeyi açar' : 'Opens preview'}
+            >
                 <Image source={{ uri }} style={[styles.thumbnail, { borderColor: colors.border }]} />
                 <View style={[styles.zoomBadge, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
                     <ZoomIn size={12} color="#FFFFFF" />
@@ -100,6 +108,8 @@ const ImageThumbnail = ({
             <TouchableOpacity
                 style={[styles.removeBtn, { backgroundColor: colors.destructive }]}
                 onPress={handleRemove}
+                accessibilityRole="button"
+                accessibilityLabel={language === 'tr' ? `Görsel ${index + 1} kaldır` : `Remove image ${index + 1}`}
             >
                 <X size={12} color="#FFFFFF" strokeWidth={3} />
             </TouchableOpacity>
@@ -111,9 +121,11 @@ const ImageThumbnail = ({
 const AddImagePlaceholder = ({
     onPress,
     colors,
+    language,
 }: {
     onPress: () => void;
     colors: typeof Colors.light;
+    language: 'tr' | 'en';
 }) => (
     <View style={styles.addPlaceholderWrapper}>
         <BlurView intensity={40} tint="light" style={styles.addPlaceholderBlur}>
@@ -121,6 +133,8 @@ const AddImagePlaceholder = ({
                 onPress={onPress}
                 style={styles.addPlaceholderContent}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={language === 'tr' ? 'Görsel ekle' : 'Add image'}
             >
                 <Plus size={24} color={colors.textSecondary} />
             </TouchableOpacity>
@@ -266,7 +280,12 @@ export function ImageUploadStep({
         <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={onBack} style={styles.backButton}>
+                <TouchableOpacity
+                    onPress={onBack}
+                    style={styles.backButton}
+                    accessibilityRole="button"
+                    accessibilityLabel={language === 'tr' ? 'Geri' : 'Back'}
+                >
                     <ChevronLeft size={24} color={colors.text} />
                 </TouchableOpacity>
                 <Text style={[styles.appName, { color: colors.textSecondary }]}>
@@ -282,7 +301,7 @@ export function ImageUploadStep({
             >
                 {/* Title */}
                 <Text style={[styles.title, { color: colors.text }]}>
-                    {language === 'tr' ? 'Lezyon Fotoğrafı' : 'Lesion Photo'}
+                    {language === 'tr' ? 'Cilt Bölgesi Fotoğrafı' : 'Skin Area Photo'}
                 </Text>
                 <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
                     {language === 'tr'
@@ -297,6 +316,9 @@ export function ImageUploadStep({
                         onPress={handleTakePhoto}
                         activeOpacity={0.9}
                         disabled={images.length >= MAX_IMAGES}
+                        accessibilityRole="button"
+                        accessibilityLabel={Translations.takePhoto[language]}
+                        accessibilityState={{ disabled: images.length >= MAX_IMAGES }}
                     >
                         <LinearGradient
                             colors={gradients.primary}
@@ -318,6 +340,9 @@ export function ImageUploadStep({
                             activeOpacity={0.8}
                             disabled={images.length >= MAX_IMAGES}
                             style={styles.galleryButton}
+                            accessibilityRole="button"
+                            accessibilityLabel={Translations.chooseFromGallery[language]}
+                            accessibilityState={{ disabled: images.length >= MAX_IMAGES }}
                         >
                             <ImageIcon size={22} color="#334155" />
                             <Text style={styles.galleryButtonText}>
@@ -347,12 +372,14 @@ export function ImageUploadStep({
                                     onRemove={() => handleRemoveImage(index)}
                                     onPreview={() => setPreviewImage(uri)}
                                     colors={colors}
+                                    language={language}
                                 />
                             ))}
                             {images.length < MAX_IMAGES && (
                                 <AddImagePlaceholder
                                     onPress={handleTakePhoto}
                                     colors={colors}
+                                    language={language}
                                 />
                             )}
                         </View>
@@ -390,6 +417,9 @@ export function ImageUploadStep({
                         onPressOut={handlePressOut}
                         disabled={!canProceed}
                         activeOpacity={1}
+                        accessibilityRole="button"
+                        accessibilityLabel={Translations.next[language]}
+                        accessibilityState={{ disabled: !canProceed }}
                     >
                         <LinearGradient
                             colors={canProceed ? gradients.primary : ['rgba(200,200,200,0.5)', 'rgba(200,200,200,0.5)']}
@@ -417,6 +447,8 @@ export function ImageUploadStep({
                     style={styles.modalOverlay}
                     activeOpacity={1}
                     onPress={() => setPreviewImage(null)}
+                    accessibilityRole="button"
+                    accessibilityLabel={language === 'tr' ? 'Görsel önizlemesini kapat' : 'Close image preview'}
                 >
                     <View style={styles.modalContent}>
                         {previewImage && (
@@ -429,6 +461,8 @@ export function ImageUploadStep({
                         <TouchableOpacity
                             style={[styles.closeBtn, { backgroundColor: colors.card }]}
                             onPress={() => setPreviewImage(null)}
+                            accessibilityRole="button"
+                            accessibilityLabel={language === 'tr' ? 'Görsel önizlemesini kapat' : 'Close image preview'}
                         >
                             <X size={20} color={colors.text} />
                         </TouchableOpacity>

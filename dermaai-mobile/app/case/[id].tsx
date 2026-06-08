@@ -157,7 +157,7 @@ export default function CaseDetailScreen() {
                     const confidenceEmoji = diagnosis.confidence >= 70 ? '🟢' : diagnosis.confidence >= 40 ? '🟡' : '🔴';
 
                     diagnosesText += `\n\n${index + 1}️⃣ ${diagnosis.name}`;
-                    diagnosesText += `\n${confidenceEmoji} ${language === 'tr' ? 'Güven Oranı' : 'Confidence'}: %${diagnosis.confidence}`;
+                    diagnosesText += `\n${confidenceEmoji} ${language === 'tr' ? 'Model Güven Skoru' : 'Model Confidence Score'}: %${diagnosis.confidence}`;
 
                     // Full description
                     if (diagnosis.description) {
@@ -187,12 +187,12 @@ export default function CaseDetailScreen() {
             }
 
             const shareMessage = language === 'tr'
-                ? `🏥 DermAssist AI\n${language === 'tr' ? 'DETAYLI ANALİZ RAPORU' : 'DETAILED ANALYSIS REPORT'}\n${divider}\n\n📅 Tarih: ${createdDate}\n📍 Lezyon Konumu: ${translateValue(caseData?.lesionLocation, language) || notSpecified}${durationText}${symptomsText}${medicalHistoryText}${diagnosesText}\n\n${divider}\n\n⚠️ ÖNEMLİ UYARI:\nBu analiz sadece bilgi amaçlıdır ve profesyonel tıbbi tavsiye yerine geçmez. Kesin tanı için lütfen bir dermatoloji uzmanına danışın.\n\n🔗 DermAssist AI ile oluşturuldu`
-                : `🏥 DermAssist AI\nDETAILED ANALYSIS REPORT\n${divider}\n\n📅 Date: ${createdDate}\n📍 Lesion Location: ${translateValue(caseData?.lesionLocation, language) || notSpecified}${durationText}${symptomsText}${medicalHistoryText}${diagnosesText}\n\n${divider}\n\n⚠️ IMPORTANT NOTICE:\nThis analysis is for informational purposes only and does not replace professional medical advice. Please consult a dermatologist for a definitive diagnosis.\n\n🔗 Generated with DermAssist AI`;
+                ? `Corio Scan\n${language === 'tr' ? 'CİLT FARKINDALIK RAPORU' : 'SKIN AWARENESS REPORT'}\n${divider}\n\n📅 Tarih: ${createdDate}\n📍 Cilt Bölgesi: ${translateValue(caseData?.lesionLocation, language) || notSpecified}${durationText}${symptomsText}${medicalHistoryText}${diagnosesText}\n\n${divider}\n\n⚠️ ÖNEMLİ UYARI:\nBu yardımcı ön değerlendirme yalnızca farkındalık amaçlıdır. Sağlık kararları için bir dermatoloji uzmanına danışın.\n\n🔗 Corio Scan ile oluşturuldu`
+                : `Corio Scan\nSKIN AWARENESS REPORT\n${divider}\n\n📅 Date: ${createdDate}\n📍 Skin Area: ${translateValue(caseData?.lesionLocation, language) || notSpecified}${durationText}${symptomsText}${medicalHistoryText}${diagnosesText}\n\n${divider}\n\n⚠️ IMPORTANT NOTICE:\nThis assisted preliminary assessment is for awareness only. Consult a dermatologist for healthcare decisions.\n\n🔗 Generated with Corio Scan`;
 
             await Share.share({
                 message: shareMessage,
-                title: language === 'tr' ? 'DermAssist AI Analiz Raporu' : 'DermAssist AI Analysis Report',
+                title: language === 'tr' ? 'Corio Scan Farkındalık Raporu' : 'Corio Scan Awareness Report',
             });
         } catch (error) {
             console.error('Share Error:', error);

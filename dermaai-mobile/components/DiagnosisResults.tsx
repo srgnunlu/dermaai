@@ -222,7 +222,7 @@ export function DiagnosisResults({
             console.error('Error selecting provider:', error);
             Alert.alert(
                 Translations.error[language],
-                language === 'tr' ? 'Tanı seçimi kaydedilemedi' : 'Failed to save diagnosis selection'
+                language === 'tr' ? 'Sonuç seçimi kaydedilemedi' : 'Failed to save result selection'
             );
         } finally {
             setIsSelecting(false);
@@ -466,6 +466,8 @@ export function DiagnosisResults({
                     style={styles.secondaryButton}
                     onPress={onNewAnalysis}
                     activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel={Translations.newAnalysis[language]}
                 >
                     <BlurView intensity={60} tint="light" style={styles.secondaryButtonBlur}>
                         <View style={styles.secondaryButtonContent}>
@@ -486,6 +488,9 @@ export function DiagnosisResults({
                     onPress={handleSelectDiagnosis}
                     disabled={isSelecting || isSelected}
                     activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel={Translations.confirmDiagnosis[language]}
+                    accessibilityState={{ disabled: isSelecting || isSelected }}
                 >
                     <LinearGradient
                         colors={isSelected ? ['#10B981', '#059669'] : ['#0E7490', '#0891B2', '#06B6D4']}
@@ -642,7 +647,7 @@ function DiagnosisCard({
                                 </LinearGradient>
                                 {isFirst && (
                                     <Text style={[styles.primaryLabel, { color: colors.primary }]}>
-                                        {language === 'tr' ? 'Birincil Sonuç' : 'Primary Result'}
+                                        {language === 'tr' ? 'Öne Çıkan Olası Bulgu' : 'Highlighted Possible Finding'}
                                     </Text>
                                 )}
                             </View>
@@ -650,7 +655,7 @@ function DiagnosisCard({
                             {/* Confidence Badge */}
                             <View style={[styles.confidenceBadge, { backgroundColor: confidenceColor + '20' }]}>
                                 <Text style={[styles.confidenceText, { color: confidenceColor }]}>
-                                    %{diagnosis.confidence}
+                                    {language === 'tr' ? 'Model skoru' : 'Model score'}: %{diagnosis.confidence}
                                 </Text>
                             </View>
                         </View>

@@ -39,6 +39,7 @@ export interface IStorage {
   // (IMPORTANT) these user operations are mandatory for Replit Auth.
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByAppleSubject(appleSubject: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
 
   // Profile operations
@@ -95,6 +96,7 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   promoteUserToAdmin(userId: string): Promise<User>;
   demoteUserFromAdmin(userId: string): Promise<User>;
+  getUserImageReferences(userId: string): Promise<string[]>;
   deleteUser(id: string): Promise<boolean>;
   // System settings
   getSystemSettings(): Promise<SystemSettings>;
@@ -163,6 +165,11 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByEmail(email: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async getUserByAppleSubject(appleSubject: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.appleSubject, appleSubject));
     return user;
   }
 
@@ -774,13 +781,34 @@ export class DatabaseStorage implements IStorage {
 
   async deleteUser(id: string): Promise<boolean> {
     try {
-      // First delete user's cases
-      await db.delete(cases).where(eq(cases.userId, id));
+      const userCases = await db
+        .select({ patientId: cases.patientId })
+        .from(cases)
+        .where(eq(cases.userId, id));
+      const patientIds = Array.from(
+        new Set(userCases.map(({ patientId }) => patientId).filter((value): value is string => Boolean(value)))
+      );
 
-      // Then delete user's settings
+      await db
+        .update(cases)
+        .set({ dermatologistDiagnosedBy: null })
+        .where(eq(cases.dermatologistDiagnosedBy, id));
+      await db.delete(lesionTrackings).where(eq(lesionTrackings.userId, id));
+      await db.delete(cases).where(eq(cases.userId, id));
+      await db.delete(pushTokens).where(eq(pushTokens.userId, id));
       await db.delete(userSettings).where(eq(userSettings.userId, id));
 
-      // Finally delete the user
+      for (const patientId of patientIds) {
+        const [remainingCase] = await db
+          .select({ id: cases.id })
+          .from(cases)
+          .where(eq(cases.patientId, patientId))
+          .limit(1);
+        if (!remainingCase) {
+          await db.delete(patients).where(eq(patients.id, patientId));
+        }
+      }
+
       const result = await db.delete(users).where(eq(users.id, id));
 
       return result.rowCount ? result.rowCount > 0 : false;
@@ -788,6 +816,33 @@ export class DatabaseStorage implements IStorage {
       logger.error('Error deleting user:', error);
       return false;
     }
+  }
+
+  async getUserImageReferences(userId: string): Promise<string[]> {
+    const [userProfile, userCases, snapshots] = await Promise.all([
+      db
+        .select({ profileImageUrl: users.profileImageUrl })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1),
+      db
+        .select({ imageUrl: cases.imageUrl, imageUrls: cases.imageUrls })
+        .from(cases)
+        .where(eq(cases.userId, userId)),
+      db
+        .select({ imageUrls: lesionSnapshots.imageUrls })
+        .from(lesionSnapshots)
+        .innerJoin(lesionTrackings, eq(lesionSnapshots.lesionTrackingId, lesionTrackings.id))
+        .where(eq(lesionTrackings.userId, userId)),
+    ]);
+
+    const references = [
+      userProfile[0]?.profileImageUrl,
+      ...userCases.flatMap(({ imageUrl, imageUrls }) => [imageUrl, ...(imageUrls || [])]),
+      ...snapshots.flatMap(({ imageUrls }) => imageUrls || []),
+    ].filter((value): value is string => Boolean(value));
+
+    return Array.from(new Set(references));
   }
 
   // System settings

@@ -2,14 +2,14 @@ import SiteFooter from '@/components/SiteFooter';
 
 const clauses = [
   {
-    title: 'Clinical Use',
+    title: 'Assisted Use',
     description:
-      'Corio Scan provides clinical decision support and should be used by licensed healthcare professionals. All diagnoses and treatment plans remain the responsibility of the supervising clinician.',
+      'Corio Scan provides skin-awareness, documentation, and preliminary assessment assistance for adults. It does not provide medical decisions or replace a healthcare professional.',
   },
   {
     title: 'Account Responsibilities',
     description:
-      'You are responsible for safeguarding login credentials, ensuring accurate user roles, and immediately reporting unauthorised access or suspected misuse.',
+      'You must be at least 18 years old. You are responsible for safeguarding login credentials, ensuring accurate user roles, and immediately reporting unauthorised access or suspected misuse.',
   },
   {
     title: 'Data Ownership',
@@ -19,17 +19,17 @@ const clauses = [
   {
     title: 'Service Availability',
     description:
-      'Corio Scan targets 99.5% uptime. Planned maintenance windows are communicated at least 48 hours in advance. Critical incidents are reported through your nominated contact.',
+      'Service availability may be affected by maintenance, network conditions, or third-party providers. Material service issues are communicated through available support channels.',
   },
   {
     title: 'Model Updates',
     description:
-      "We continuously improve AI models. Significant behavioural changes are documented in release notes and can be reviewed in your organisation's audit trail.",
+      'We may update service models and document significant behavioural changes. User images and health data are not used for model training or AI improvement.',
   },
   {
     title: 'Termination',
     description:
-      'You may terminate access at any time. Upon termination we provide a secure export of stored case data and purge remaining content within 30 days unless legal retention is required.',
+      'You may delete your account at any time. Active account-linked records and supported uploaded files are deleted when the request is processed, subject to legal retention and provider backup cycles.',
   },
 ];
 
@@ -42,12 +42,11 @@ export default function TermsOfServicePage() {
             Terms of Service
           </span>
           <h1 className="mt-4 text-4xl font-bold text-foreground">
-            Professional Agreement for Corio Scan
+            Terms for Corio Scan
           </h1>
           <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
-            These terms govern the use of Corio Scan by healthcare providers and organisations. By
-            accessing the platform you agree to follow the safeguards described below to protect
-            patients, maintain compliance, and preserve service quality.
+            These terms govern Corio Scan use by adults for personal use or by healthcare
+            professionals for documentation and preliminary assessment assistance.
           </p>
 
           <div className="mt-10 grid gap-6">
@@ -64,16 +63,15 @@ export default function TermsOfServicePage() {
 
           <div className="mt-12 grid gap-6 rounded-2xl border border-border bg-card/80 p-6 md:grid-cols-2">
             <div>
-              <h3 className="text-lg font-semibold text-foreground">Service Level Commitments</h3>
+              <h3 className="text-lg font-semibold text-foreground">Service Operations</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                We monitor model performance, infrastructure uptime, and queue processing times
-                around the clock. Escalations follow our ISO 27001-aligned runbooks.
+                We monitor service health and investigate reported reliability or security issues.
               </p>
             </div>
             <div>
               <h3 className="text-lg font-semibold text-foreground">Contact for Legal Notices</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                legal@corioscan.com • Corio Scan, Istanbul, Turkey.
+                destek@corioscan.com • Corio Scan, Istanbul, Turkey.
               </p>
             </div>
           </div>

@@ -15,15 +15,14 @@ import {
 import { setupAuth, isAuthenticated } from './replitAuth';
 import { setupMobileAuth } from './mobileAuth';
 import { requireAdmin } from './middleware';
-import multer from 'multer';
 import PDFDocument from 'pdfkit';
-import crypto from 'crypto';
 import logger from './logger';
 import { sanitizeCSVFormula, formatSymptomsForCSV, mapDurationToTurkish } from './utils/csv';
 import { sanitizeTextForPDF } from './utils/pdf';
 import { lookupCaseWithAuth } from './utils/caseHelpers';
 import { mergeAnalysesWithoutConsensus } from './utils/aiAnalysis';
 import { sendAnalysisCompleteNotification } from './pushNotifications';
+import { csrfProtection, csrfTokenHandler } from './csrf';
 import {
   canUserAnalyze,
   incrementAnalysisCount,
@@ -31,8 +30,47 @@ import {
   processRevenueCatWebhook,
   SUBSCRIPTION_LIMITS,
 } from './subscriptions';
+import { createSignedFileAccessToken, verifySignedFileAccessToken } from './fileAccess';
+import {
+  buildImageFilename,
+  createImageUploadMiddleware,
+  decodeBase64Image,
+  validateImageUploadBuffer,
+} from './uploadSecurity';
 
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = createImageUploadMiddleware();
+
+function getRequestBaseUrl(req: any): string {
+  const configuredBaseUrl = process.env.RENDER_EXTERNAL_URL || process.env.BASE_URL;
+  if (configuredBaseUrl) {
+    return configuredBaseUrl.replace(/\/$/, '');
+  }
+
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+  const host = req.headers['x-forwarded-host'] || req.headers.host || 'dermaai-1d9i.onrender.com';
+  return `${protocol}://${host}`;
+}
+
+function buildSignedLocalFileUrl(req: any, filePath: string): string {
+  const token = createSignedFileAccessToken(filePath);
+  return `${getRequestBaseUrl(req)}/files/${filePath}?token=${encodeURIComponent(token)}`;
+}
+
+async function saveImageBuffer(req: any, buffer: Buffer, providedMimeType?: string) {
+  const imageType = validateImageUploadBuffer(buffer, providedMimeType);
+  const filename = buildImageFilename(imageType.extension);
+
+  if (process.env.CLOUDINARY_CLOUD_NAME) {
+    const cloudinaryService = new CloudinaryStorageService();
+    const imageUrl = await cloudinaryService.uploadImage(buffer, filename);
+    return { url: imageUrl, filePath: imageUrl };
+  }
+
+  const fileStorageService = new LocalFileStorageService();
+  const filePath = await fileStorageService.saveUploadedFile(filename.replace(imageType.extension, ''), buffer, filename);
+  const fileUrl = buildSignedLocalFileUrl(req, filePath);
+  return { url: fileUrl, filePath };
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check endpoint for Docker
@@ -45,6 +83,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Setup mobile authentication endpoints
   setupMobileAuth(app);
+
+  app.get('/api/csrf-token', csrfTokenHandler);
+  app.use('/api', csrfProtection);
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
@@ -510,6 +551,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // File storage routes
   app.get('/files/:filePath(*)', async (req, res) => {
+    const hasSignedAccess = verifySignedFileAccessToken(req.params.filePath, req.query.token);
+    const hasAuthenticatedAccess = Boolean(req.isAuthenticated?.() && req.user);
+
+    if (!hasSignedAccess && !hasAuthenticatedAccess) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     const fileStorageService = new LocalFileStorageService();
     try {
       await fileStorageService.downloadFile(req.params.filePath, res);
@@ -519,104 +567,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/upload', upload.single('file'), async (req, res) => {
+  app.post('/api/upload', isAuthenticated, upload.single('file'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
       }
 
-      // Use Cloudinary if configured, fallback to local storage
-      if (process.env.CLOUDINARY_CLOUD_NAME) {
-        const cloudinaryService = new CloudinaryStorageService();
-        const imageUrl = await cloudinaryService.uploadImage(
-          req.file.buffer,
-          req.file.originalname
-        );
-        res.json({ url: imageUrl, filePath: imageUrl });
-      } else {
-        const fileStorageService = new LocalFileStorageService();
-        const filePath = await fileStorageService.saveUploadedFile(
-          crypto.randomUUID(),
-          req.file.buffer,
-          req.file.originalname
-        );
-        const fileUrl = `/files/${filePath}`;
-        res.json({ url: fileUrl, filePath });
-      }
+      const result = await saveImageBuffer(req, req.file.buffer, req.file.mimetype);
+      res.json(result);
     } catch (error) {
       logger.error('Error uploading file:', error);
-      res.status(500).json({ error: 'Failed to upload file' });
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Failed to upload file' });
     }
   });
 
   // Base64 image upload endpoint for mobile apps
-  app.post('/api/upload/base64', async (req, res) => {
+  app.post('/api/upload/base64', isAuthenticated, async (req, res) => {
     try {
-      const { base64, filename, mimeType } = req.body;
+      const { base64, mimeType } = req.body;
 
       if (!base64) {
         return res.status(400).json({ error: 'No base64 data provided' });
       }
 
-      // Remove data URL prefix if present
-      const base64Data = base64.replace(/^data:image\/\w+;base64,/, '');
-      const buffer = Buffer.from(base64Data, 'base64');
-
-      const finalFilename = filename || `image-${Date.now()}.jpg`;
-
-      // Use Cloudinary if configured, fallback to local storage
-      if (process.env.CLOUDINARY_CLOUD_NAME) {
-        const cloudinaryService = new CloudinaryStorageService();
-        const imageUrl = await cloudinaryService.uploadImage(buffer, finalFilename);
-        res.json({ url: imageUrl, filePath: imageUrl });
-      } else {
-        const fileStorageService = new LocalFileStorageService();
-        const filePath = await fileStorageService.saveUploadedFile(
-          crypto.randomUUID(),
-          buffer,
-          finalFilename
-        );
-        // Return full URL for AI analysis
-        // Construct base URL from env vars or request headers
-        let baseUrl = process.env.RENDER_EXTERNAL_URL || process.env.BASE_URL;
-        if (!baseUrl) {
-          // Fallback: construct from request headers
-          const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
-          const host = req.headers['x-forwarded-host'] || req.headers.host || 'dermaai-1d9i.onrender.com';
-          baseUrl = `${protocol}://${host}`;
-        }
-        const fileUrl = `${baseUrl}/files/${filePath}`;
-        res.json({ url: fileUrl, filePath });
-      }
+      const buffer = decodeBase64Image(base64);
+      const result = await saveImageBuffer(req, buffer, mimeType);
+      res.json(result);
     } catch (error) {
       logger.error('Error uploading base64 file:', error);
-      res.status(500).json({ error: 'Failed to upload file' });
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Failed to upload file' });
     }
   });
 
-  app.post('/api/upload/:fileId', upload.single('file'), async (req, res) => {
+  app.post('/api/upload/:fileId', isAuthenticated, upload.single('file'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
       }
 
-      const fileStorageService = new LocalFileStorageService();
-      const filePath = await fileStorageService.saveUploadedFile(
-        req.params.fileId,
-        req.file.buffer,
-        req.file.originalname
-      );
-
-      const fileUrl = `/files/${filePath}`;
-      res.json({ url: fileUrl, filePath });
+      const result = await saveImageBuffer(req, req.file.buffer, req.file.mimetype);
+      res.json(result);
     } catch (error) {
       logger.error('Error uploading file:', error);
-      res.status(500).json({ error: 'Failed to upload file' });
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Failed to upload file' });
     }
   });
 
   // Patient management
-  app.post('/api/patients', async (req, res) => {
+  app.post('/api/patients', isAuthenticated, async (req, res) => {
     try {
       const patientData = insertPatientSchema.parse(req.body);
       const patient = await storage.createPatient(patientData);
@@ -627,12 +625,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/patients/:patientId', async (req, res) => {
+  app.get('/api/patients/:patientId', isAuthenticated, async (req: any, res) => {
     try {
       const patient = await storage.getPatientByPatientId(req.params.patientId);
       if (!patient) {
         return res.status(404).json({ error: 'Patient not found' });
       }
+
+      if (req.user?.role !== 'admin') {
+        const userCases = await storage.getCases(req.user.id);
+        const ownsPatientViaCase = userCases.some((caseRecord) => caseRecord.patientId === patient.id);
+
+        if (!ownsPatientViaCase) {
+          return res.status(403).json({ error: 'Access denied' });
+        }
+      }
+
       res.json(patient);
     } catch (error) {
       logger.error('Error fetching patient:', error);
@@ -663,7 +671,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Handle both single imageUrl (backward compatibility) and multiple imageUrls
       let imageUrls: string[] = [];
       if (caseData.imageUrls && Array.isArray(caseData.imageUrls) && caseData.imageUrls.length > 0) {
-        imageUrls = (caseData.imageUrls as string[]).slice(0, 3); // Max 3 images
+        if (caseData.imageUrls.length > 3) {
+          return res.status(400).json({ error: 'A maximum of 3 images is allowed' });
+        }
+        imageUrls = caseData.imageUrls as string[];
       } else if (caseData.imageUrl) {
         imageUrls = [caseData.imageUrl];
       } else {
@@ -862,7 +873,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Handle image URLs
       let imageUrls: string[] = [];
       if (caseData.imageUrls && Array.isArray(caseData.imageUrls) && caseData.imageUrls.length > 0) {
-        imageUrls = (caseData.imageUrls as string[]).slice(0, 3);
+        if (caseData.imageUrls.length > 3) {
+          return res.status(400).json({ error: 'A maximum of 3 images is allowed' });
+        }
+        imageUrls = caseData.imageUrls as string[];
       } else if (caseData.imageUrl) {
         imageUrls = [caseData.imageUrl];
       } else {
@@ -1966,7 +1980,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin: System settings
-  app.get('/api/admin/system-settings', requireAdmin, async (_req, res) => {
+  app.get('/api/admin/system-settings', isAuthenticated, requireAdmin, async (_req, res) => {
     try {
       const settings = await storage.getSystemSettings();
       res.json(settings);
@@ -1975,7 +1989,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/admin/system-settings', requireAdmin, async (req, res) => {
+  app.put('/api/admin/system-settings', isAuthenticated, requireAdmin, async (req, res) => {
     try {
       const { updateSystemSettingsSchema } = await import('@shared/schema');
       const updates = updateSystemSettingsSchema.parse(req.body);
@@ -1987,7 +2001,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Analytics endpoints
-  app.get('/api/admin/analytics/diagnosis-distribution', requireAdmin, async (_req, res) => {
+  app.get('/api/admin/analytics/diagnosis-distribution', isAuthenticated, requireAdmin, async (_req, res) => {
     try {
       const distribution = await storage.getAnalyticsDiagnosisDistribution();
       res.json(distribution);
@@ -1997,7 +2011,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/admin/analytics/timeseries', requireAdmin, async (req, res) => {
+  app.get('/api/admin/analytics/timeseries', isAuthenticated, requireAdmin, async (req, res) => {
     try {
       const days = parseInt(req.query.days as string) || 30;
       const data = await storage.getAnalyticsTimeSeriesData(days);
@@ -2008,7 +2022,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/admin/analytics/ai-performance', requireAdmin, async (_req, res) => {
+  app.get('/api/admin/analytics/ai-performance', isAuthenticated, requireAdmin, async (_req, res) => {
     try {
       const performance = await storage.getAnalyticsAIPerformance();
       res.json(performance);
@@ -2018,7 +2032,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/admin/analytics/user-activity', requireAdmin, async (_req, res) => {
+  app.get('/api/admin/analytics/user-activity', isAuthenticated, requireAdmin, async (_req, res) => {
     try {
       const activity = await storage.getAnalyticsUserActivity();
       res.json(activity);
@@ -2029,7 +2043,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI Selection Statistics - Track which AI provider users prefer
-  app.get('/api/admin/analytics/ai-selection', requireAdmin, async (_req, res) => {
+  app.get('/api/admin/analytics/ai-selection', isAuthenticated, requireAdmin, async (_req, res) => {
     try {
       const stats = await storage.getAnalyticsAISelectionStats();
       res.json(stats);
@@ -2040,7 +2054,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Bulk operations
-  app.post('/api/admin/bulk/delete-cases', requireAdmin, async (req, res) => {
+  app.post('/api/admin/bulk/delete-cases', isAuthenticated, requireAdmin, async (req, res) => {
     try {
       const { caseIds } = req.body;
 
@@ -2074,7 +2088,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/admin/bulk/export-cases', requireAdmin, async (req, res) => {
+  app.post('/api/admin/bulk/export-cases', isAuthenticated, requireAdmin, async (req, res) => {
     try {
       const { caseIds, format = 'csv' } = req.body;
 
@@ -2627,7 +2641,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const authHeader = req.headers.authorization;
       const expectedToken = process.env.REVENUECAT_WEBHOOK_SECRET;
 
-      if (expectedToken && authHeader !== `Bearer ${expectedToken}`) {
+      if (!expectedToken) {
+        logger.error('[RevenueCat] REVENUECAT_WEBHOOK_SECRET is not configured');
+        return res.status(503).json({ error: 'Webhook is not configured' });
+      }
+
+      if (authHeader !== `Bearer ${expectedToken}`) {
         logger.warn('[RevenueCat] Invalid webhook authorization');
         return res.status(401).json({ error: 'Unauthorized' });
       }

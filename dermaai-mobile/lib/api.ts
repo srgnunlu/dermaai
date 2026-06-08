@@ -227,50 +227,6 @@ class ApiClient {
     }
 
     /**
-     * Login with email and password
-     */
-    async login(email: string, password: string): Promise<AuthResponse> {
-        const response = await fetch(`${this.baseUrl}/api/auth/mobile/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password }),
-        });
-
-        if (!response.ok) {
-            const error: ApiError = await response.json().catch(() => ({
-                error: 'Login failed',
-            }));
-            throw new Error(error.message || error.error);
-        }
-
-        const data: AuthResponse = await response.json();
-        await saveTokens(data.accessToken, data.refreshToken);
-        return data;
-    }
-
-    /**
-     * Register new user
-     */
-    async register(email: string, password: string, firstName?: string, lastName?: string): Promise<AuthResponse> {
-        const response = await fetch(`${this.baseUrl}/api/auth/mobile/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password, firstName, lastName }),
-        });
-
-        if (!response.ok) {
-            const error: ApiError = await response.json().catch(() => ({
-                error: 'Registration failed',
-            }));
-            throw new Error(error.message || error.error);
-        }
-
-        const data: AuthResponse = await response.json();
-        await saveTokens(data.accessToken, data.refreshToken);
-        return data;
-    }
-
-    /**
      * Logout - clear tokens
      */
     async logout(): Promise<void> {

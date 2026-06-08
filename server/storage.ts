@@ -29,7 +29,7 @@ import {
   DEFAULT_OPENAI_MODEL,
 } from '@shared/schema';
 import { db } from './db';
-import { eq, and, or, sql } from 'drizzle-orm';
+import { count, desc, eq, and, or, sql, inArray, gte } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import logger from './logger';
 import * as cache from './cache';
@@ -164,6 +164,22 @@ export class DatabaseStorage implements IStorage {
   async getUserByEmail(email: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.email, email));
     return user;
+  }
+
+  private async getUsersByIds(userIds: string[]): Promise<Map<string, User>> {
+    const uniqueUserIds = Array.from(new Set(userIds)).filter(Boolean);
+    const userMap = new Map<string, User>();
+
+    if (uniqueUserIds.length === 0) {
+      return userMap;
+    }
+
+    const matchedUsers = await db.select().from(users).where(inArray(users.id, uniqueUserIds));
+    for (const user of matchedUsers) {
+      userMap.set(user.id, user);
+    }
+
+    return userMap;
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
@@ -559,17 +575,7 @@ export class DatabaseStorage implements IStorage {
         // Get all cases with user information
         const allCases = await db.select().from(cases);
 
-        // Get unique user IDs
-        const userIds = Array.from(new Set(allCases.map((c) => c.userId)));
-
-        // Create a map of users
-        const userMap = new Map<string, User>();
-        for (const userId of userIds) {
-          const [user] = await db.select().from(users).where(eq(users.id, userId));
-          if (user) {
-            userMap.set(userId, user);
-          }
-        }
+        const userMap = await this.getUsersByIds(allCases.map((caseRecord) => caseRecord.userId));
 
         // Combine cases with user information
         const casesWithUsers = allCases.map((caseRecord) => {
@@ -600,44 +606,30 @@ export class DatabaseStorage implements IStorage {
     page: number = 1,
     limit: number = 20
   ): Promise<{ cases: (Case & { user?: User })[]; total: number; pages: number }> {
-    // Get total count
-    const allCases = await db.select().from(cases);
-    const total = allCases.length;
+    const safeLimit = Math.min(Math.max(limit, 1), 100);
+    const safePage = Math.max(page, 1);
+    const offset = (safePage - 1) * safeLimit;
+    const [{ total }] = await db.select({ total: count() }).from(cases);
+    const totalCases = Number(total);
+    const pages = Math.ceil(totalCases / safeLimit);
 
-    // Calculate pagination
-    const offset = (page - 1) * limit;
-    const pages = Math.ceil(total / limit);
+    const pageCases = await db
+      .select()
+      .from(cases)
+      .orderBy(desc(cases.createdAt))
+      .limit(safeLimit)
+      .offset(offset);
 
-    // Get unique user IDs
-    const userIds = Array.from(new Set(allCases.map((c) => c.userId)));
-
-    // Create a map of users
-    const userMap = new Map<string, User>();
-    for (const userId of userIds) {
-      const [user] = await db.select().from(users).where(eq(users.id, userId));
-      if (user) {
-        userMap.set(userId, user);
-      }
-    }
-
-    // Combine cases with user information
-    const casesWithUsers = allCases.map((caseRecord) => ({
+    const userMap = await this.getUsersByIds(pageCases.map((caseRecord) => caseRecord.userId));
+    const paginatedCases = pageCases.map((caseRecord) => ({
       ...caseRecord,
+      imageUrls: Array.isArray(caseRecord.imageUrls) ? caseRecord.imageUrls : [],
       user: userMap.get(caseRecord.userId),
     }));
 
-    // Sort by creation date (newest first) and paginate
-    const sortedCases = casesWithUsers.sort((a, b) => {
-      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return bTime - aTime;
-    });
-
-    const paginatedCases = sortedCases.slice(offset, offset + limit);
-
     return {
       cases: paginatedCases,
-      total,
+      total: totalCases,
       pages,
     };
   }
@@ -646,25 +638,22 @@ export class DatabaseStorage implements IStorage {
     page: number = 1,
     limit: number = 20
   ): Promise<{ users: User[]; total: number; pages: number }> {
-    const allUsers = await db.select().from(users);
-    const total = allUsers.length;
-
-    // Calculate pagination
-    const offset = (page - 1) * limit;
-    const pages = Math.ceil(total / limit);
-
-    // Sort by creation date (newest first) and paginate
-    const sortedUsers = allUsers.sort((a, b) => {
-      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return bTime - aTime;
-    });
-
-    const paginatedUsers = sortedUsers.slice(offset, offset + limit);
+    const safeLimit = Math.min(Math.max(limit, 1), 100);
+    const safePage = Math.max(page, 1);
+    const offset = (safePage - 1) * safeLimit;
+    const [{ total }] = await db.select({ total: count() }).from(users);
+    const totalUsers = Number(total);
+    const pages = Math.ceil(totalUsers / safeLimit);
+    const paginatedUsers = await db
+      .select()
+      .from(users)
+      .orderBy(desc(users.createdAt))
+      .limit(safeLimit)
+      .offset(offset);
 
     return {
       users: paginatedUsers,
-      total,
+      total: totalUsers,
       pages,
     };
   }
@@ -681,41 +670,35 @@ export class DatabaseStorage implements IStorage {
     return cache.cached(
       'admin:stats',
       async () => {
-        const allCases = await db.select().from(cases);
-        const allUsers = await db.select().from(users);
-
-        const totalCases = allCases.length;
-        const pendingCases = allCases.filter((c) => c.status === 'pending').length;
-        const completedCases = allCases.filter((c) => c.status === 'completed').length;
-        const totalUsers = allUsers.length;
-
-        // Calculate active users (users who have created cases in the last 30 days)
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-        const recentCases = allCases.filter((c) => {
-          if (!c.createdAt) return false;
-          return new Date(c.createdAt) > thirtyDaysAgo;
-        });
+        const [
+          [{ total: totalCasesRaw }],
+          [{ total: pendingCasesRaw }],
+          [{ total: completedCasesRaw }],
+          [{ total: totalUsersRaw }],
+          recentCases,
+        ] = await Promise.all([
+          db.select({ total: count() }).from(cases),
+          db.select({ total: count() }).from(cases).where(eq(cases.status, 'pending')),
+          db.select({ total: count() }).from(cases).where(eq(cases.status, 'completed')),
+          db.select({ total: count() }).from(users),
+          db
+            .select({ userId: cases.userId })
+            .from(cases)
+            .where(gte(cases.createdAt, thirtyDaysAgo)),
+        ]);
 
-        const activeUserIds = new Set(recentCases.map((c) => c.userId));
+        const totalCases = Number(totalCasesRaw);
+        const pendingCases = Number(pendingCasesRaw);
+        const completedCases = Number(completedCasesRaw);
+        const totalUsers = Number(totalUsersRaw);
+        const activeUserIds = new Set(recentCases.map((caseRecord) => caseRecord.userId));
         const activeUsers = activeUserIds.size;
 
-        // Calculate average diagnosis time (time from case creation to completion)
-        let totalDiagnosisTime = 0;
-        let diagnosisCount = 0;
-
-        for (const caseRecord of allCases) {
-          if (caseRecord.status === 'completed' && caseRecord.createdAt) {
-            // For now, we'll estimate diagnosis time as 5 minutes average
-            // In a real system, you'd track actual completion time
-            totalDiagnosisTime += 5;
-            diagnosisCount++;
-          }
-        }
-
-        const avgDiagnosisTime =
-          diagnosisCount > 0 ? Math.round(totalDiagnosisTime / diagnosisCount) : 0;
+        // Until completion timestamps are tracked, preserve the previous 5-minute estimate.
+        const avgDiagnosisTime = completedCases > 0 ? 5 : 0;
 
         return {
           totalCases,

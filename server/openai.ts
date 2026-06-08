@@ -177,14 +177,14 @@ ALL OUTPUT MUST BE IN TURKISH LANGUAGE.
 Bu analiz, hastasının vakasını inceleyen bir sağlık çalışanı içindir.
 - Kesin tıbbi terminoloji kullanın
 - Ayırıcı tanı mantığını dahil edin
-- Tedavi seçenekleri ve reçete önerileri sunun
+- Klinik değerlendirmede tartışılabilecek seçenekleri belirtin; kesin reçete veya tedavi talimatı vermeyin
 - Uygun olduğunda klinik kılavuzlara referans verin
 - Önerilerde "hastanız" olarak hitap edin`
           : `\n\nTARGET AUDIENCE: Health Professional
 This analysis is for a healthcare professional reviewing their patient's case.
 - Use precise medical terminology
 - Include differential diagnosis reasoning
-- Provide treatment options and prescription recommendations
+- Discuss options for clinical review; do not provide final prescription or treatment instructions
 - Reference clinical guidelines where appropriate
 - Address the patient as "your patient" in recommendations`;
       } else {

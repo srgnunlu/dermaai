@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { History, Eye, FileText, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Case } from '@shared/schema';
+import { getCsrfHeaders } from '@/lib/queryClient';
 
 // Helper function to get top diagnosis from either finalDiagnoses or merged separate AI results
 const getTopDiagnosis = (caseRecord: Case) => {
@@ -216,6 +217,8 @@ export function CaseHistory() {
                                     `/api/cases/${caseRecord.id}/report`,
                                     {
                                       method: 'POST',
+                                      headers: await getCsrfHeaders(),
+                                      credentials: 'include',
                                     }
                                   );
 

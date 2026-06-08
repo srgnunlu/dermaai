@@ -1,12 +1,11 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import Uppy from '@uppy/core';
-import { DashboardModal } from '@uppy/react';
-import '@uppy/core/css/style.css';
-import '@uppy/dashboard/css/style.css';
-import AwsS3 from '@uppy/aws-s3';
-import type { UploadResult } from '@uppy/core';
 import { Button } from '@/components/ui/button';
+
+type SimpleUploadResult = {
+  successful: unknown[];
+  failed: unknown[];
+};
 
 interface ObjectUploaderProps {
   maxNumberOfFiles?: number;
@@ -15,7 +14,7 @@ interface ObjectUploaderProps {
     method: 'PUT';
     url: string;
   }>;
-  onComplete?: (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => void;
+  onComplete?: (result: SimpleUploadResult) => void;
   buttonClassName?: string;
   children: ReactNode;
 }
@@ -56,36 +55,63 @@ export function ObjectUploader({
   buttonClassName,
   children,
 }: ObjectUploaderProps) {
-  const [showModal, setShowModal] = useState(false);
-  const [uppy] = useState(() =>
-    new Uppy({
-      restrictions: {
-        maxNumberOfFiles,
-        maxFileSize,
-      },
-      autoProceed: false,
-    })
-      .use(AwsS3, {
-        shouldUseMultipart: false,
-        getUploadParameters: onGetUploadParameters,
-      })
-      .on('complete', (result) => {
-        onComplete?.(result);
-      })
-  );
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFilesSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []).slice(0, maxNumberOfFiles);
+    if (files.length === 0) {
+      return;
+    }
+
+    setIsUploading(true);
+    const successful: unknown[] = [];
+    const failed: unknown[] = [];
+
+    try {
+      for (const file of files) {
+        if (file.size > maxFileSize) {
+          failed.push({ data: file, error: new Error('File exceeds max size') });
+          continue;
+        }
+
+        const uploadParameters = await onGetUploadParameters();
+        const response = await fetch(uploadParameters.url, {
+          method: uploadParameters.method,
+          body: file,
+        });
+
+        if (!response.ok) {
+          failed.push({ data: file, error: new Error('Upload failed') });
+          continue;
+        }
+
+        successful.push({ data: file, uploadURL: uploadParameters.url });
+      }
+
+      onComplete?.({ successful, failed });
+    } finally {
+      setIsUploading(false);
+      event.target.value = '';
+    }
+  };
 
   return (
     <div>
-      <Button onClick={() => setShowModal(true)} className={buttonClassName}>
+      <input
+        ref={inputRef}
+        type="file"
+        className="hidden"
+        multiple={maxNumberOfFiles > 1}
+        onChange={handleFilesSelected}
+      />
+      <Button
+        onClick={() => inputRef.current?.click()}
+        className={buttonClassName}
+        disabled={isUploading}
+      >
         {children}
       </Button>
-
-      <DashboardModal
-        uppy={uppy}
-        open={showModal}
-        onRequestClose={() => setShowModal(false)}
-        proudlyDisplayPoweredByUppy={false}
-      />
     </div>
   );
 }

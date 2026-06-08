@@ -32,7 +32,7 @@ import {
   BarChart3,
   Stethoscope,
 } from 'lucide-react';
-import { queryClient } from '@/lib/queryClient';
+import { getCsrfHeaders, queryClient } from '@/lib/queryClient';
 import type { Case } from '@shared/schema';
 
 export default function Header() {
@@ -76,6 +76,7 @@ export default function Header() {
       queryClient.clear();
       await fetch('/api/logout', {
         method: 'POST',
+        headers: await getCsrfHeaders(),
         credentials: 'include',
       });
       window.location.href = '/';

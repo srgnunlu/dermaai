@@ -2,10 +2,27 @@ import { config } from 'dotenv';
 config({ override: true });
 import express, { type Request, Response, NextFunction } from 'express';
 import compression from 'compression';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import { registerRoutes } from './routes';
 import { setupVite, serveStatic, log } from './vite';
 
 const app = express();
+
+if (process.env.NODE_ENV === 'production' && !process.env.REVENUECAT_WEBHOOK_SECRET) {
+  throw new Error('REVENUECAT_WEBHOOK_SECRET must be configured in production');
+}
+
+app.disable('x-powered-by');
+
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    hsts: process.env.NODE_ENV === 'production',
+    referrerPolicy: { policy: 'no-referrer' },
+  })
+);
 
 // Enable gzip compression for all responses
 app.use(
@@ -22,34 +39,43 @@ app.use(
   })
 );
 
-// Increase JSON body limit for base64 image uploads
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ extended: false, limit: '15mb' }));
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use('/api/auth', authLimiter);
+app.use('/api/login', authLimiter);
+app.use('/api/upload', uploadLimiter);
+app.use('/api', apiLimiter);
 
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
 
   res.on('finish', () => {
     const duration = Date.now() - start;
     if (path.startsWith('/api')) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + '…';
-      }
-
-      log(logLine);
+      log(`${req.method} ${path} ${res.statusCode} in ${duration}ms`);
     }
   });
 
@@ -62,10 +88,10 @@ app.use((req, res, next) => {
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    const message = err.message || 'Internal Server Error';
+    const message = status >= 500 ? 'Internal Server Error' : err.message || 'Request failed';
 
+    log(`request error ${status}: ${err.message || err.name || 'unknown error'}`);
     res.status(status).json({ message });
-    throw err;
   });
 
   // Only enable Vite in true local development.

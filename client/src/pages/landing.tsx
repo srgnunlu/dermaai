@@ -82,8 +82,8 @@ export default function Landing() {
             </CardHeader>
             <CardContent>
               <CardDescription>
-                HIPAA-compliant data handling with encrypted storage and user authentication to
-                protect patient information
+                Privacy-focused data handling with encrypted storage and user authentication to
+                help protect patient information
               </CardDescription>
             </CardContent>
           </Card>

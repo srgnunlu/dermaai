@@ -8,6 +8,7 @@ import { AnalysisProgress } from '@/components/AnalysisProgress';
 import { useToast } from '@/hooks/use-toast';
 import SiteFooter from '@/components/SiteFooter';
 import type { Case } from '@shared/schema';
+import { getCsrfHeaders } from '@/lib/queryClient';
 
 interface PatientData {
   patientId: string;
@@ -32,8 +33,9 @@ export default function DiagnosisPage() {
       // First create/get patient
       const patientResponse = await fetch('/api/patients', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await getCsrfHeaders()) },
         body: JSON.stringify(data.patientData),
+        credentials: 'include',
       });
 
       if (!patientResponse.ok) {
@@ -55,8 +57,9 @@ export default function DiagnosisPage() {
 
       const analysisResponse = await fetch('/api/cases/analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await getCsrfHeaders()) },
         body: JSON.stringify(caseData),
+        credentials: 'include',
       });
 
       if (!analysisResponse.ok) {
@@ -137,9 +140,8 @@ export default function DiagnosisPage() {
 
       const response = await fetch(`/api/cases/${analysisResult.id}/report`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json', ...(await getCsrfHeaders()) },
+        credentials: 'include',
       });
 
       if (response.ok) {

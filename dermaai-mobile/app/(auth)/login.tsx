@@ -36,6 +36,7 @@ import { saveTokens, saveUserData } from '@/lib/storage';
 import { queryClient } from '@/lib/queryClient';
 import { StatusBar } from 'expo-status-bar';
 import { LegalTextModal } from '@/components/ui/LegalTextModal';
+import type { AuthResponse } from '@/types/schema';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -197,47 +198,44 @@ export default function LoginScreen() {
         path: 'oauth',
     });
 
-    console.log('[Auth] Generated Redirect URI:', redirectUri);
-
     const handleGoogleLogin = async () => {
         setIsLoading(true);
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
         try {
             const authUrl = `${API_BASE_URL}/api/auth/google?mobile=true&redirect_uri=${encodeURIComponent(redirectUri)}`;
-            console.log('[Auth] Opening server OAuth URL:', authUrl);
 
             const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
             console.log('[Auth] WebBrowser result:', result.type);
 
             if (result.type === 'success' && result.url) {
-                console.log('[Auth] Received callback URL:', result.url);
-
                 const urlParts = result.url.split('?');
                 if (urlParts.length > 1) {
                     const params = new URLSearchParams(urlParts[1]);
-                    const accessToken = params.get('access_token');
-                    const refreshToken = params.get('refresh_token');
+                    const code = params.get('code');
 
-                    if (accessToken && refreshToken) {
-                        console.log('[Auth] Tokens received, saving...');
-                        await saveTokens(accessToken, refreshToken);
-
-                        const userResponse = await fetch(`${API_BASE_URL}/api/auth/mobile/user`, {
-                            headers: { 'Authorization': `Bearer ${accessToken}` },
+                    if (code) {
+                        const exchangeResponse = await fetch(`${API_BASE_URL}/api/auth/mobile/exchange`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ code }),
                         });
 
-                        if (userResponse.ok) {
-                            const userData = await userResponse.json();
-                            await saveUserData(userData);
-                            queryClient.setQueryData(['auth', 'user'], userData);
-                            console.log('[Auth] Login successful, navigating to tabs');
-                            router.replace('/(tabs)');
-                        } else {
-                            console.log('[Auth] Could not fetch user, but tokens received');
-                            await queryClient.invalidateQueries({ queryKey: ['auth'] });
-                            router.replace('/(tabs)');
+                        if (!exchangeResponse.ok) {
+                            throw new Error('OAuth exchange failed');
                         }
+
+                        const authData: AuthResponse = await exchangeResponse.json();
+                        await saveTokens(authData.accessToken, authData.refreshToken);
+
+                        if (authData.user) {
+                            await saveUserData(authData.user);
+                            queryClient.setQueryData(['auth', 'user'], authData.user);
+                        } else {
+                            await queryClient.invalidateQueries({ queryKey: ['auth'] });
+                        }
+
+                        router.replace('/(tabs)');
                     } else {
                         const error = params.get('error');
                         if (error) {
@@ -248,7 +246,7 @@ export default function LoginScreen() {
                         } else {
                             Alert.alert(
                                 language === 'tr' ? 'Giriş Hatası' : 'Login Error',
-                                language === 'tr' ? 'Token alınamadı. Lütfen tekrar deneyin.' : 'Could not get token. Please try again.'
+                                language === 'tr' ? 'Giriş kodu alınamadı. Lütfen tekrar deneyin.' : 'Could not get login code. Please try again.'
                             );
                         }
                     }
@@ -309,7 +307,7 @@ export default function LoginScreen() {
         {
             icon: ShieldCheck,
             title: language === 'tr' ? 'Güvenli Veri' : 'Secure Data',
-            description: language === 'tr' ? 'HIPAA uyumlu veri koruma' : 'HIPAA compliant data protection',
+            description: language === 'tr' ? 'Gizlilik odaklı veri koruma' : 'Privacy-focused data protection',
         },
     ];
 

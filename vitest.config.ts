@@ -8,13 +8,20 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./client/src/test/setup.ts'],
-    include: ['**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    include: [
+      'client/src/**/*.{test,spec}.{js,jsx,ts,tsx}',
+      'server/test/**/*.{test,spec}.{js,jsx,ts,tsx}',
+    ],
+    exclude: ['node_modules/**', 'dist/**', '.claude/**', '.local/**', 'dermaai-mobile/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       exclude: [
         'node_modules/',
         'dist/',
+        '.claude/**',
+        '.local/**',
+        'dermaai-mobile/**',
         '**/*.d.ts',
         '**/*.config.*',
         '**/mockData/*',

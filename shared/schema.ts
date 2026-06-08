@@ -5,6 +5,35 @@ import { z } from 'zod';
 
 export const DEFAULT_OPENAI_MODEL = 'gpt-5.5' as const;
 export const OPENAI_MODEL_OPTIONS = ['gpt-5.5', 'gpt-5.5-pro'] as const;
+const genderOptions = ['male', 'female', 'other'] as const;
+const skinTypeOptions = ['type1', 'type2', 'type3', 'type4', 'type5', 'type6'] as const;
+const durationOptions = [
+  'less-than-1-day',
+  'less-than-1-week',
+  '1-7-days',
+  '1-4-weeks',
+  '1-6-months',
+  'more-than-6-months',
+] as const;
+const statusOptions = ['pending', 'analyzing', 'completed', 'failed'] as const;
+const analysisProviderOptions = ['gemini', 'openai'] as const;
+const trackingStatusOptions = ['monitoring', 'resolved', 'urgent'] as const;
+
+const optionalText = (max: number) => z.string().trim().max(max).nullable().optional();
+const requiredText = (max: number) => z.string().trim().min(1).max(max);
+const imageReferenceSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(2048)
+  .refine(
+    (value) =>
+      value.startsWith('/files/') ||
+      value.startsWith('https://') ||
+      value.startsWith('http://'),
+    'Image reference must be a local file path or URL'
+  );
+const shortStringArray = z.array(requiredText(160)).max(30);
 
 // Session storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
@@ -137,6 +166,11 @@ export const cases = pgTable(
 export const insertPatientSchema = createInsertSchema(patients).omit({
   id: true,
   createdAt: true,
+}).extend({
+  patientId: z.string().trim().min(1).max(80).optional(),
+  age: z.number().int().min(0).max(120).nullable().optional(),
+  gender: z.enum(genderOptions).or(z.literal('')).nullable().optional(),
+  skinType: z.enum(skinTypeOptions).or(z.literal('')).nullable().optional(),
 });
 
 export const insertCaseSchema = createInsertSchema(cases).omit({
@@ -145,11 +179,26 @@ export const insertCaseSchema = createInsertSchema(cases).omit({
   userId: true, // Set by server based on authenticated user
   createdAt: true,
   status: true,
+}).extend({
+  patientId: z.string().trim().max(128).nullable().optional(),
+  imageUrl: imageReferenceSchema.nullable().optional(),
+  imageUrls: z.array(imageReferenceSchema).min(1).max(3).nullable().optional(),
+  lesionLocation: optionalText(500),
+  symptoms: shortStringArray.nullable().optional(),
+  additionalSymptoms: optionalText(1000),
+  symptomDuration: z.enum(durationOptions).or(z.literal('')).nullable().optional(),
+  medicalHistory: shortStringArray.nullable().optional(),
+  dermatologistDiagnosis: optionalText(1000),
+  dermatologistNotes: optionalText(2000),
+  selectedAnalysisProvider: z.enum(analysisProviderOptions).nullable().optional(),
+  isHidden: z.boolean().optional(),
+  isFavorite: z.boolean().optional(),
+  userNotes: optionalText(2000),
 });
 
 export const updateDermatologistDiagnosisSchema = z.object({
-  dermatologistDiagnosis: z.string().min(1, 'Diagnosis is required'),
-  dermatologistNotes: z.string().optional(),
+  dermatologistDiagnosis: requiredText(1000),
+  dermatologistNotes: z.string().trim().max(2000).optional(),
 });
 
 export type InsertPatient = z.infer<typeof insertPatientSchema>;
@@ -171,14 +220,14 @@ export const insertUserSchema = createInsertSchema(users).pick({
 });
 
 export const updateUserProfileSchema = z.object({
-  firstName: z.string().nullable().optional(),
-  lastName: z.string().nullable().optional(),
-  phoneNumber: z.string().nullable().optional(),
-  medicalLicenseNumber: z.string().nullable().optional(),
-  specialization: z.string().nullable().optional(),
-  hospital: z.string().nullable().optional(),
-  yearsOfExperience: z.number().int().nullable().optional(),
-  profileImageUrl: z.string().nullable().optional(),
+  firstName: optionalText(80),
+  lastName: optionalText(80),
+  phoneNumber: optionalText(40),
+  medicalLicenseNumber: optionalText(80),
+  specialization: optionalText(120),
+  hospital: optionalText(160),
+  yearsOfExperience: z.number().int().min(0).max(80).nullable().optional(),
+  profileImageUrl: imageReferenceSchema.or(z.literal('')).nullable().optional(),
   isHealthProfessional: z.boolean().nullable().optional(),
   isProfileComplete: z.boolean().nullable().optional(),
 });
@@ -219,11 +268,11 @@ export const insertUserSettingsSchema = createInsertSchema(userSettings).omit({
 export const updateUserSettingsSchema = z.object({
   useGemini: z.boolean().optional(),
   useOpenAI: z.boolean().optional(),
-  confidenceThreshold: z.number().optional(),
+  confidenceThreshold: z.number().int().min(0).max(100).optional(),
   autoSaveCases: z.boolean().optional(),
   anonymizeData: z.boolean().optional(),
-  dataRetention: z.string().optional(),
-  theme: z.string().optional(),
+  dataRetention: z.enum(['30', '60', '90', '180', '365']).optional(),
+  theme: z.enum(['light', 'dark', 'system']).optional(),
   compactMode: z.boolean().optional(),
   analysisNotifications: z.boolean().optional(),
   urgentAlerts: z.boolean().optional(),
@@ -379,13 +428,19 @@ export const insertLesionTrackingSchema = createInsertSchema(lesionTrackings).om
   updatedAt: true,
   snapshotCount: true,
   lastComparisonAt: true,
+}).extend({
+  name: requiredText(120),
+  bodyLocation: optionalText(240),
+  description: optionalText(1000),
+  initialCaseId: z.string().trim().max(128).nullable().optional(),
+  status: z.enum(trackingStatusOptions).nullable().optional(),
 });
 
 export const insertLesionSnapshotSchema = z.object({
-  lesionTrackingId: z.string(),
-  caseId: z.string().nullable().optional(),
-  imageUrls: z.array(z.string()).nullable().optional(),
-  notes: z.string().nullable().optional(),
+  lesionTrackingId: requiredText(128),
+  caseId: z.string().trim().max(128).nullable().optional(),
+  imageUrls: z.array(imageReferenceSchema).min(1).max(3).nullable().optional(),
+  notes: optionalText(2000),
 });
 
 export type InsertLesionTracking = z.infer<typeof insertLesionTrackingSchema>;

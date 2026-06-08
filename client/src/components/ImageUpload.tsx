@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CloudUpload, Camera, Trash2, Plus } from 'lucide-react';
+import { getCsrfHeaders } from '@/lib/queryClient';
 import React from 'react';
 
 interface ImageUploadProps {
@@ -48,7 +49,9 @@ export function ImageUpload({ onImagesUploaded, uploadedImages = [] }: ImageUplo
 
         const response = await fetch('/api/upload', {
           method: 'POST',
+          headers: await getCsrfHeaders(),
           body: formData,
+          credentials: 'include',
         });
 
         if (!response.ok) {

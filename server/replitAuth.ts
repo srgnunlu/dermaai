@@ -8,13 +8,34 @@ import { storage } from './storage';
 import crypto from 'crypto';
 import logger from './logger';
 import { verifyAccessToken } from './mobileAuth';
+import { csrfProtection } from './csrf';
 
 const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
 const isProduction = process.env.NODE_ENV === 'production';
-const sameSiteMode: 'lax' | 'none' = isProduction ? 'none' : 'lax';
+const sameSiteMode: 'lax' = 'lax';
 const isLocalAuthEnabled =
   process.env.LOCAL_AUTH_ENABLED === 'true' ||
   (!isProduction && process.env.LOCAL_AUTH_ENABLED !== 'false');
+const mobileOAuthCodeTtlMs = 60 * 1000;
+const oauthStateTtlMs = 10 * 60 * 1000;
+const defaultMobileRedirectUri = 'corioscan://oauth';
+const defaultMobileRedirectUris = [defaultMobileRedirectUri, 'corioscan:///oauth'];
+
+type OAuthStatePayload = {
+  mobile: boolean;
+  redirectUri?: string;
+  nonce: string;
+  issuedAt: number;
+};
+
+type MobileAuthCodeRecord = {
+  userId: string;
+  email: string;
+  role: string;
+  expiresAt: number;
+};
+
+const mobileAuthCodes = new Map<string, MobileAuthCodeRecord>();
 
 const sessionCookieSettings = {
   httpOnly: true,
@@ -61,6 +82,156 @@ function safeCompare(value: string, expected: string): boolean {
   }
 
   return crypto.timingSafeEqual(valueBuffer, expectedBuffer);
+}
+
+function getSigningSecret(): string {
+  if (!process.env.SESSION_SECRET) {
+    throw new Error('SESSION_SECRET must be configured for OAuth state signing');
+  }
+
+  return process.env.SESSION_SECRET;
+}
+
+function signValue(value: string): string {
+  return crypto.createHmac('sha256', getSigningSecret()).update(value).digest('base64url');
+}
+
+function normalizeRedirectUri(rawUri: string): string | null {
+  try {
+    const uri = new URL(rawUri);
+    return `${uri.protocol}//${uri.host}${uri.pathname}`.replace(/\/$/, '');
+  } catch {
+    return null;
+  }
+}
+
+function getAllowedMobileRedirectUris(): string[] {
+  const configuredUris =
+    process.env.MOBILE_OAUTH_ALLOWED_REDIRECTS?.split(',')
+      .map((uri) => normalizeRedirectUri(uri.trim()))
+      .filter((uri): uri is string => Boolean(uri)) ?? [];
+
+  return [...defaultMobileRedirectUris, ...configuredUris]
+    .map((uri) => normalizeRedirectUri(uri))
+    .filter((uri): uri is string => Boolean(uri));
+}
+
+export function isAllowedMobileRedirectUri(rawUri?: string): boolean {
+  const redirectUri = rawUri || defaultMobileRedirectUri;
+  const normalizedUri = normalizeRedirectUri(redirectUri);
+
+  if (!normalizedUri) {
+    return false;
+  }
+
+  if (getAllowedMobileRedirectUris().includes(normalizedUri)) {
+    return true;
+  }
+
+  if (!isProduction) {
+    try {
+      const parsed = new URL(redirectUri);
+      if (parsed.protocol === 'exp:') {
+        return true;
+      }
+
+      if (
+        parsed.protocol === 'http:' &&
+        ['localhost', '127.0.0.1'].includes(parsed.hostname)
+      ) {
+        return true;
+      }
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
+}
+
+export function createSignedOAuthState(input: {
+  mobile: boolean;
+  redirectUri?: string;
+}): string {
+  const payload: OAuthStatePayload = {
+    mobile: input.mobile,
+    redirectUri: input.redirectUri,
+    nonce: crypto.randomUUID(),
+    issuedAt: Date.now(),
+  };
+  const encodedPayload = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
+  const signature = signValue(encodedPayload);
+
+  return `${encodedPayload}.${signature}`;
+}
+
+export function parseSignedOAuthState(state: unknown): OAuthStatePayload | null {
+  if (typeof state !== 'string') {
+    return null;
+  }
+
+  const [encodedPayload, signature] = state.split('.');
+  if (!encodedPayload || !signature) {
+    return null;
+  }
+
+  const expectedSignature = signValue(encodedPayload);
+  if (!safeCompare(signature, expectedSignature)) {
+    return null;
+  }
+
+  try {
+    const payload = JSON.parse(
+      Buffer.from(encodedPayload, 'base64url').toString('utf8')
+    ) as OAuthStatePayload;
+
+    if (!payload.nonce || Date.now() - payload.issuedAt > oauthStateTtlMs) {
+      return null;
+    }
+
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+function cleanupExpiredMobileAuthCodes() {
+  const now = Date.now();
+  for (const [code, record] of Array.from(mobileAuthCodes.entries())) {
+    if (record.expiresAt <= now) {
+      mobileAuthCodes.delete(code);
+    }
+  }
+}
+
+function createMobileAuthCode(user: { id: string; email: string; role?: string }): string {
+  cleanupExpiredMobileAuthCodes();
+  const code = crypto.randomBytes(32).toString('base64url');
+  mobileAuthCodes.set(code, {
+    userId: user.id,
+    email: user.email,
+    role: user.role || 'user',
+    expiresAt: Date.now() + mobileOAuthCodeTtlMs,
+  });
+  return code;
+}
+
+function consumeMobileAuthCode(code: string): MobileAuthCodeRecord | null {
+  const record = mobileAuthCodes.get(code);
+  mobileAuthCodes.delete(code);
+
+  if (!record || record.expiresAt <= Date.now()) {
+    return null;
+  }
+
+  return record;
+}
+
+function buildMobileRedirectUrl(redirectUri: string | undefined, code: string): string {
+  const targetUri = redirectUri || defaultMobileRedirectUri;
+  const redirectUrl = new URL(targetUri);
+  redirectUrl.searchParams.set('code', code);
+  return redirectUrl.toString();
 }
 
 function canUseLocalCredentials(email: string, password: string): boolean {
@@ -270,17 +441,65 @@ export async function setupAuth(app: Express) {
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     // Google OAuth login
     app.get('/api/auth/google', (req, res, next) => {
-      // Pass mobile flag and redirect URI in state to persist through redirect
-      const stateObj = {
-        mobile: req.query.mobile === 'true',
-        redirectUri: req.query.redirect_uri as string
-      };
-      const state = Buffer.from(JSON.stringify(stateObj)).toString('base64');
+      const mobile = req.query.mobile === 'true';
+      const redirectUri =
+        typeof req.query.redirect_uri === 'string' ? req.query.redirect_uri : undefined;
+
+      if (mobile && !isAllowedMobileRedirectUri(redirectUri)) {
+        logger.warn('[AUTH] Rejected mobile OAuth request with disallowed redirect URI');
+        return res.status(400).json({ error: 'Invalid redirect URI' });
+      }
+
+      const state = createSignedOAuthState({
+        mobile,
+        redirectUri,
+      });
 
       passport.authenticate('google', {
         scope: ['profile', 'email'],
-        state: state
+        state,
       })(req, res, next);
+    });
+
+    app.post('/api/auth/mobile/exchange', async (req, res) => {
+      const code = typeof req.body?.code === 'string' ? req.body.code : '';
+      if (!code) {
+        return res.status(400).json({ error: 'Missing exchange code' });
+      }
+
+      const record = consumeMobileAuthCode(code);
+      if (!record) {
+        return res.status(401).json({ error: 'Invalid or expired exchange code' });
+      }
+
+      const { generateTokens } = await import('./mobileAuth');
+      const tokens = generateTokens({
+        id: record.userId,
+        email: record.email,
+        role: record.role,
+      });
+
+      const storedUser = await storage.getUser(record.userId);
+      const user = storedUser
+        ? {
+            id: storedUser.id,
+            email: storedUser.email,
+            firstName: storedUser.firstName,
+            lastName: storedUser.lastName,
+            profileImageUrl: storedUser.profileImageUrl,
+            role: storedUser.role,
+          }
+        : {
+            id: record.userId,
+            email: record.email,
+            role: record.role,
+          };
+
+      res.json({
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        user,
+      });
     });
 
     app.get(
@@ -290,43 +509,37 @@ export async function setupAuth(app: Express) {
         const user = req.user as any;
 
         try {
-          // Decode state parameter
-          const stateStr = req.query.state ? Buffer.from(req.query.state as string, 'base64').toString() : '{}';
-          const state = JSON.parse(stateStr);
-          const isMobile = state.mobile;
-          const redirectUri = state.redirectUri;
+          const state = parseSignedOAuthState(req.query.state);
 
-          if (isMobile && user) {
-            // Generate JWT for mobile
-            const { generateTokens } = await import('./mobileAuth');
-            const tokens = generateTokens({
+          if (state?.mobile && user) {
+            if (!isAllowedMobileRedirectUri(state.redirectUri)) {
+              logger.warn('[AUTH] Rejected mobile OAuth callback with disallowed redirect URI');
+              return res.redirect('/login?error=invalid_redirect_uri');
+            }
+
+            const code = createMobileAuthCode({
               id: user.id,
               email: user.email,
-              role: user.role || 'user',
+              role: user.role,
             });
+            const mobileRedirectUrl = buildMobileRedirectUrl(state.redirectUri, code);
 
-            // Redirect to mobile app with token, using the provided dynamic URI or fallback
-            // Determine connector: if redirectUri already has params, use &, else ?
-            const targetUri = redirectUri || 'dermaai://oauth';
-            const connector = targetUri.includes('?') ? '&' : '?';
-
-            const mobileRedirectUrl = `${targetUri}${connector}access_token=${tokens.accessToken}&refresh_token=${tokens.refreshToken}`;
-
-            logger.debug(`[AUTH] Mobile redirect to: ${mobileRedirectUrl}`);
+            logger.debug('[AUTH] Mobile OAuth exchange code issued');
             return res.redirect(mobileRedirectUrl);
           }
         } catch (e) {
-          logger.error('[AUTH] Error parsing state:', e);
+          logger.error('[AUTH] Error validating OAuth state:', e);
         }
 
         // Web: redirect to dashboard
         res.redirect('/');
       }
     );
+
   }
 
   // Logout endpoint
-  app.post('/api/logout', (req, res) => {
+  app.post('/api/logout', csrfProtection, (req, res) => {
     req.logout((err) => {
       if (err) {
         return res.status(500).json({ error: 'Logout failed' });

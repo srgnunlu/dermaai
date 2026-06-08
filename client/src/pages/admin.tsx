@@ -69,7 +69,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import { queryClient, apiRequest } from '@/lib/queryClient';
+import { queryClient, apiRequest, getCsrfHeaders } from '@/lib/queryClient';
 
 // Helper function to get merged diagnoses from finalDiagnoses or separate AI results
 const getMergedDiagnoses = (caseItem: any) => {
@@ -135,6 +135,7 @@ export default function AdminPage() {
     try {
       const response = await fetch(`/api/cases/${caseItem.id}/report`, {
         method: 'POST',
+        headers: await getCsrfHeaders(),
         credentials: 'include',
       });
 
@@ -259,8 +260,9 @@ export default function AdminPage() {
     mutationFn: async (payload: any) => {
       const res = await fetch('/api/admin/system-settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await getCsrfHeaders()) },
         body: JSON.stringify(payload),
+        credentials: 'include',
       });
       if (!res.ok) throw new Error('Failed to update settings');
       return res.json();
@@ -340,6 +342,7 @@ export default function AdminPage() {
     try {
       const response = await fetch(`/api/admin/users/${userId}/promote`, {
         method: 'PUT',
+        headers: await getCsrfHeaders(),
         credentials: 'include',
       });
 
@@ -372,6 +375,7 @@ export default function AdminPage() {
     try {
       const response = await fetch(`/api/admin/users/${userId}/demote`, {
         method: 'PUT',
+        headers: await getCsrfHeaders(),
         credentials: 'include',
       });
 

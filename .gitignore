@@ -15,11 +15,13 @@ dist/
 uploads/
 
 # Logs
+logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+cookies.txt
 
 # OS generated files
 .DS_Store
@@ -89,3 +91,11 @@ jspm_packages/
 # Temporary folders
 tmp/
 temp/
+1
+dermaai-mobile/1
+
+# Local agent/tooling state
+.claude/
+.local/
+.config/.semgrep/
+.mcp.json

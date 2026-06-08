@@ -18,7 +18,7 @@ const modules = [
     icon: ShieldCheck,
     title: 'Security & Compliance',
     description:
-      'Encryption standards, auditing capabilities, and controls to help satisfy HIPAA, GDPR, and local healthcare data regulations.',
+      'Encryption standards, auditing capabilities, and privacy controls designed to support healthcare data governance reviews.',
   },
   {
     icon: GaugeCircle,

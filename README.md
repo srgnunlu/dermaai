@@ -114,6 +114,12 @@ LOCAL_AUTH_PASSWORD=your_strong_local_login_password
 
 # File Upload
 UPLOAD_DIR=./uploads
+FILE_ACCESS_SECRET=your_file_access_secret
+FILE_URL_TTL_SECONDS=2592000
+
+# Mobile OAuth and RevenueCat webhook security
+MOBILE_OAUTH_ALLOWED_REDIRECTS=corioscan://oauth
+REVENUECAT_WEBHOOK_SECRET=your_revenuecat_webhook_secret
 
 # Admin Email (ilk admin kullanıcı)
 ADMIN_EMAIL=admin@yourdomain.com

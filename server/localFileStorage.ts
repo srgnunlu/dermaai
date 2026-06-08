@@ -38,10 +38,9 @@ export class LocalFileStorageService {
   // Download/serve a file
   async downloadFile(filePath: string, res: Response, cacheTtlSec: number = 3600) {
     try {
-      const fullPath = path.resolve(this.uploadDir, filePath);
+      const fullPath = this.resolveUploadPath(filePath);
 
-      // Security check - ensure file is within upload directory
-      if (!fullPath.startsWith(path.resolve(this.uploadDir))) {
+      if (!fullPath) {
         throw new FileNotFoundError();
       }
 
@@ -115,7 +114,11 @@ export class LocalFileStorageService {
     try {
       const ext = filename ? path.extname(filename) : '.jpg';
       const fullFilename = `${fileId}${ext}`;
-      const filePath = path.join(this.uploadDir, 'images', fullFilename);
+      const filePath = this.resolveUploadPath(path.join('images', fullFilename));
+
+      if (!filePath) {
+        throw new Error('Invalid upload path');
+      }
 
       await fs.writeFile(filePath, buffer);
 
@@ -130,11 +133,10 @@ export class LocalFileStorageService {
   // Get file from path
   async getFile(filePath: string): Promise<{ exists: boolean; path: string; buffer?: Buffer }> {
     try {
-      const fullPath = path.resolve(this.uploadDir, filePath);
+      const fullPath = this.resolveUploadPath(filePath);
 
-      // Security check
-      if (!fullPath.startsWith(path.resolve(this.uploadDir))) {
-        return { exists: false, path: fullPath };
+      if (!fullPath) {
+        return { exists: false, path: filePath };
       }
 
       if (!existsSync(fullPath)) {
@@ -152,11 +154,11 @@ export class LocalFileStorageService {
   // Normalize object entity path (convert from old Google Storage URLs)
   normalizeObjectEntityPath(rawPath: string): string {
     // If it's already a local path, return as is
-    if (!rawPath.startsWith('https://')) {
+    if (!rawPath.startsWith('http://') && !rawPath.startsWith('https://')) {
       return rawPath.startsWith('/files/') ? rawPath : `/files/${rawPath}`;
     }
 
-    // Extract filename from Google Storage URL
+    // Extract filename from a signed local URL or legacy cloud URL.
     try {
       const url = new URL(rawPath);
       const pathname = url.pathname;
@@ -215,6 +217,18 @@ export class LocalFileStorageService {
         },
       ],
     };
+  }
+
+  private resolveUploadPath(filePath: string): string | null {
+    const uploadRoot = path.resolve(this.uploadDir);
+    const fullPath = path.resolve(uploadRoot, filePath);
+    const relativePath = path.relative(uploadRoot, fullPath);
+
+    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+      return null;
+    }
+
+    return fullPath;
   }
 }
 

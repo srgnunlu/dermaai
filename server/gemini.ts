@@ -157,14 +157,14 @@ ALL OUTPUT MUST BE IN TURKISH LANGUAGE.
 Bu analiz, hastasının vakasını inceleyen bir sağlık çalışanı içindir.
 - Kesin tıbbi terminoloji kullanın
 - Ayırıcı tanı mantığını dahil edin
-- Tedavi seçenekleri ve reçete önerileri sunun
+- Klinik değerlendirmede tartışılabilecek seçenekleri belirtin; kesin reçete veya tedavi talimatı vermeyin
 - Uygun olduğunda klinik kılavuzlara referans verin
 - Önerilerde "hastanız" olarak hitap edin`
           : `\n\nTARGET AUDIENCE: Health Professional
 This analysis is for a healthcare professional reviewing their patient's case.
 - Use precise medical terminology
 - Include differential diagnosis reasoning
-- Provide treatment options and prescription recommendations
+- Discuss options for clinical review; do not provide final prescription or treatment instructions
 - Reference clinical guidelines where appropriate
 - Address the patient as "your patient" in recommendations`;
       } else {
@@ -458,7 +458,7 @@ Bu karşılaştırma analizi, hastasının lezyonunu takip eden bir sağlık ça
 - Kesin tıbbi terminoloji kullan (örn: eritematöz, keratotik, papüler, nodüler)
 - Klinik değerlendirme formatında yaz
 - Ayırıcı tanı düşüncelerini dahil et
-- Tedavi seçenekleri ve yaklaşımları öner
+- Klinik değerlendirmede tartışılabilecek seçenekleri belirt; kesin reçete veya tedavi talimatı verme
 - Önerilerde "hastanız" veya "hasta" olarak hitap et
 - Morfolojik değişimleri detaylı tanımla
 - Histopatolojik korelasyon gereksinimi belirt`
@@ -468,7 +468,7 @@ This comparison analysis is for a healthcare provider monitoring their patient's
 - Use precise medical terminology (e.g., erythematous, keratotic, papular, nodular)
 - Write in clinical assessment format
 - Include differential diagnosis considerations
-- Suggest treatment options and approaches
+- Discuss options for clinical review; do not provide final prescription or treatment instructions
 - Refer to "your patient" or "the patient" in recommendations
 - Describe morphological changes in detail
 - Indicate need for histopathological correlation if warranted`

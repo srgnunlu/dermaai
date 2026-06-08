@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Stethoscope, Save, Edit2, CheckCircle, ImageIcon } from 'lucide-react';
 import type { Case } from '@shared/schema';
 import SiteFooter from '@/components/SiteFooter';
+import { getCsrfHeaders } from '@/lib/queryClient';
 
 export default function DermatologistPage() {
   const { toast } = useToast();
@@ -36,11 +37,12 @@ export default function DermatologistPage() {
     mutationFn: async (data: { caseId: string; diagnosis: string; notes?: string }) => {
       const response = await fetch(`/api/cases/${data.caseId}/dermatologist-diagnosis`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await getCsrfHeaders()) },
         body: JSON.stringify({
           dermatologistDiagnosis: data.diagnosis,
           dermatologistNotes: data.notes,
         }),
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -398,4 +400,3 @@ export default function DermatologistPage() {
     </div>
   );
 }
-

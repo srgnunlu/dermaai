@@ -23,6 +23,7 @@ import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { Stethoscope, Brain, FileText, ShieldCheck, Sparkles } from 'lucide-react-native';
 import { Colors, Gradients } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
@@ -102,7 +103,7 @@ export default function LoginScreen() {
     const colors = Colors[colorScheme];
     const router = useRouter();
     const { language, toggleLanguage } = useLanguage();
-    const { isAuthenticated, loginWithGoogle, isLoggingIn } = useAuth();
+    const { isAuthenticated, isLoggingIn, loginWithApple } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
     const [legalModalVisible, setLegalModalVisible] = useState(false);
     const [legalModalType, setLegalModalType] = useState<'privacy' | 'terms'>('privacy');
@@ -196,6 +197,7 @@ export default function LoginScreen() {
     const redirectUri = AuthSession.makeRedirectUri({
         scheme: 'corioscan',
         path: 'oauth',
+        preferLocalhost: true,
     });
 
     const handleGoogleLogin = async () => {
@@ -267,6 +269,42 @@ export default function LoginScreen() {
         }
     };
 
+    const handleAppleLogin = async () => {
+        setIsLoading(true);
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+        try {
+            const credential = await AppleAuthentication.signInAsync({
+                requestedScopes: [
+                    AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+                    AppleAuthentication.AppleAuthenticationScope.EMAIL,
+                ],
+            });
+
+            if (!credential.identityToken) {
+                throw new Error('Apple identity token was not returned');
+            }
+
+            await loginWithApple({
+                identityToken: credential.identityToken,
+                firstName: credential.fullName?.givenName || undefined,
+                lastName: credential.fullName?.familyName || undefined,
+            });
+            router.replace('/(tabs)');
+        } catch (error: any) {
+            if (error?.code !== 'ERR_REQUEST_CANCELED') {
+                Alert.alert(
+                    language === 'tr' ? 'Apple Giriş Hatası' : 'Apple Sign-In Error',
+                    language === 'tr'
+                        ? 'Apple ile giriş tamamlanamadı. Lütfen tekrar deneyin.'
+                        : 'Apple sign-in could not be completed. Please try again.'
+                );
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const handlePressIn = () => {
         Animated.spring(buttonScale, {
             toValue: 0.95,
@@ -297,7 +335,7 @@ export default function LoginScreen() {
         {
             icon: Brain,
             title: language === 'tr' ? 'Akıllı AI Analizi' : 'Smart AI Analysis',
-            description: language === 'tr' ? 'Gelişmiş yapay zeka ile dermatolojik analiz' : 'Advanced AI dermatological analysis',
+            description: language === 'tr' ? 'Cilt farkındalığı için yardımcı ön değerlendirme' : 'Assisted preliminary assessment for skin awareness',
         },
         {
             icon: FileText,
@@ -333,6 +371,8 @@ export default function LoginScreen() {
                         }}
                         style={styles.languageToggleWrapper}
                         activeOpacity={0.7}
+                        accessibilityRole="button"
+                        accessibilityLabel={language === 'tr' ? 'Dili İngilizce yap' : 'Switch language to Turkish'}
                     >
                         <BlurView intensity={60} tint="light" style={styles.languageToggleBlur}>
                             <View style={styles.languageToggleInner}>
@@ -378,8 +418,8 @@ export default function LoginScreen() {
                                 <Sparkles size={14} color="#0891B2" strokeWidth={2.5} />
                                 <Text style={styles.tagline}>
                                     {language === 'tr'
-                                        ? 'AI Destekli Dermatolojik Tanı Sistemi'
-                                        : 'AI-Powered Dermatological Diagnosis System'}
+                                        ? 'AI Destekli Cilt Farkındalık Yardımcısı'
+                                        : 'AI-Assisted Skin Awareness Companion'}
                                 </Text>
                             </View>
                         </BlurView>
@@ -419,6 +459,8 @@ export default function LoginScreen() {
                         disabled={isLoading || isLoggingIn}
                         activeOpacity={1}
                         style={styles.loginButtonContainer}
+                        accessibilityRole="button"
+                        accessibilityLabel={language === 'tr' ? 'Google ile giriş yap' : 'Sign in with Google'}
                     >
                         <BlurView intensity={80} tint="light" style={styles.loginButtonBlur}>
                             <View style={styles.loginButtonGlassHighlight} />
@@ -473,6 +515,22 @@ export default function LoginScreen() {
                     </TouchableOpacity>
                 </Animated.View>
 
+                {Platform.OS === 'ios' && (
+                    <View
+                        style={styles.appleButtonWrapper}
+                        accessible
+                        accessibilityLabel={language === 'tr' ? 'Apple ile giriş yap' : 'Sign in with Apple'}
+                    >
+                        <AppleAuthentication.AppleAuthenticationButton
+                            buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                            cornerRadius={14}
+                            style={styles.appleButton}
+                            onPress={handleAppleLogin}
+                        />
+                    </View>
+                )}
+
                 {/* Disclaimer */}
                 <Animated.View style={[styles.disclaimerWrapper, { opacity: fadeAnim }]}>
                     <BlurView intensity={40} tint="light" style={styles.disclaimerBlur}>
@@ -486,13 +544,21 @@ export default function LoginScreen() {
 
                 {/* Footer Links */}
                 <Animated.View style={[styles.footer, { opacity: fadeAnim }]}>
-                    <TouchableOpacity onPress={handlePrivacyPolicy}>
+                    <TouchableOpacity
+                        onPress={handlePrivacyPolicy}
+                        accessibilityRole="link"
+                        accessibilityLabel={Translations.privacyPolicy[language]}
+                    >
                         <Text style={styles.footerLink}>
                             {Translations.privacyPolicy[language]}
                         </Text>
                     </TouchableOpacity>
                     <Text style={styles.footerDivider}>•</Text>
-                    <TouchableOpacity onPress={handleTerms}>
+                    <TouchableOpacity
+                        onPress={handleTerms}
+                        accessibilityRole="link"
+                        accessibilityLabel={Translations.termsOfService[language]}
+                    >
                         <Text style={styles.footerLink}>
                             {Translations.termsOfService[language]}
                         </Text>
@@ -524,6 +590,14 @@ const styles = StyleSheet.create({
         paddingHorizontal: Spacing.xl,
         paddingTop: 70,
         paddingBottom: Spacing['3xl'],
+    },
+    appleButtonWrapper: {
+        marginTop: 14,
+        width: '100%',
+    },
+    appleButton: {
+        width: '100%',
+        height: 54,
     },
 
     // Language Toggle

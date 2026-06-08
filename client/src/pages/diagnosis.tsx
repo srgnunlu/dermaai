@@ -183,7 +183,7 @@ export default function DiagnosisPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-foreground mb-2">
-            Dermatological Diagnosis Support
+            AI-Assisted Skin Awareness
           </h2>
           <p className="text-muted-foreground">
             AI-powered analysis of skin lesions using advanced machine learning models (supports 1-3 images per case)
@@ -202,7 +202,7 @@ export default function DiagnosisPage() {
           </div>
         )}
 
-        {/* Diagnosis Workflow */}
+        {/* Preliminary assessment workflow */}
         {!analyzeMutation.isPending && !analysisResult && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Image Upload Section */}

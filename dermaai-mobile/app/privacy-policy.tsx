@@ -26,10 +26,10 @@ const T = {
     // Section 1
     section1Title: { tr: '1. Giriş', en: '1. Introduction' },
     section1Content: {
-        tr: `Corio Scan Geliştiricileri ("Geliştirici", "biz", "bizim") olarak kişisel verilerinizin gizliliğine ve güvenliğine büyük önem veriyoruz. Bu Gizlilik Politikası, Corio Scan mobil uygulaması ("Uygulama") aracılığıyla toplanan kişisel verilerin nasıl işlendiğini, korunduğunu ve haklarınızı açıklamaktadır.
+        tr: `Corio Scan ("biz", "bizim") olarak kişisel verilerinizin gizliliğine ve güvenliğine büyük önem veriyoruz. Bu Gizlilik Politikası, Corio Scan mobil uygulaması ("Uygulama") aracılığıyla toplanan kişisel verilerin nasıl işlendiğini, korunduğunu ve haklarınızı açıklamaktadır.
 
 Bu politika, 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK), Avrupa Birliği Genel Veri Koruma Tüzüğü (GDPR) ve diğer ilgili mevzuat kapsamında hazırlanmıştır.`,
-        en: `At Corio Scan Developers ("Developer", "we", "our"), we place great importance on the privacy and security of your personal data. This Privacy Policy explains how personal data collected through the Corio Scan mobile application ("Application") is processed, protected, and your rights.
+        en: `At Corio Scan ("we", "our"), we place great importance on the privacy and security of your personal data. This Privacy Policy explains how personal data collected through the Corio Scan mobile application ("Application") is processed, protected, and your rights.
 
 This policy has been prepared in accordance with the Turkish Personal Data Protection Law (KVKK), the European Union General Data Protection Regulation (GDPR), and other relevant legislation.`
     },
@@ -37,12 +37,12 @@ This policy has been prepared in accordance with the Turkish Personal Data Prote
     // Section 2
     section2Title: { tr: '2. Veri Sorumlusu', en: '2. Data Controller' },
     section2Content: {
-        tr: `Corio Scan Geliştiricileri
+        tr: `Corio Scan
 Adres: İstanbul, Türkiye
 E-posta: destek@corioscan.com
 
 Kişisel verilerinizle ilgili tüm sorularınız için yukarıdaki iletişim bilgilerini kullanabilirsiniz.`,
-        en: `Corio Scan Developers
+        en: `Corio Scan
 Address: Istanbul, Turkey
 Email: destek@corioscan.com
 
@@ -53,32 +53,30 @@ You can use the contact information above for all questions regarding your perso
     section3Title: { tr: '3. Toplanan Kişisel Veriler', en: '3. Personal Data Collected' },
     section3Content: {
         tr: `3.1 Doğrudan Sağladığınız Veriler
-• Hesap Bilgileri: Ad, soyad, e-posta adresi, şifre (şifrelenmiş)
+• Hesap Bilgileri: Ad, soyad, e-posta adresi ve kimlik sağlayıcı bilgileri
 • Profil Bilgileri: Profil fotoğrafı, meslek, uzmanlık alanı
 • Sağlık Verileri: Yüklenen cilt/lezyon görselleri, belirti açıklamaları, tıbbi geçmiş notları
 • Demografik Veriler: Yaş, cinsiyet, bölge bilgisi
 • İletişim Verileri: Destek talepleri, geri bildirimler
 
 3.2 Otomatik Olarak Toplanan Veriler
-• Cihaz Bilgileri: Cihaz modeli, işletim sistemi, benzersiz cihaz tanımlayıcısı
-• Kullanım Verileri: Uygulama kullanım süresi, tıklanan özellikler, analiz sayısı
-• Teknik Veriler: IP adresi, tarayıcı türü, zaman damgaları
-• Performans Verileri: Çökme raporları, hata günlükleri
+• Bildirim Verileri: Bildirimleri etkinleştirirseniz push tokenı ve cihaz platformu
+• Hizmet Verileri: Analiz sayısı, abonelik durumu, güvenlik ve hata günlükleri
+• Teknik Veriler: Sunucu taleplerinde IP adresi ve zaman damgaları
 
 3.3 Özel Nitelikli Kişisel Veriler
 Yüklediğiniz sağlık verileri (cilt görselleri, tıbbi geçmiş) KVKK kapsamında "özel nitelikli kişisel veri" olarak kabul edilmektedir ve ek güvenlik önlemleriyle korunmaktadır.`,
         en: `3.1 Data You Directly Provide
-• Account Information: Name, surname, email address, password (encrypted)
+• Account Information: Name, surname, email address, and identity-provider information
 • Profile Information: Profile photo, profession, specialty
 • Health Data: Uploaded skin/lesion images, symptom descriptions, medical history notes
 • Demographic Data: Age, gender, region information
 • Communication Data: Support requests, feedback
 
 3.2 Automatically Collected Data
-• Device Information: Device model, operating system, unique device identifier
-• Usage Data: App usage time, clicked features, number of analyses
-• Technical Data: IP address, browser type, timestamps
-• Performance Data: Crash reports, error logs
+• Notification Data: Push token and device platform if you enable notifications
+• Service Data: Analysis count, subscription status, security and error logs
+• Technical Data: IP address and timestamps in server requests
 
 3.3 Sensitive Personal Data
 The health data you upload (skin images, medical history) is considered "sensitive personal data" under KVKK and is protected with additional security measures.`
@@ -92,16 +90,14 @@ The health data you upload (skin images, medical history) is considered "sensiti
 • Uygulama kayıt ve giriş formları
 • Profil düzenleme ekranları
 • Görsel yükleme ve analiz özellikleri
-• Otomatik tanımlama çerezleri (cookies) ve benzeri teknolojiler
-• Üçüncü taraf analitik araçları (Firebase Analytics, vb.)
+• Hizmet güvenliği ve hata kayıtları
 • Destek ve iletişim kanalları`,
         en: `Your personal data is collected through the following methods:
 
 • Application registration and login forms
 • Profile editing screens
 • Image upload and analysis features
-• Automatic identification cookies and similar technologies
-• Third-party analytics tools (Firebase Analytics, etc.)
+• Service security and error logs
 • Support and communication channels`
     },
 
@@ -115,8 +111,8 @@ The health data you upload (skin images, medical history) is considered "sensiti
 • Vaka geçmişinin saklanması ve yönetimi
 
 5.2 Hizmet İyileştirme
-• Yapay zeka modellerinin eğitimi ve iyileştirilmesi (anonimleştirilmiş verilerle)
-• Kullanıcı deneyiminin geliştirilmesi
+• Kullanıcı görselleri ve sağlık verileri model eğitimi veya AI iyileştirmesi için kullanılmaz
+• Kullanıcı deneyiminin ve hizmet güvenilirliğinin geliştirilmesi
 • Teknik sorunların tespit edilmesi ve giderilmesi
 
 5.3 İletişim
@@ -135,8 +131,8 @@ The health data you upload (skin images, medical history) is considered "sensiti
 • Storing and managing case history
 
 5.2 Service Improvement
-• Training and improving AI models (with anonymized data)
-• Enhancing user experience
+• User images and health data are not used for model training or AI improvement
+• Enhancing user experience and service reliability
 • Identifying and resolving technical issues
 
 5.3 Communication
@@ -172,33 +168,21 @@ The health data you upload (skin images, medical history) is considered "sensiti
     section7Content: {
         tr: `7.1 Teknik Önlemler
 • SSL/TLS şifrelemesi (aktarım sırasında)
-• AES-256 şifrelemesi (depolama sırasında)
-• Güvenli bulut altyapısı
-• Düzenli güvenlik açığı taramaları
-• Penetrasyon testleri
 • Erişim kontrolü ve yetkilendirme sistemleri
-• İki faktörlü kimlik doğrulama (2FA) desteği
+• Kimlik doğrulama tokenlarının cihazın güvenli depolamasında saklanması
+• Hassas dosyalara kontrollü erişim
 
 7.2 Organizasyonel Önlemler
-• Çalışan gizlilik eğitimleri
 • Erişim kısıtlamaları ("need-to-know" prensibi)
-• Veri işleme sözleşmeleri
-• Düzenli güvenlik denetimleri
 • Olay müdahale prosedürleri`,
         en: `7.1 Technical Measures
 • SSL/TLS encryption (during transmission)
-• AES-256 encryption (during storage)
-• Secure cloud infrastructure
-• Regular vulnerability scans
-• Penetration testing
 • Access control and authorization systems
-• Two-factor authentication (2FA) support
+• Authentication tokens stored using the device's secure storage
+• Controlled access to sensitive files
 
 7.2 Organizational Measures
-• Employee privacy training
 • Access restrictions ("need-to-know" principle)
-• Data processing agreements
-• Regular security audits
 • Incident response procedures`
     },
 
@@ -208,12 +192,14 @@ The health data you upload (skin images, medical history) is considered "sensiti
         tr: `8.1 Üçüncü Taraflarla Paylaşım
 Verileriniz aşağıdaki koşullarda paylaşılabilir:
 • Bulut Hizmet Sağlayıcıları: Veri depolama ve işleme
-• AI Servis Sağlayıcıları: Görsel analiz işlemleri
+• AI Servis Sağlayıcıları (OpenAI ve Google Gemini): Kullanıcı tarafından talep edilen görsel ön değerlendirme işlemleri
+• Ödeme ve Abonelik Sağlayıcıları (Apple ve RevenueCat): Abonelik yönetimi
+• Bildirim Sağlayıcısı (Expo): Kullanıcı tarafından etkinleştirilen bildirimler
 • Analitik Araçlar: Anonim kullanım istatistikleri
 • Yasal Gereksinimler: Mahkeme kararı veya yasal zorunluluk
 
 8.2 Yurt Dışına Aktarım
-Verileriniz, KVKK'nın 9. maddesi kapsamında yeterli koruma sağlanan ülkelere veya açık rızanız ile diğer ülkelere aktarılabilir. Aktarım yapılan tüm taraflarla veri işleme sözleşmeleri imzalanmaktadır.
+Hizmet sağlayıcıların altyapısı nedeniyle verileriniz yurt dışında işlenebilir. Bu aktarım, yürürlükteki mevzuat ve geçerli aktarım mekanizmaları kapsamında gerçekleştirilir.
 
 8.3 Paylaşılmayan Veriler
 Kişisel verileriniz hiçbir koşulda:
@@ -223,12 +209,14 @@ Kişisel verileriniz hiçbir koşulda:
         en: `8.1 Sharing with Third Parties
 Your data may be shared under the following conditions:
 • Cloud Service Providers: Data storage and processing
-• AI Service Providers: Visual analysis operations
+• AI Service Providers (OpenAI and Google Gemini): User-requested visual preliminary assessment
+• Payment and Subscription Providers (Apple and RevenueCat): Subscription management
+• Notification Provider (Expo): User-enabled notifications
 • Analytics Tools: Anonymous usage statistics
 • Legal Requirements: Court order or legal obligation
 
 8.2 International Transfer
-Your data may be transferred to countries providing adequate protection under KVKK Article 9 or to other countries with your explicit consent. Data processing agreements are signed with all parties receiving data.
+Your data may be processed outside your country because of service-provider infrastructure. Transfers are handled under applicable law and valid transfer mechanisms.
 
 8.3 Data Not Shared
 Your personal data will under no circumstances:
@@ -243,24 +231,22 @@ Your personal data will under no circumstances:
         tr: `9.1 Aktif Hesaplar
 • Hesap bilgileri: Hesap aktif olduğu sürece
 • Analiz geçmişi: Kullanıcı tercihine bağlı olarak hesap aktif olduğu sürece
-• Kullanım verileri: Son 24 ay
+• Hizmet ve güvenlik kayıtları: Hizmetin işletilmesi ve yasal yükümlülükler için gerekli süre boyunca
 
 9.2 Hesap Silme Sonrası
-• Kişisel veriler: 30 gün içinde kalıcı olarak silinir
-• Yedeklemeler: 90 gün sonra silinir
-• Anonimleştirilmiş istatistiksel veriler: Süresiz saklanabilir
+• Uygulama hesabına bağlı aktif kayıtlar ve desteklenen yüklenmiş dosyalar silme talebi işlendiğinde silinir
+• Hizmet sağlayıcı yedekleri kendi saklama döngüleri içinde silinebilir
 
 9.3 Yasal Saklama
 Yasal düzenlemeler gereği bazı veriler belirtilen sürelerde saklanmak zorundadır (örn: mali kayıtlar 10 yıl).`,
         en: `9.1 Active Accounts
 • Account information: As long as the account is active
 • Analysis history: As long as the account is active, based on user preference
-• Usage data: Last 24 months
+• Service and security logs: For as long as needed to operate the service and meet legal obligations
 
 9.2 After Account Deletion
-• Personal data: Permanently deleted within 30 days
-• Backups: Deleted after 90 days
-• Anonymized statistical data: May be retained indefinitely
+• Active account-linked records and supported uploaded files are deleted when the deletion request is processed
+• Service-provider backups may be removed according to their backup retention cycles
 
 9.3 Legal Retention
 Some data must be retained for specified periods due to legal regulations (e.g., financial records for 10 years).`
@@ -307,20 +293,8 @@ If you become aware that data from a person under 18 has been collected, please 
     // Section 12
     section12Title: { tr: '12. Çerezler ve İzleme Teknolojileri', en: '12. Cookies and Tracking Technologies' },
     section12Content: {
-        tr: `Uygulama, hizmet kalitesini artırmak için çerezler ve benzeri teknolojiler kullanabilir:
-
-• Zorunlu Çerezler: Uygulamanın çalışması için gerekli
-• Analitik Çerezler: Kullanım istatistikleri (devre dışı bırakılabilir)
-• Performans Çerezleri: Uygulama performansının izlenmesi
-
-Cihaz ayarlarından çerez tercihlerinizi yönetebilirsiniz.`,
-        en: `The Application may use cookies and similar technologies to improve service quality:
-
-• Essential Cookies: Required for the Application to function
-• Analytics Cookies: Usage statistics (can be disabled)
-• Performance Cookies: Monitoring Application performance
-
-You can manage your cookie preferences through device settings.`
+        tr: `Mobil Uygulama reklam amaçlı takip çerezleri kullanmaz. Web sürümü, oturum açma ve güvenlik gibi zorunlu işlevler için gerekli oturum teknolojilerini kullanabilir.`,
+        en: `The mobile Application does not use advertising tracking cookies. The web version may use session technologies required for sign-in and security.`
     },
 
     // Section 13

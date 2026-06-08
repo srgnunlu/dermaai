@@ -27,22 +27,21 @@ export default function ContactSupportScreen() {
             return;
         }
 
+        const subject = encodeURIComponent(`Corio Scan Destek - ${name.trim()}`);
+        const body = encodeURIComponent(`Ad: ${name.trim()}\nE-posta: ${email.trim()}\n\n${message.trim()}`);
+        const url = `mailto:destek@corioscan.com?subject=${subject}&body=${body}`;
         setIsSubmitting(true);
-        // Simulate submission
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        setIsSubmitting(false);
-
-        Alert.alert(
-            'Mesaj Gönderildi',
-            'Mesajınız başarıyla gönderildi. En kısa sürede size dönüş yapacağız.',
-            [{
-                text: 'Tamam', onPress: () => {
-                    setName('');
-                    setEmail('');
-                    setMessage('');
-                }
-            }]
-        );
+        try {
+            const canOpen = await Linking.canOpenURL(url);
+            if (!canOpen) {
+                throw new Error('Mail client is unavailable');
+            }
+            await Linking.openURL(url);
+        } catch {
+            Alert.alert('E-posta Uygulaması Bulunamadı', 'Lütfen destek@corioscan.com adresine e-posta gönderin.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleEmail = () => {
@@ -137,7 +136,7 @@ export default function ContactSupportScreen() {
                     <CardContent>
                         <FAQItem
                             question="AI analizi ne kadar güvenilir?"
-                            answer="AI modellerimiz yüksek doğruluk oranına sahip olsa da, kesin tanı için mutlaka bir dermatolog değerlendirmesi gereklidir."
+                            answer="Model güven skoru klinik doğruluk ölçüsü değildir. Sonuçlar farkındalık ve yardımcı ön değerlendirme amaçlıdır; sağlık kararları için dermatoloğa danışın."
                             colors={colors}
                         />
                         <FAQItem

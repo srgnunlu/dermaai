@@ -25,16 +25,16 @@ const T = {
     // Section 1
     section1Title: { tr: '1. Giriş ve Kabul', en: '1. Introduction and Acceptance' },
     section1Content: {
-        tr: `Corio Scan mobil uygulamasını ("Uygulama") indirerek, yükleyerek veya kullanarak, bu Kullanım Şartları ve Koşullarını ("Şartlar") okuduwğunuzu, anladığınızı ve bunlara bağlı kalmayı kabul ettiğinizi beyan etmiş olursunuz.
+        tr: `Corio Scan mobil uygulamasını ("Uygulama") indirerek, yükleyerek veya kullanarak, bu Kullanım Şartları ve Koşullarını ("Şartlar") okuduğunuzu, anladığınızı ve bunlara bağlı kalmayı kabul ettiğinizi beyan etmiş olursunuz.
 
 Bu Şartları kabul etmiyorsanız, Uygulamayı kullanmamalısınız. Uygulamayı kullanmaya devam etmeniz, Şartlardaki değişiklikleri de kabul ettiğiniz anlamına gelir.
 
-Corio Scan Geliştiricileri ("Geliştirici", "biz", "bizim") bu Şartları herhangi bir zamanda değiştirme hakkını saklı tutar. Değişiklikler, Uygulama içinde yayınlandığı tarihte yürürlüğe girer.`,
+Corio Scan ("biz", "bizim") bu Şartları herhangi bir zamanda değiştirme hakkını saklı tutar. Değişiklikler, Uygulama içinde yayınlandığı tarihte yürürlüğe girer.`,
         en: `By downloading, installing, or using the Corio Scan mobile application ("Application"), you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions ("Terms").
 
 If you do not accept these Terms, you should not use the Application. Your continued use of the Application signifies your acceptance of any changes to the Terms.
 
-Corio Scan Developers ("Developer", "we", "our") reserves the right to modify these Terms at any time. Changes become effective upon publication within the Application.`
+Corio Scan ("we", "our") reserves the right to modify these Terms at any time. Changes become effective upon publication within the Application.`
     },
 
     // Section 2
@@ -47,7 +47,7 @@ Corio Scan Developers ("Developer", "we", "our") reserves the right to modify th
 • Vaka geçmişi yönetimi
 • Profesyonel kullanıcılar için değerlendirme destek araçları
 
-ÖNEMLİ UYARI: Bu Uygulama, kesinlikle tıbbi değerlendirme yapmak, tedavi önermek veya bir sağlık profesyonelinin değerlendirmesinin yerini almak amacıyla tasarlanmamıştır. Uygulama yalnızca bilgilendirme ve karar destek aracı olarak kullanılmalıdır.`,
+ÖNEMLİ UYARI: Bu Uygulama tıbbi değerlendirme yapmak, tedavi önermek veya bir sağlık profesyonelinin değerlendirmesinin yerini almak amacıyla tasarlanmamıştır. Yalnızca farkındalık, dokümantasyon ve yardımcı ön değerlendirme amacıyla kullanılmalıdır.`,
         en: `Corio Scan is a mobile application that helps analyze dermatological images using artificial intelligence technology. The Application offers the following services:
 
 • Visual analysis of skin lesions
@@ -55,14 +55,14 @@ Corio Scan Developers ("Developer", "we", "our") reserves the right to modify th
 • Case history management
 • Assessment support tools for professional users
 
-IMPORTANT WARNING: This Application is not designed to provide medical assessment, recommend treatment, or replace the evaluation of a healthcare professional. The Application should only be used as an informational and decision support tool.`
+IMPORTANT WARNING: This Application is not designed to provide medical assessment, recommend treatment, or replace a healthcare professional. It is only for awareness, documentation, and assisted preliminary assessment.`
     },
 
     // Section 3
     section3Title: { tr: '3. Kullanıcı Yeterliliği ve Hesap', en: '3. User Eligibility and Account' },
     section3Content: {
         tr: `3.1 Yaş Sınırı
-Uygulamayı kullanmak için en az 18 yaşında olmanız veya yasal vasinizin onayını almış olmanız gerekmektedir.
+Uygulamayı kullanmak için en az 18 yaşında olmanız gerekmektedir. Veli veya vasi onayı 18 yaş altı kullanıma izin vermez.
 
 3.2 Hesap Oluşturma
 Bazı özellikleri kullanmak için hesap oluşturmanız gerekebilir. Hesap oluştururken doğru ve güncel bilgiler vermeyi kabul edersiniz.
@@ -76,7 +76,7 @@ Bazı özellikleri kullanmak için hesap oluşturmanız gerekebilir. Hesap oluş
 3.4 Profesyonel Kullanıcılar
 Sağlık profesyoneli olarak kayıt oluyorsanız, geçerli bir lisansa sahip olduğunuzu ve mesleki yetkinliğinizi beyan etmiş olursunuz.`,
         en: `3.1 Age Requirement
-You must be at least 18 years old or have the consent of your legal guardian to use the Application.
+You must be at least 18 years old to use the Application. Parent or guardian consent does not permit use by anyone under 18.
 
 3.2 Account Creation
 You may need to create an account to use certain features. You agree to provide accurate and current information when creating an account.
@@ -230,7 +230,7 @@ Hesabınızı istediğiniz zaman Ayarlar menüsünden veya destek@corioscan.com 
 • Uzun süreli hesap inaktivitesi
 
 9.3 Fesih Sonrası
-Hesap feshinden sonra verileriniz 30 gün içinde kalıcı olarak silinir. Yasal zorunluluklar gereği bazı veriler daha uzun süre saklanabilir.`,
+Hesap feshinde, aktif hesap kayıtları ve desteklenen yüklenmiş dosyalar silme talebi işlendiğinde silinir. Yasal saklama gereksinimleri ve hizmet sağlayıcı yedek döngüleri uygulanmaya devam edebilir.`,
         en: `9.1 Termination by You
 You can delete your account at any time through the Settings menu or by sending an email to destek@corioscan.com.
 
@@ -242,7 +242,7 @@ The Company may suspend or terminate your account in the following cases:
 • Extended account inactivity
 
 9.3 After Termination
-After account termination, your data will be permanently deleted within 30 days. Some data may be retained longer due to legal requirements.`
+After account termination, active account records and supported uploaded files are deleted when the request is processed. Legal retention requirements and service-provider backup cycles may continue to apply.`
     },
 
     // Section 10
@@ -324,14 +324,14 @@ You may not transfer your rights under these Terms without the written consent o
     section14Content: {
         tr: `Bu Kullanım Şartları ile ilgili sorularınız için:
 
-Corio Scan Geliştiricileri
+Corio Scan
 📧 Destek: destek@corioscan.com
 🌐 Web: www.corioscan.com
 
 Yanıt süresi: İş günlerinde 48 saat içinde`,
         en: `For questions regarding these Terms of Service:
 
-Corio Scan Developers
+Corio Scan
 📧 Support: destek@corioscan.com
 🌐 Web: www.corioscan.com
 

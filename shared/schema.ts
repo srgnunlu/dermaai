@@ -65,8 +65,10 @@ export const users = pgTable(
     hospital: varchar('hospital'),
     yearsOfExperience: integer('years_of_experience'),
     phoneNumber: varchar('phone_number'),
+    appleSubject: varchar('apple_subject').unique(),
     isHealthProfessional: jsonb('is_health_professional').default(false).$type<boolean>(),
     isProfileComplete: jsonb('is_profile_complete').default(false).$type<boolean>(),
+    adultConfirmedAt: timestamp('adult_confirmed_at'),
     // Subscription fields
     subscriptionTier: varchar('subscription_tier').default('free').notNull(), // 'free' | 'basic' | 'pro'
     subscriptionExpiresAt: timestamp('subscription_expires_at'),
@@ -230,6 +232,7 @@ export const updateUserProfileSchema = z.object({
   profileImageUrl: imageReferenceSchema.or(z.literal('')).nullable().optional(),
   isHealthProfessional: z.boolean().nullable().optional(),
   isProfileComplete: z.boolean().nullable().optional(),
+  adultConfirmedAt: z.coerce.date().nullable().optional(),
 });
 
 export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;

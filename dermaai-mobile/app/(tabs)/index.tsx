@@ -48,7 +48,7 @@ export default function DiagnosisScreen() {
     };
 
     // Show onboarding modal if user exists but hasn't completed profile
-    const showOnboarding = user && user.isProfileComplete !== true && !showMedicalConsent;
+    const showOnboarding = user && (user.isProfileComplete !== true || !user.adultConfirmedAt) && !showMedicalConsent;
 
     const handleOnboardingComplete = async (data: UpdateProfileData) => {
         console.log('[Onboarding] Starting profile update with data:', JSON.stringify(data));

@@ -17,10 +17,57 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.corio.scan",
       "buildNumber": "1",
+      "usesAppleSignIn": true,
+      "privacyManifests": {
+        "NSPrivacyTracking": false,
+        "NSPrivacyTrackingDomains": [],
+        "NSPrivacyCollectedDataTypes": [
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeEmailAddress",
+            "NSPrivacyCollectedDataTypeLinked": true,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          },
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeUserID",
+            "NSPrivacyCollectedDataTypeLinked": true,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          },
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeHealth",
+            "NSPrivacyCollectedDataTypeLinked": true,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          },
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypePhotosorVideos",
+            "NSPrivacyCollectedDataTypeLinked": true,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          },
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypePurchaseHistory",
+            "NSPrivacyCollectedDataTypeLinked": true,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          }
+        ]
+      },
       "infoPlist": {
-        "NSCameraUsageDescription": "Corio Scan needs camera access to capture skin lesions for AI analysis.",
-        "NSPhotoLibraryUsageDescription": "Corio Scan needs photo library access to select images for skin analysis.",
-        "NSPhotoLibraryAddUsageDescription": "Corio Scan needs permission to save analysis reports to your photo library.",
+        "NSCameraUsageDescription": "Corio Scan uses the camera to capture skin-area photos for an AI-assisted preliminary assessment.",
+        "NSPhotoLibraryUsageDescription": "Corio Scan uses selected skin-area photos for an AI-assisted preliminary assessment.",
+        "NSPhotoLibraryAddUsageDescription": "Corio Scan needs permission to save your awareness reports to the photo library.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -40,6 +87,7 @@
     "plugins": [
       "expo-router",
       "expo-web-browser",
+      "expo-apple-authentication",
       [
         "expo-notifications",
         {
@@ -48,7 +96,9 @@
           "defaultChannel": "default",
           "sounds": []
         }
-      ]
+      ],
+      "expo-font",
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true

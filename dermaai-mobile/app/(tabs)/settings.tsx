@@ -40,7 +40,6 @@ import {
     LogOut,
     Trash2,
     Mail,
-    Star,
     User,
     Check,
     X,
@@ -60,8 +59,8 @@ import {
     checkNotificationPermissions,
     scheduleSkinCheckReminder,
     cancelSkinCheckReminder,
-    cancelAllNotifications,
     unregisterPushToken,
+    registerPushTokenWithBackend,
 } from '@/lib/notifications';
 
 const SETTINGS_STORAGE_KEY = 'corio_settings';
@@ -166,6 +165,7 @@ export default function SettingsScreen() {
             }
 
             setSettings(prev => ({ ...prev, notificationPermissionGranted: true }));
+            await registerPushTokenWithBackend();
         }
 
         updateSetting(key, value);
@@ -241,13 +241,18 @@ export default function SettingsScreen() {
 
     const handleDeleteAccount = () => {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        const hasActiveSubscription = subscriptionStatus?.tier === 'basic' || subscriptionStatus?.tier === 'pro';
         Alert.alert(
             language === 'tr' ? '⚠️ Hesabı Sil' : '⚠️ Delete Account',
             language === 'tr'
-                ? 'Bu işlem geri alınamaz! Hesabınız ve tüm verileriniz kalıcı olarak silinecektir. Devam etmek istiyor musunuz?'
-                : 'This action cannot be undone! Your account and all your data will be permanently deleted. Do you want to continue?',
+                ? `Bu işlem geri alınamaz. Hesabınız ve tüm verileriniz kalıcı olarak silinecektir.${hasActiveSubscription ? '\n\nAktif aboneliğiniz hesabınız silindiğinde otomatik iptal olmaz. Apple aboneliklerinden ayrıca iptal etmeniz gerekir.' : ''}`
+                : `This action cannot be undone. Your account and all data will be permanently deleted.${hasActiveSubscription ? '\n\nDeleting your account does not automatically cancel your active subscription. You must also cancel it in Apple subscriptions.' : ''}`,
             [
                 { text: language === 'tr' ? 'İptal' : 'Cancel', style: 'cancel' },
+                ...(hasActiveSubscription ? [{
+                    text: language === 'tr' ? 'Aboneliği Yönet' : 'Manage Subscription',
+                    onPress: () => Linking.openURL('https://apps.apple.com/account/subscriptions'),
+                }] : []),
                 {
                     text: language === 'tr' ? 'Hesabı Sil' : 'Delete Account',
                     style: 'destructive',
@@ -285,25 +290,6 @@ export default function SettingsScreen() {
     const handleContactSupport = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         Linking.openURL('mailto:destek@corioscan.com?subject=Corio%20Scan%20Support');
-    };
-
-    const handleRateApp = () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        // TODO: Replace with actual App Store / Play Store URL
-        const storeUrl = Platform.select({
-            ios: 'https://apps.apple.com/app/idXXXXXXXXXX',
-            android: 'https://play.google.com/store/apps/details?id=com.corio.scan',
-        });
-        if (storeUrl) {
-            Linking.openURL(storeUrl).catch(() => {
-                Alert.alert(
-                    language === 'tr' ? 'Bilgi' : 'Info',
-                    language === 'tr'
-                        ? 'Uygulama henüz mağazada yayınlanmadı.'
-                        : 'The app is not yet published on the store.'
-                );
-            });
-        }
     };
 
     return (
@@ -472,13 +458,6 @@ export default function SettingsScreen() {
                                     subtitle="destek@corioscan.com"
                                     onPress={handleContactSupport}
                                 />
-                                <View style={styles.divider} />
-                                <SettingNavRow
-                                    icon={<Star size={20} color="#F59E0B" />}
-                                    title={language === 'tr' ? 'Uygulamayı Değerlendir' : 'Rate the App'}
-                                    subtitle={language === 'tr' ? 'Görüşleriniz bizim için önemli' : 'Your feedback matters'}
-                                    onPress={handleRateApp}
-                                />
                             </GlassCard>
                         </View>
                     </View>
@@ -561,7 +540,7 @@ export default function SettingsScreen() {
                         <View style={styles.footerLogoContainer}>
                             <Heart size={16} color="#0891B2" />
                         </View>
-                        <Text style={styles.footerText}>Corio Scan © 2025</Text>
+                        <Text style={styles.footerText}>Corio Scan © {new Date().getFullYear()}</Text>
                     </View>
                 </ScrollView>
             </View>
@@ -693,6 +672,9 @@ function SettingToggleRow({
                 thumbColor="#FFFFFF"
                 ios_backgroundColor="#E2E8F0"
                 disabled={disabled}
+                accessibilityLabel={title}
+                accessibilityHint={subtitle}
+                accessibilityState={{ checked: value, disabled }}
             />
         </View>
     );
@@ -711,7 +693,14 @@ function SettingNavRow({
     onPress: () => void;
 }) {
     return (
-        <TouchableOpacity style={styles.settingRow} onPress={onPress} activeOpacity={0.7}>
+        <TouchableOpacity
+            style={styles.settingRow}
+            onPress={onPress}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={title}
+            accessibilityHint={subtitle}
+        >
             <View style={styles.settingIconContainer}>
                 {icon}
             </View>
@@ -760,7 +749,13 @@ function SettingActionRow({
     onPress: () => void;
 }) {
     return (
-        <TouchableOpacity style={styles.settingRow} onPress={onPress} activeOpacity={0.7}>
+        <TouchableOpacity
+            style={styles.settingRow}
+            onPress={onPress}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={title}
+        >
             <View style={styles.settingIconContainer}>
                 {icon}
             </View>

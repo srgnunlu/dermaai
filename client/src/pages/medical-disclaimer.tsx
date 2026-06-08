@@ -1,10 +1,10 @@
 import SiteFooter from '@/components/SiteFooter';
 
 const statements = [
-  'Corio Scan generates differential diagnoses and priority assessments based on submitted imagery and case notes. Outputs are advisory only.',
-  'Only qualified clinicians may make diagnostic or treatment decisions. Always confirm AI suggestions with patient examination, history, and relevant tests.',
+  'Corio Scan provides AI-assisted possible findings and awareness information based on submitted imagery and context.',
+  'The app does not make medical decisions or replace examination, testing, or consultation by a qualified healthcare professional.',
   'Urgency indicators highlight potential risk but do not replace institutional escalation policies or emergency triage procedures.',
-  'Corio Scan does not provide medical guidance directly to patients. Patient-facing use is prohibited without clinician supervision.',
+  'Personal users and healthcare professionals must use the app only for awareness, documentation, and preliminary assessment assistance.',
   'The platform is not certified as a medical device in every jurisdiction. Ensure usage complies with local regulatory frameworks.',
   'Clinical governance teams should review periodic audit logs, model release notes, and documented limitations before expanding usage.',
 ];
@@ -18,12 +18,11 @@ export default function MedicalDisclaimerPage() {
             Medical Disclaimer
           </span>
           <h1 className="mt-4 text-4xl font-bold text-foreground">
-            Clinical Oversight Remains Essential
+            Professional Care Remains Essential
           </h1>
           <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
-            Corio Scan augments dermatology workflows with AI-driven insights. It does not replace
-            professional judgement, diagnostic testing, or patient consultation. Review the
-            statements below with your clinical governance team before deploying the platform.
+            Corio Scan is an AI-assisted skin awareness and preliminary assessment helper. It does
+            not replace professional judgement, testing, or consultation.
           </p>
 
           <div className="mt-10 space-y-4">

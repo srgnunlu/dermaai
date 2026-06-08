@@ -162,13 +162,15 @@ function RootLayoutNav() {
       });
 
       // Sync user with RevenueCat for subscription tracking
-      Purchases.logIn(user.id)
-        .then(({ customerInfo }) => {
-          console.log('[RevenueCat] User logged in:', user.id);
-        })
-        .catch((err) => {
-          console.log('[RevenueCat] Failed to log in user:', err);
-        });
+      if (getRevenueCatApiKey(Platform.OS)) {
+        Purchases.logIn(user.id)
+          .then(() => {
+            console.log('[RevenueCat] User logged in:', user.id);
+          })
+          .catch((err) => {
+            console.log('[RevenueCat] Failed to log in user:', err);
+          });
+      }
     }
   }, [isAuthenticated, isLoading, user?.id]);
 

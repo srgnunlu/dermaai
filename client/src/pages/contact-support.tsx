@@ -22,11 +22,15 @@ export default function ContactSupportPage() {
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const subject = encodeURIComponent(`Corio Scan Support - ${formData.topic || 'General'}`);
+    const body = encodeURIComponent(
+      `Name: ${formData.name}\nEmail: ${formData.email}\nOrganisation: ${formData.organisation}\n\n${formData.message}`
+    );
+    window.location.href = `mailto:destek@corioscan.com?subject=${subject}&body=${body}`;
     toast({
-      title: 'Support request queued',
-      description: 'Thanks! Our clinical success team will reply within one business day.',
+      title: 'Email app opened',
+      description: 'Send the prepared email to reach Corio Scan support.',
     });
-    setFormData({ name: '', email: '', organisation: '', topic: '', message: '' });
   };
 
   return (
@@ -37,12 +41,11 @@ export default function ContactSupportPage() {
             Contact Support
           </span>
           <h1 className="mt-4 text-4xl font-bold text-foreground">
-            We're here to help your dermatology team succeed
+            We're here to help
           </h1>
           <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
-            Reach the Corio Scan clinical success team for onboarding questions, security reviews, or
-            escalation of urgent operational issues. Include as much detail as possible so we can
-            respond quickly.
+            Reach Corio Scan support for account, billing, privacy, onboarding, or technical questions.
+            Do not use this channel for medical emergencies.
           </p>
 
           <form
@@ -118,8 +121,8 @@ export default function ContactSupportPage() {
           <div className="mt-10 rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-6 text-sm text-cyan-100">
             <p className="font-semibold">Support hours</p>
             <p className="mt-2">
-              Monday–Friday, 07:00–19:00 CET for standard requests. Critical incidents are monitored
-              24/7.
+              Email support is provided through destek@corioscan.com. For medical emergencies,
+              contact your local emergency services.
             </p>
           </div>
         </div>

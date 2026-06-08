@@ -14,13 +14,13 @@ export function SiteFooter() {
               <div className="ml-3">
                 <p className="text-lg font-semibold text-foreground">Corio<span className="text-cyan-600"> Scan</span></p>
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  AI-Powered Skin Analysis
+                  AI-Assisted Skin Awareness
                 </p>
               </div>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Clinical decision support for dermatology teams. Dual-model AI analysis, structured
-              reporting, and secure patient workflows in a single platform.
+              Skin awareness, preliminary assessment, structured reporting, and documentation
+              tools for adults and healthcare professionals.
             </p>
           </div>
 
@@ -28,19 +28,13 @@ export function SiteFooter() {
             <h4 className="text-base font-semibold text-foreground mb-3">Legal</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <Link href="/privacy-policy">
-                  <a className="hover:text-foreground">Privacy Policy</a>
-                </Link>
+                <Link href="/privacy-policy" className="hover:text-foreground">Privacy Policy</Link>
               </li>
               <li>
-                <Link href="/terms-of-service">
-                  <a className="hover:text-foreground">Terms of Service</a>
-                </Link>
+                <Link href="/terms-of-service" className="hover:text-foreground">Terms of Service</Link>
               </li>
               <li>
-                <Link href="/medical-disclaimer">
-                  <a className="hover:text-foreground">Medical Disclaimer</a>
-                </Link>
+                <Link href="/medical-disclaimer" className="hover:text-foreground">Medical Disclaimer</Link>
               </li>
             </ul>
           </div>
@@ -49,19 +43,13 @@ export function SiteFooter() {
             <h4 className="text-base font-semibold text-foreground mb-3">Support</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <Link href="/documentation">
-                  <a className="hover:text-foreground">Documentation</a>
-                </Link>
+                <Link href="/documentation" className="hover:text-foreground">Documentation</Link>
               </li>
               <li>
-                <Link href="/contact-support">
-                  <a className="hover:text-foreground">Contact Support</a>
-                </Link>
+                <Link href="/contact-support" className="hover:text-foreground">Contact Support</Link>
               </li>
               <li>
-                <Link href="/technical-requirements">
-                  <a className="hover:text-foreground">Technical Requirements</a>
-                </Link>
+                <Link href="/technical-requirements" className="hover:text-foreground">Technical Requirements</Link>
               </li>
             </ul>
           </div>
@@ -69,8 +57,8 @@ export function SiteFooter() {
 
         <div className="border-t border-border mt-10 pt-6 text-center">
           <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} Corio Scan. AI-powered skin analysis for dermatology
-            professionals. Not a substitute for professional diagnosis.
+            © {new Date().getFullYear()} Corio Scan. AI-assisted skin awareness and preliminary
+            assessment. Not a substitute for professional medical care.
           </p>
         </div>
       </div>

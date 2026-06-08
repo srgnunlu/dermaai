@@ -20,11 +20,11 @@ export default function Landing() {
             Corio<span className="text-cyan-600"> Scan</span>
           </h1>
           <p className="text-lg text-cyan-600 dark:text-cyan-400 font-medium mb-4">
-            AI-Powered Skin Analysis Platform
+            AI-Assisted Skin Awareness Platform
           </p>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
-            Advanced dermatological analysis using state-of-the-art AI models to assist healthcare
-            professionals in diagnosis
+            Skin-awareness, documentation, and preliminary assessment assistance for adults and
+            healthcare professionals
           </p>
           <div className="flex gap-4 justify-center">
             <Button
@@ -67,8 +67,8 @@ export default function Landing() {
             </CardHeader>
             <CardContent>
               <CardDescription>
-                Leverages both Google Gemini and OpenAI models for comprehensive and accurate
-                diagnosis with confidence scores
+                Uses Google Gemini and OpenAI to provide possible findings with clearly labelled
+                model confidence scores
               </CardDescription>
             </CardContent>
           </Card>
@@ -97,8 +97,8 @@ export default function Landing() {
             </CardHeader>
             <CardContent>
               <CardDescription>
-                Generate comprehensive PDF reports with diagnosis results, recommendations, and
-                urgency indicators
+                Generate awareness reports with possible findings, general recommendations, and
+                escalation reminders
               </CardDescription>
             </CardContent>
           </Card>

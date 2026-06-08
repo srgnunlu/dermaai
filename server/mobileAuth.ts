@@ -9,6 +9,10 @@ import type { RequestHandler, Express } from 'express';
 import { storage } from './storage';
 import crypto from 'crypto';
 import logger from './logger';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
+import { cloudinaryStorage } from './cloudinaryStorage';
+import { localFileStorage } from './localFileStorage';
+import type { User } from '@shared/schema';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -42,11 +46,64 @@ const JWT_REFRESH_SECRET = getJwtSecret('JWT_REFRESH_SECRET');
 // Token expiration times
 const ACCESS_TOKEN_EXPIRY = '1h'; // 1 hour
 const REFRESH_TOKEN_EXPIRY = '7d'; // 7 days
+const appleJwks = createRemoteJWKSet(new URL('https://appleid.apple.com/auth/keys'));
+
+async function deleteStoredImage(reference: string): Promise<void> {
+    if (reference.includes('cloudinary.com')) {
+        await cloudinaryStorage.deleteImage(reference);
+    } else if (reference.startsWith('/files/') || !reference.startsWith('http')) {
+        await localFileStorage.deleteFile(reference);
+    }
+}
 
 interface JWTPayload {
     userId: string;
     email: string;
     role: string;
+}
+
+function serializeMobileUser(user: User) {
+    return {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        profileImageUrl: user.profileImageUrl,
+        role: user.role,
+        phoneNumber: user.phoneNumber,
+        medicalLicenseNumber: user.medicalLicenseNumber,
+        specialization: user.specialization,
+        hospital: user.hospital,
+        yearsOfExperience: user.yearsOfExperience,
+        appleSubject: user.appleSubject,
+        isHealthProfessional: user.isHealthProfessional ?? false,
+        isProfileComplete: user.isProfileComplete ?? false,
+        adultConfirmedAt: user.adultConfirmedAt,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+    };
+}
+
+async function verifyAppleIdentityToken(identityToken: string): Promise<{
+    subject: string;
+    email?: string;
+    emailVerified: boolean;
+}> {
+    const audience = process.env.APPLE_CLIENT_ID || 'com.corio.scan';
+    const { payload } = await jwtVerify(identityToken, appleJwks, {
+        issuer: 'https://appleid.apple.com',
+        audience,
+    });
+
+    if (!payload.sub) {
+        throw new Error('Apple identity token is missing subject');
+    }
+
+    return {
+        subject: payload.sub,
+        email: typeof payload.email === 'string' ? payload.email : undefined,
+        emailVerified: payload.email_verified === true || payload.email_verified === 'true',
+    };
 }
 
 /**
@@ -206,18 +263,69 @@ export function setupMobileAuth(app: Express) {
             res.json({
                 accessToken: tokens.accessToken,
                 refreshToken: tokens.refreshToken,
-                user: {
-                    id: user.id,
-                    email: user.email,
-                    firstName: user.firstName,
-                    lastName: user.lastName,
-                    profileImageUrl: user.profileImageUrl,
-                    role: user.role,
-                },
+                user: serializeMobileUser(user),
             });
         } catch (error) {
             logger.error('[MOBILE_AUTH] Google auth error:', error);
             res.status(500).json({ error: 'Authentication failed' });
+        }
+    });
+
+    app.post('/api/auth/mobile/apple', async (req, res) => {
+        try {
+            const identityToken = typeof req.body?.identityToken === 'string' ? req.body.identityToken : '';
+            const firstName = typeof req.body?.firstName === 'string' ? req.body.firstName.trim() : '';
+            const lastName = typeof req.body?.lastName === 'string' ? req.body.lastName.trim() : '';
+
+            if (!identityToken) {
+                return res.status(400).json({ error: 'Apple identity token is required' });
+            }
+
+            const appleIdentity = await verifyAppleIdentityToken(identityToken);
+            let user = await storage.getUserByAppleSubject(appleIdentity.subject);
+
+            if (!user && appleIdentity.email && appleIdentity.emailVerified) {
+                user = await storage.getUserByEmail(appleIdentity.email);
+            }
+
+            if (!user) {
+                if (!appleIdentity.email) {
+                    return res.status(400).json({
+                        error: 'Apple did not provide an email address. Revoke Corio Scan access in Apple ID settings and try again.',
+                    });
+                }
+
+                user = await storage.upsertUser({
+                    id: crypto.randomUUID(),
+                    email: appleIdentity.email,
+                    firstName: firstName || appleIdentity.email.split('@')[0],
+                    lastName,
+                    profileImageUrl: null,
+                    appleSubject: appleIdentity.subject,
+                    role: appleIdentity.email === process.env.ADMIN_EMAIL ? 'admin' : 'user',
+                });
+            } else if (user.appleSubject !== appleIdentity.subject) {
+                user = await storage.upsertUser({
+                    ...user,
+                    appleSubject: appleIdentity.subject,
+                });
+            }
+
+            const tokens = generateTokens({
+                id: user.id,
+                email: user.email || '',
+                role: user.role,
+            });
+
+            res.json({
+                ...tokens,
+                user: serializeMobileUser(user),
+            });
+        } catch (error) {
+            logger.warn('[MOBILE_AUTH] Apple auth rejected', {
+                message: error instanceof Error ? error.message : 'Unknown error',
+            });
+            res.status(401).json({ error: 'Apple authentication failed' });
         }
     });
 
@@ -255,22 +363,7 @@ export function setupMobileAuth(app: Express) {
             res.json({
                 accessToken: tokens.accessToken,
                 refreshToken: tokens.refreshToken,
-                user: {
-                    id: user.id,
-                    email: user.email,
-                    firstName: user.firstName,
-                    lastName: user.lastName,
-                    profileImageUrl: user.profileImageUrl,
-                    role: user.role,
-                    // Profile fields
-                    phoneNumber: user.phoneNumber,
-                    medicalLicenseNumber: user.medicalLicenseNumber,
-                    specialization: user.specialization,
-                    hospital: user.hospital,
-                    yearsOfExperience: user.yearsOfExperience,
-                    isHealthProfessional: user.isHealthProfessional ?? false,
-                    isProfileComplete: user.isProfileComplete ?? false,
-                },
+                user: serializeMobileUser(user),
             });
         } catch (error) {
             logger.error('[MOBILE_AUTH] Token refresh error:', error);
@@ -290,25 +383,7 @@ export function setupMobileAuth(app: Express) {
                 return res.status(404).json({ error: 'User not found' });
             }
 
-            // Return all user fields including profile data
-            res.json({
-                id: user.id,
-                email: user.email,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                profileImageUrl: user.profileImageUrl,
-                role: user.role,
-                // Profile fields
-                phoneNumber: user.phoneNumber,
-                medicalLicenseNumber: user.medicalLicenseNumber,
-                specialization: user.specialization,
-                hospital: user.hospital,
-                yearsOfExperience: user.yearsOfExperience,
-                isHealthProfessional: user.isHealthProfessional ?? false,
-                isProfileComplete: user.isProfileComplete ?? false,
-                createdAt: user.createdAt,
-                updatedAt: user.updatedAt,
-            });
+            res.json(serializeMobileUser(user));
         } catch (error) {
             logger.error('[MOBILE_AUTH] Get user error:', error);
             res.status(500).json({ error: 'Failed to get user' });
@@ -331,15 +406,18 @@ export function setupMobileAuth(app: Express) {
                 return res.status(404).json({ error: 'User not found' });
             }
 
-            // Delete push tokens first
-            await storage.deleteUserPushTokens(userId);
-
-            // Delete user (this cascades to cases and settings via storage.deleteUser)
+            const imageReferences = await storage.getUserImageReferences(userId);
             const deleted = await storage.deleteUser(userId);
 
             if (!deleted) {
                 logger.error(`[MOBILE_AUTH] Failed to delete user: ${userId}`);
                 return res.status(500).json({ error: 'Failed to delete account' });
+            }
+
+            const cleanupResults = await Promise.allSettled(imageReferences.map(deleteStoredImage));
+            const failedCleanupCount = cleanupResults.filter(({ status }) => status === 'rejected').length;
+            if (failedCleanupCount > 0) {
+                logger.warn(`[MOBILE_AUTH] ${failedCleanupCount} uploaded files could not be deleted for user ${userId}`);
             }
 
             logger.info(`[MOBILE_AUTH] Account deleted successfully: ${userId}`);

@@ -16,6 +16,7 @@ import {
     Dimensions,
     ActivityIndicator,
     Animated,
+    Linking,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import {
@@ -40,7 +41,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Typography } from '@/constants/Typography';
 import { Spacing } from '@/constants/Spacing';
-import { useSubscription, SubscriptionTier } from '@/hooks/useSubscription';
+import { useSubscription } from '@/hooks/useSubscription';
+import { getRevenueCatApiKey } from '@/constants/Config';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -177,40 +179,6 @@ const T = {
     },
 };
 
-// Plan configurations
-const PLANS = {
-    basic: {
-        monthlyAnalyses: 30,
-        historyDays: 90,
-        dualAI: true,
-        pdfReports: true,
-        pushNotifications: true,
-        priorityAnalysis: false,
-        patientManagement: false,
-        lesionTracking: false,
-        favorites: false,
-        caseNotes: false,
-        monthlyPrice: { tr: '₺79.99', usd: '$4.99' },
-        yearlyPrice: { tr: '₺599.99', usd: '$39.99' },
-        yearlySavings: '33%',
-    },
-    pro: {
-        monthlyAnalyses: Infinity,
-        historyDays: Infinity,
-        dualAI: true,
-        pdfReports: true,
-        pushNotifications: true,
-        priorityAnalysis: true,
-        patientManagement: true,
-        lesionTracking: true,
-        favorites: true,
-        caseNotes: true,
-        monthlyPrice: { tr: '₺149.99', usd: '$8.99' },
-        yearlyPrice: { tr: '₺1,199.99', usd: '$74.99' },
-        yearlySavings: '33%',
-    },
-};
-
 // Feature icons mapping
 const FEATURE_ICONS: Record<string, React.ComponentType<any>> = {
     monthlyAnalyses: Gauge,
@@ -245,9 +213,23 @@ export function PaywallModal({ visible, onClose, language }: PaywallModalProps) 
     const {
         purchaseProduct,
         restorePurchases,
+        getPackages,
         isPurchasing,
-        subscriptionStatus,
     } = useSubscription();
+    const revenueCatKeyConfigured = Boolean(getRevenueCatApiKey(Platform.OS));
+    const packages = getPackages();
+
+    const getProductId = (plan: PlanType, period: BillingPeriod): string => {
+        if (plan === 'basic') {
+            return period === 'monthly' ? 'corio_basic_monthly' : 'corio_basic_yearly';
+        }
+        return period === 'monthly' ? 'corio_pro_monthly' : 'corio_pro_yearly';
+    };
+
+    const getSelectedPackage = () =>
+        packages.find(item => item.product.identifier === getProductId(selectedPlan, billingPeriod));
+
+    const purchasesAvailable = revenueCatKeyConfigured && Boolean(getSelectedPackage());
 
     // Glow animation for crown
     useEffect(() => {
@@ -295,11 +277,11 @@ export function PaywallModal({ visible, onClose, language }: PaywallModalProps) 
     }, [visible]);
 
     const handlePurchase = async () => {
-        const productId = selectedPlan === 'basic'
-            ? (billingPeriod === 'monthly' ? 'corio_basic_monthly' : 'corio_basic_yearly')
-            : (billingPeriod === 'monthly' ? 'corio_pro_monthly' : 'corio_pro_yearly');
+        if (!purchasesAvailable) {
+            return;
+        }
 
-        const success = await purchaseProduct(productId);
+        const success = await purchaseProduct(getProductId(selectedPlan, billingPeriod));
         if (success) {
             onClose();
         }
@@ -315,9 +297,8 @@ export function PaywallModal({ visible, onClose, language }: PaywallModalProps) 
     };
 
     const getPrice = (plan: PlanType): string => {
-        const prices = PLANS[plan];
-        const priceKey = billingPeriod === 'monthly' ? 'monthlyPrice' : 'yearlyPrice';
-        return language === 'tr' ? prices[priceKey].tr : prices[priceKey].usd;
+        const pkg = packages.find(item => item.product.identifier === getProductId(plan, billingPeriod));
+        return pkg?.product.priceString || (language === 'tr' ? 'App Store fiyatı' : 'App Store price');
     };
 
     const handlePlanPress = (plan: PlanType) => {
@@ -426,6 +407,8 @@ export function PaywallModal({ visible, onClose, language }: PaywallModalProps) 
                 style={styles.closeButton}
                 onPress={onClose}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityRole="button"
+                accessibilityLabel={language === 'tr' ? 'Abonelik ekranını kapat' : 'Close subscription screen'}
             >
                 <View style={styles.closeButtonInner}>
                     <X size={20} color="#6B7280" />
@@ -467,6 +450,9 @@ export function PaywallModal({ visible, onClose, language }: PaywallModalProps) 
                             billingPeriod === 'monthly' && styles.billingOptionActive,
                         ]}
                         onPress={() => setBillingPeriod('monthly')}
+                        accessibilityRole="radio"
+                        accessibilityLabel={language === 'tr' ? 'Aylık ödeme' : 'Monthly billing'}
+                        accessibilityState={{ selected: billingPeriod === 'monthly' }}
                     >
                         <Text style={[
                             styles.billingOptionText,
@@ -481,6 +467,9 @@ export function PaywallModal({ visible, onClose, language }: PaywallModalProps) 
                             billingPeriod === 'yearly' && styles.billingOptionActive,
                         ]}
                         onPress={() => setBillingPeriod('yearly')}
+                        accessibilityRole="radio"
+                        accessibilityLabel={language === 'tr' ? 'Yıllık ödeme' : 'Yearly billing'}
+                        accessibilityState={{ selected: billingPeriod === 'yearly' }}
                     >
                         <Text style={[
                             styles.billingOptionText,
@@ -489,10 +478,6 @@ export function PaywallModal({ visible, onClose, language }: PaywallModalProps) 
                         ]}>
                             {language === 'tr' ? 'Yıllık' : 'Yearly'}
                         </Text>
-                        <View style={styles.saveBadge}>
-                            <Sparkles size={10} color="#FFFFFF" />
-                            <Text style={styles.saveBadgeText}>-33%</Text>
-                        </View>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -511,6 +496,9 @@ export function PaywallModal({ visible, onClose, language }: PaywallModalProps) 
                         ]}
                         onPress={() => handlePlanPress('basic')}
                         activeOpacity={0.9}
+                        accessibilityRole="radio"
+                        accessibilityLabel={`${T.basicPlan[language]}, ${getPrice('basic')}`}
+                        accessibilityState={{ selected: selectedPlan === 'basic' }}
                     >
                         <View style={styles.planCardInner}>
                             <View style={styles.planHeader}>
@@ -545,6 +533,9 @@ export function PaywallModal({ visible, onClose, language }: PaywallModalProps) 
                         ]}
                         onPress={() => handlePlanPress('pro')}
                         activeOpacity={0.9}
+                        accessibilityRole="radio"
+                        accessibilityLabel={`${T.proPlan[language]}, ${getPrice('pro')}`}
+                        accessibilityState={{ selected: selectedPlan === 'pro' }}
                     >
                         {/* Popular Badge */}
                         <LinearGradient
@@ -568,11 +559,6 @@ export function PaywallModal({ visible, onClose, language }: PaywallModalProps) 
                             <Text style={styles.planPeriod}>
                                 {billingPeriod === 'monthly' ? T.perMonth[language] : T.perYear[language]}
                             </Text>
-                            {billingPeriod === 'yearly' && (
-                                <View style={styles.freeMonthsBadge}>
-                                    <Text style={styles.freeMonthsText}>{T.freeMonths[language]}</Text>
-                                </View>
-                            )}
                             {selectedPlan === 'pro' && (
                                 <LinearGradient
                                     colors={['#F59E0B', '#EAB308']}
@@ -640,8 +626,11 @@ export function PaywallModal({ visible, onClose, language }: PaywallModalProps) 
                         onPress={handlePurchase}
                         onPressIn={handleButtonPressIn}
                         onPressOut={handleButtonPressOut}
-                        disabled={isPurchasing}
+                        disabled={isPurchasing || !purchasesAvailable}
                         activeOpacity={1}
+                        accessibilityRole="button"
+                        accessibilityLabel={language === 'tr' ? 'Aboneliği başlat' : 'Start subscription'}
+                        accessibilityState={{ disabled: isPurchasing || !purchasesAvailable }}
                     >
                         <LinearGradient
                             colors={selectedPlan === 'pro'
@@ -657,14 +646,18 @@ export function PaywallModal({ visible, onClose, language }: PaywallModalProps) 
                             ) : (
                                 <>
                                     <Text style={styles.subscribeButtonText}>
-                                        {T.startTrial[language]}
+                                        {purchasesAvailable
+                                            ? T.startTrial[language]
+                                            : (language === 'tr' ? 'Satın alma şu an hazır değil' : 'Purchases are not ready')}
                                     </Text>
-                                    <View style={styles.subscribePrice}>
-                                        <Text style={styles.subscribePriceText}>
-                                            {getPrice(selectedPlan)}
-                                            {billingPeriod === 'monthly' ? T.perMonth[language] : T.perYear[language]}
-                                        </Text>
-                                    </View>
+                                    {purchasesAvailable && (
+                                        <View style={styles.subscribePrice}>
+                                            <Text style={styles.subscribePriceText}>
+                                                {getPrice(selectedPlan)}
+                                                {billingPeriod === 'monthly' ? T.perMonth[language] : T.perYear[language]}
+                                            </Text>
+                                        </View>
+                                    )}
                                     <ChevronRight size={20} color="#FFFFFF" />
                                 </>
                             )}
@@ -676,7 +669,10 @@ export function PaywallModal({ visible, onClose, language }: PaywallModalProps) 
                 <TouchableOpacity
                     style={styles.restoreButton}
                     onPress={handleRestore}
-                    disabled={isRestoring}
+                    disabled={isRestoring || !revenueCatKeyConfigured}
+                    accessibilityRole="button"
+                    accessibilityLabel={T.restore[language]}
+                    accessibilityState={{ disabled: isRestoring || !revenueCatKeyConfigured }}
                 >
                     {isRestoring ? (
                         <ActivityIndicator size="small" color="#6B7280" />
@@ -690,6 +686,31 @@ export function PaywallModal({ visible, onClose, language }: PaywallModalProps) 
 
                 {/* Terms Note */}
                 <Text style={styles.termsNote}>{T.termsNote[language]}</Text>
+                <View style={styles.legalLinks}>
+                    <TouchableOpacity
+                        onPress={() => Linking.openURL('https://www.corioscan.com/terms-of-service')}
+                        accessibilityRole="link"
+                        accessibilityLabel={language === 'tr' ? 'Kullanım Şartları' : 'Terms'}
+                    >
+                        <Text style={styles.legalLink}>{language === 'tr' ? 'Kullanım Şartları' : 'Terms'}</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.legalDivider}>•</Text>
+                    <TouchableOpacity
+                        onPress={() => Linking.openURL('https://www.corioscan.com/privacy-policy')}
+                        accessibilityRole="link"
+                        accessibilityLabel={language === 'tr' ? 'Gizlilik Politikası' : 'Privacy'}
+                    >
+                        <Text style={styles.legalLink}>{language === 'tr' ? 'Gizlilik Politikası' : 'Privacy'}</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.legalDivider}>•</Text>
+                    <TouchableOpacity
+                        onPress={() => Linking.openURL('https://apps.apple.com/account/subscriptions')}
+                        accessibilityRole="link"
+                        accessibilityLabel={language === 'tr' ? 'Abonelik iptalini yönet' : 'Manage subscription cancellation'}
+                    >
+                        <Text style={styles.legalLink}>{language === 'tr' ? 'İptal Yönetimi' : 'Manage Cancellation'}</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
         </ScrollView>
     );
@@ -1204,5 +1225,21 @@ const styles = StyleSheet.create({
         color: '#9CA3AF',
         textAlign: 'center',
         fontWeight: '400',
+    },
+    legalLinks: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginTop: 2,
+    },
+    legalLink: {
+        fontSize: 12,
+        color: '#2563EB',
+        fontWeight: '600',
+    },
+    legalDivider: {
+        color: '#9CA3AF',
     },
 });

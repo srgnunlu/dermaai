@@ -39,6 +39,8 @@ interface ButtonProps {
     style?: ViewStyle;
     textStyle?: TextStyle;
     hapticFeedback?: boolean;
+    accessibilityLabel?: string;
+    accessibilityHint?: string;
 }
 
 export function Button({
@@ -54,6 +56,8 @@ export function Button({
     style,
     textStyle,
     hapticFeedback = true,
+    accessibilityLabel,
+    accessibilityHint,
 }: ButtonProps) {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
@@ -252,6 +256,10 @@ export function Button({
                     disabled={isDisabled}
                     activeOpacity={1}
                     style={[fullWidth && styles.fullWidth]}
+                    accessibilityRole="button"
+                    accessibilityLabel={accessibilityLabel}
+                    accessibilityHint={accessibilityHint}
+                    accessibilityState={{ disabled: isDisabled, busy: loading }}
                 >
                     <LinearGradient
                         colors={gradients.primary}
@@ -314,6 +322,10 @@ export function Button({
                 onPressOut={handlePressOut}
                 disabled={isDisabled}
                 activeOpacity={1}
+                accessibilityRole="button"
+                accessibilityLabel={accessibilityLabel}
+                accessibilityHint={accessibilityHint}
+                accessibilityState={{ disabled: isDisabled, busy: loading }}
             >
                 {loading ? (
                     <ActivityIndicator
@@ -366,4 +378,3 @@ const styles = StyleSheet.create({
         width: 100,
     },
 });
-

@@ -362,8 +362,8 @@ export default function HistoryScreen() {
                         icon={<ClipboardList size={64} color="#0891B2" strokeWidth={1.5} />}
                         title={Translations.noScansYet[language]}
                         description={language === 'tr'
-                            ? 'İlk tanı analizinizi yapmak için Tanı sekmesine gidin.'
-                            : 'Go to Diagnosis tab to start your first analysis.'}
+                            ? 'İlk yardımcı analizinizi yapmak için Analiz sekmesine gidin.'
+                            : 'Go to the Analysis tab to start your first assisted analysis.'}
                         actionLabel={Translations.tabDiagnosis[language]}
                         onAction={() => router.push('/(tabs)')}
                     />

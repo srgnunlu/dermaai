@@ -10,7 +10,7 @@ import { setupVite, serveStatic, log } from './vite';
 const app = express();
 
 if (process.env.NODE_ENV === 'production' && !process.env.REVENUECAT_WEBHOOK_SECRET) {
-  throw new Error('REVENUECAT_WEBHOOK_SECRET must be configured in production');
+  log('REVENUECAT_WEBHOOK_SECRET is not configured; RevenueCat webhook will return 503');
 }
 
 app.disable('x-powered-by');

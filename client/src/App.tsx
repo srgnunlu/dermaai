@@ -67,9 +67,14 @@ function Router() {
                   <Route path="/documentation" component={DocumentationPage} />
                   <Route path="/contact-support" component={ContactSupportPage} />
                   <Route path="/technical-requirements" component={TechnicalRequirementsPage} />
-                  {isLoading || !isAuthenticated ? (
-                    <Route path="/" component={Landing} />
-                  ) : (
+                  {isLoading ? (
+                    // While auth is resolving, match any path with a loader so a
+                    // refresh on a private route does not flash the 404 page before
+                    // the authenticated routes mount.
+                    <Route>
+                      <PageLoader />
+                    </Route>
+                  ) : isAuthenticated ? (
                     <>
                       <Route path="/" component={DiagnosisPage} />
                       <Route path="/diagnosis" component={DiagnosisPage} />
@@ -81,6 +86,8 @@ function Router() {
                       <Route path="/dermatologist" component={DermatologistPage} />
                       <Route path="/research-analytics" component={ResearchAnalyticsPage} />
                     </>
+                  ) : (
+                    <Route path="/" component={Landing} />
                   )}
                   <Route component={NotFound} />
                 </Switch>

@@ -22,7 +22,10 @@ class GeminiAnalysisError extends Error {
   }
 }
 
-// the newest Gemini model is "gemini-3-pro-preview" - do not change this unless explicitly requested by the user
+// the newest Gemini model is "gemini-3.1-pro-preview"; the old "gemini-3-pro-preview"
+// alias was shut down in 2026, so requests to it fail with NOT_FOUND.
+// Allow overriding via env without code changes.
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.1-pro-preview';
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '',
 });
@@ -264,7 +267,7 @@ QUALITY CHECKLIST (verify before responding):
       try {
         logger.info(`[Gemini] API call attempt ${attempt + 1}/${maxRetries + 1}`);
         response = await ai.models.generateContent({
-          model: 'gemini-3-pro-preview',
+          model: GEMINI_MODEL,
           config: {
             responseMimeType: 'application/json',
             responseSchema: {
@@ -600,7 +603,7 @@ Respond in JSON format:
       try {
         logger.info(`[Gemini Comparison] API call attempt ${attempt + 1}/${maxRetries + 1}`);
         response = await ai.models.generateContent({
-          model: 'gemini-3-pro-preview',
+          model: GEMINI_MODEL,
           config: {
             responseMimeType: 'application/json',
             responseSchema: {

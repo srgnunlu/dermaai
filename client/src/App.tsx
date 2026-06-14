@@ -7,6 +7,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/Header';
+import BottomNav from '@/components/BottomNav';
 
 // Lazy load pages for code splitting and better performance
 const Landing = lazy(() => import('@/pages/landing'));
@@ -40,8 +41,10 @@ function Router() {
   return (
     <>
       <Header />
-      <Suspense fallback={<PageLoader />}>
-        <Switch>
+      {/* Bottom padding leaves room for the fixed mobile tab bar; cleared on desktop */}
+      <main className="pb-20 md:pb-0">
+        <Suspense fallback={<PageLoader />}>
+          <Switch>
           <Route path="/privacy-policy" component={PrivacyPolicyPage} />
           <Route path="/terms-of-service" component={TermsOfServicePage} />
           <Route path="/medical-disclaimer" component={MedicalDisclaimerPage} />
@@ -63,8 +66,10 @@ function Router() {
             </>
           )}
           <Route component={NotFound} />
-        </Switch>
-      </Suspense>
+          </Switch>
+        </Suspense>
+      </main>
+      <BottomNav />
     </>
   );
 }

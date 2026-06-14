@@ -18,6 +18,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -31,6 +38,7 @@ import {
   Bell,
   BarChart3,
   Stethoscope,
+  Menu,
 } from 'lucide-react';
 import { getCsrfHeaders, queryClient } from '@/lib/queryClient';
 import type { Case } from '@shared/schema';
@@ -38,6 +46,7 @@ import type { Case } from '@shared/schema';
 export default function Header() {
   const { user, isAuthenticated } = useAuth();
   const [alertsOpen, setAlertsOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [location] = useLocation();
 
   const { data: cases = [], isLoading: casesLoading } = useQuery<Case[]>({
@@ -88,19 +97,95 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-800 bg-slate-950/80 backdrop-blur">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link href="/">
-          <a className="flex items-center gap-3" data-testid="link-home">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-600 text-white">
-              <Microscope className="h-5 w-5" />
-            </span>
-            <span className="flex flex-col leading-tight">
-              <span className="text-lg font-semibold text-white">Corio<span className="text-cyan-400"> Scan</span></span>
-              <span className="text-xs text-cyan-200">AI-Powered Skin Analysis</span>
-            </span>
-          </a>
-        </Link>
+    <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-xl">
+      <div className="container mx-auto flex h-16 items-center justify-between gap-2 px-4">
+        <div className="flex items-center gap-2">
+          {/* Mobile hamburger → slide-in navigation */}
+          <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-11 w-11 rounded-xl border border-border bg-card/60 text-foreground hover:bg-accent md:hidden"
+                aria-label="Open navigation menu"
+                data-testid="button-menu"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent
+              side="left"
+              className="w-72 border-border bg-background/95 p-0 backdrop-blur-xl"
+            >
+              <SheetHeader className="border-b border-border px-5 py-4 text-left">
+                <SheetTitle className="flex items-center gap-3">
+                  <span className="feature-icon flex h-10 w-10 items-center justify-center rounded-xl text-white">
+                    <Microscope className="h-5 w-5" />
+                  </span>
+                  <span className="flex flex-col leading-tight">
+                    <span className="text-base font-semibold text-foreground">
+                      Corio<span className="text-primary"> Scan</span>
+                    </span>
+                    <span className="text-xs text-muted-foreground">AI-Powered Skin Analysis</span>
+                  </span>
+                </SheetTitle>
+              </SheetHeader>
+              <nav className="flex flex-col gap-1 p-3">
+                {navigation.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = location === item.href;
+                  return (
+                    <Link key={item.name} href={item.href}>
+                      <a
+                        onClick={() => setMenuOpen(false)}
+                        className={`flex min-h-11 items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${
+                          isActive
+                            ? 'bg-primary text-primary-foreground shadow-md'
+                            : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                        }`}
+                        data-testid={`drawer-link-${item.name.toLowerCase().replace(' ', '-')}`}
+                      >
+                        <Icon className="h-5 w-5" />
+                        <span>{item.name}</span>
+                      </a>
+                    </Link>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setAlertsOpen(true);
+                  }}
+                  className="flex min-h-11 items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  data-testid="drawer-alerts"
+                >
+                  <Bell className="h-5 w-5" />
+                  <span>Alerts</span>
+                  {urgentCases.length > 0 && (
+                    <span className="ml-auto rounded-full bg-destructive px-2 py-0.5 text-xs font-semibold text-destructive-foreground">
+                      {urgentCases.length}
+                    </span>
+                  )}
+                </button>
+              </nav>
+            </SheetContent>
+          </Sheet>
+
+          <Link href="/">
+            <a className="flex items-center gap-3" data-testid="link-home">
+              <span className="feature-icon flex h-10 w-10 items-center justify-center rounded-xl text-white">
+                <Microscope className="h-5 w-5" />
+              </span>
+              <span className="hidden flex-col leading-tight sm:flex">
+                <span className="text-lg font-semibold text-foreground">
+                  Corio<span className="text-primary"> Scan</span>
+                </span>
+                <span className="text-xs text-muted-foreground">AI-Powered Skin Analysis</span>
+              </span>
+            </a>
+          </Link>
+        </div>
 
         <nav className="hidden items-center gap-1 md:flex">
           {navigation.map((item) => {
@@ -109,10 +194,11 @@ export default function Header() {
             return (
               <Link key={item.name} href={item.href}>
                 <a
-                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${isActive
-                      ? 'bg-cyan-600 text-white shadow-lg'
-                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                    }`}
+                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-primary text-primary-foreground shadow-md'
+                      : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                  }`}
                   data-testid={`link-${item.name.toLowerCase().replace(' ', '-')}`}
                 >
                   <Icon className="h-4 w-4" />
@@ -126,7 +212,7 @@ export default function Header() {
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
-            className="hidden items-center gap-2 rounded-full border border-slate-800 bg-slate-900/60 text-slate-200 hover:bg-slate-800 md:flex"
+            className="hidden items-center gap-2 rounded-full border border-border bg-card/60 text-foreground hover:bg-accent md:flex"
             data-testid="button-alerts"
             onClick={() => setAlertsOpen(true)}
           >
@@ -138,7 +224,7 @@ export default function Header() {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="relative h-10 w-10 rounded-full border border-slate-800 bg-slate-900/60"
+                className="relative h-11 w-11 rounded-full border border-border bg-card/60"
                 data-testid="button-user-menu"
               >
                 <Avatar className="h-10 w-10">
@@ -162,10 +248,7 @@ export default function Header() {
                     {user?.email}
                   </p>
                   {user?.role === 'admin' && (
-                    <p
-                      className="text-xs font-semibold text-blue-600 dark:text-blue-400"
-                      data-testid="text-role"
-                    >
+                    <p className="text-xs font-semibold text-primary" data-testid="text-role">
                       Administrator
                     </p>
                   )}
@@ -173,37 +256,9 @@ export default function Header() {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
 
-              <div className="md:hidden">
-                {navigation.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <DropdownMenuItem key={item.name} asChild>
-                      <Link href={item.href}>
-                        <a
-                          className="flex w-full items-center"
-                          data-testid={`mobile-link-${item.name.toLowerCase().replace(' ', '-')}`}
-                        >
-                          <Icon className="mr-2 h-4 w-4" />
-                          <span>{item.name}</span>
-                        </a>
-                      </Link>
-                    </DropdownMenuItem>
-                  );
-                })}
-                <DropdownMenuItem
-                  className="flex items-center gap-2"
-                  data-testid="mobile-alerts"
-                  onSelect={() => setAlertsOpen(true)}
-                >
-                  <Bell className="h-4 w-4 text-blue-600" />
-                  <span>Alerts</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-              </div>
-
               <DropdownMenuItem
                 onClick={handleLogout}
-                className="text-red-600 dark:text-red-400"
+                className="text-destructive"
                 data-testid="button-logout"
               >
                 <LogOut className="mr-2 h-4 w-4" />
@@ -226,7 +281,7 @@ export default function Header() {
 
           <div className="space-y-6">
             <section>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-red-300">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-destructive">
                 Urgent Cases
               </h3>
               <div className="mt-3 rounded-lg border border-border bg-card/60">
@@ -261,7 +316,7 @@ export default function Header() {
             </section>
 
             <section>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-blue-200">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-primary">
                 Recent Analyses
               </h3>
               <div className="mt-3 rounded-lg border border-border bg-card/60">

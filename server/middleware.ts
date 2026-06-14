@@ -173,6 +173,46 @@ export async function requireAdmin(
   }
 }
 
+// Reviewer check — allows EITHER admin OR dermatologist. Used by the
+// dermatologist review endpoints so a user granted the 'dermatologist' role can
+// review cases without holding full admin privileges.
+export async function requireReviewer(
+  req: Request & { user?: any },
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        error: 'Authentication required',
+        message: 'Please login to access this resource',
+      });
+    }
+
+    const user = await storage.getUser(req.user.id);
+
+    if (!user || (user.role !== 'admin' && user.role !== 'dermatologist')) {
+      logger.debug(
+        `[SECURITY] Unauthorized reviewer access attempt by user: ${user?.email || 'unknown'} (${req.user.id})`
+      );
+      return res.status(403).json({
+        error: 'Access denied',
+        message: 'Dermatologist or admin privileges required to access this resource',
+      });
+    }
+
+    logAccess(req, req.user.id, user.email || 'unknown', `Reviewer access to ${req.path}`);
+
+    next();
+  } catch (error) {
+    console.error('Reviewer authorization error:', error);
+    return res.status(500).json({
+      error: 'Authorization failed',
+      message: 'Internal server error during reviewer authorization',
+    });
+  }
+}
+
 // Access logging for audit trail
 function logAccess(req: Request, userId: string, userEmail: string, additionalInfo?: string) {
   const timestamp = new Date().toISOString();

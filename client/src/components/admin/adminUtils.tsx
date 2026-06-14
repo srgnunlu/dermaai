@@ -5,6 +5,7 @@ import {
   Clock,
   AlertCircle,
   Shield,
+  Stethoscope,
 } from 'lucide-react';
 
 // Merge diagnoses from finalDiagnoses or, when absent, from the separate AI results.
@@ -69,6 +70,13 @@ export const getRoleBadge = (role: string) => {
         <Badge className="bg-blue-100 text-blue-800" data-testid={`badge-role-${role}`}>
           <Shield className="w-3 h-3 mr-1" />
           Admin
+        </Badge>
+      );
+    case 'dermatologist':
+      return (
+        <Badge className="bg-teal-100 text-teal-800" data-testid={`badge-role-${role}`}>
+          <Stethoscope className="w-3 h-3 mr-1" />
+          Dermatologist
         </Badge>
       );
     case 'user':

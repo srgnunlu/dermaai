@@ -5,6 +5,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Download, FileText, UserCog, BarChart3, Shield } from 'lucide-react';
 import { AdminStats } from '@/components/admin/AdminStats';
+import { useAuth } from '@/hooks/useAuth';
+import { AccessDenied } from '@/components/AccessDenied';
 
 // Each tab is its own chunk — only the active tab's code is fetched.
 const AdminCases = lazy(() => import('@/components/admin/AdminCases'));
@@ -24,6 +26,7 @@ function TabFallback() {
 }
 
 export default function AdminPage() {
+  const { user, isLoading: authLoading } = useAuth();
   const [tab, setTab] = useState<AdminTab>('cases');
 
   const { data: stats = {}, isLoading: statsLoading } = useQuery<{
@@ -34,6 +37,7 @@ export default function AdminPage() {
     avgDiagnosisTime?: number;
   }>({
     queryKey: ['/api/admin/stats'],
+    enabled: user?.role === 'admin',
   });
 
   const handleExportCSV = async () => {
@@ -56,6 +60,20 @@ export default function AdminPage() {
       console.error('Error exporting cases:', error);
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="container mx-auto space-y-6 p-4">
+        <Skeleton className="h-10 w-1/3 rounded-xl" />
+        <Skeleton className="h-64 w-full rounded-xl" />
+      </div>
+    );
+  }
+
+  // Admin panel is admin-only — dermatologists and users are blocked here.
+  if (user?.role !== 'admin') {
+    return <AccessDenied message="The admin panel is restricted to administrators." />;
+  }
 
   return (
     <div className="container mx-auto space-y-6 p-4">

@@ -104,6 +104,7 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   promoteUserToAdmin(userId: string): Promise<User>;
   demoteUserFromAdmin(userId: string): Promise<User>;
+  setUserRole(userId: string, role: string): Promise<User>;
   getUserImageReferences(userId: string): Promise<string[]>;
   deleteUser(id: string): Promise<boolean>;
   // System settings
@@ -786,6 +787,24 @@ export class DatabaseStorage implements IStorage {
     }
 
     logger.debug(`[ADMIN] User ${updatedUser.email} (${userId}) demoted from admin role`);
+    return updatedUser;
+  }
+
+  async setUserRole(userId: string, role: string): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        role,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+
+    if (!updatedUser) {
+      throw new Error('User not found');
+    }
+
+    logger.debug(`[ADMIN] User ${updatedUser.email} (${userId}) role set to ${role}`);
     return updatedUser;
   }
 

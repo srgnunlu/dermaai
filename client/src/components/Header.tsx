@@ -76,6 +76,9 @@ export default function Header() {
     navigation.push({ name: 'Analytics', href: '/analytics', icon: BarChart3 });
     navigation.push({ name: 'Dermatologist Review', href: '/dermatologist', icon: Stethoscope });
     navigation.push({ name: 'Research', href: '/research-analytics', icon: FlaskConical });
+  } else if (user?.role === 'dermatologist') {
+    // Dermatologists only get the review page — not the admin panel.
+    navigation.push({ name: 'Dermatologist Review', href: '/dermatologist', icon: Stethoscope });
   }
 
   if (!isAuthenticated) {

@@ -64,7 +64,7 @@ export const users = pgTable(
     firstName: varchar('first_name'),
     lastName: varchar('last_name'),
     profileImageUrl: varchar('profile_image_url'),
-    role: varchar('role').default('user').notNull(), // user, admin
+    role: varchar('role').default('user').notNull(), // user, dermatologist, admin
     medicalLicenseNumber: varchar('medical_license_number'),
     specialization: varchar('specialization'),
     hospital: varchar('hospital'),

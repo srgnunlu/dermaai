@@ -24,7 +24,7 @@ import {
 } from './researchStats';
 import { setupAuth, isAuthenticated } from './replitAuth';
 import { setupMobileAuth } from './mobileAuth';
-import { requireAdmin } from './middleware';
+import { requireAdmin, requireReviewer } from './middleware';
 import PDFDocument from 'pdfkit';
 import logger from './logger';
 import { sanitizeCSVFormula } from './utils/csv';
@@ -363,6 +363,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   );
+
+  // Set a user's role (admin only). Used to grant or revoke the dermatologist
+  // role, which lets a user access the dermatologist review page without admin.
+  app.put('/api/admin/users/:userId/role', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const { role } = req.body || {};
+      const allowedRoles = ['user', 'dermatologist', 'admin'];
+      if (!allowedRoles.includes(role)) {
+        return res.status(400).json({ error: 'Invalid role' });
+      }
+      // Prevent an admin from changing their own role (avoids self-lockout).
+      if (userId === req.user.id) {
+        return res.status(400).json({ error: 'You cannot change your own role' });
+      }
+      const updatedUser = await storage.setUserRole(userId, role);
+      res.json({
+        message: `User ${updatedUser.email} role set to ${role}`,
+        user: updatedUser,
+      });
+    } catch (error) {
+      logger.error('Error setting user role:', error);
+      res.status(500).json({ error: 'Failed to set user role' });
+    }
+  });
 
   // Legacy endpoint for backward compatibility
   app.post('/api/admin/promote/:userId', isAuthenticated, requireAdmin, async (req: any, res) => {
@@ -1367,12 +1392,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================================
 
   // Controlled dermatology diagnosis terminology (ICD-10)
-  app.get('/api/research/diagnoses', isAuthenticated, requireAdmin, async (_req, res) => {
+  app.get('/api/research/diagnoses', isAuthenticated, requireReviewer, async (_req, res) => {
     res.json(getControlledDiagnoses());
   });
 
   // Blind-review case list for the authenticated reviewer (merged with own review)
-  app.get('/api/dermatologist/review-cases', isAuthenticated, requireAdmin, async (req: any, res) => {
+  app.get('/api/dermatologist/review-cases', isAuthenticated, requireReviewer, async (req: any, res) => {
     try {
       const studyId = typeof req.query.studyId === 'string' ? req.query.studyId : undefined;
       const cases = await storage.getCasesForReviewer(req.user.id, studyId);
@@ -1384,7 +1409,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Submit / update a structured review
-  app.post('/api/dermatologist/reviews', isAuthenticated, requireAdmin, async (req: any, res) => {
+  app.post('/api/dermatologist/reviews', isAuthenticated, requireReviewer, async (req: any, res) => {
     try {
       const data = submitReviewSchema.parse(req.body);
       if (data.status === 'completed' && !data.structuredDiagnosis && !data.freeTextDiagnosis) {

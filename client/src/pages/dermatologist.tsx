@@ -22,6 +22,8 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/hooks/useAuth';
+import { AccessDenied } from '@/components/AccessDenied';
 import type { Case, DermatologistReview } from '@shared/schema';
 import type { ReviewStatus } from '@shared/dermatology-diagnoses';
 import SiteFooter from '@/components/SiteFooter';
@@ -59,6 +61,7 @@ export default function DermatologistPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
+  const { user, isLoading: authLoading } = useAuth();
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [diagnosisName, setDiagnosisName] = useState<string | null>(null);
   const [icd10, setIcd10] = useState<string | null>(null);
@@ -152,6 +155,19 @@ export default function DermatologistPage() {
     });
     return acc;
   }, [cases]);
+
+  if (authLoading) {
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-8">
+        <Skeleton className="h-10 w-1/3 rounded-xl" />
+      </div>
+    );
+  }
+
+  // Reviewer page — open to dermatologists and admins only.
+  if (user?.role !== 'admin' && user?.role !== 'dermatologist') {
+    return <AccessDenied message="This page is for dermatologist reviewers." />;
+  }
 
   return (
     <div className="min-h-screen bg-background">

@@ -30,9 +30,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Search, Users, Shield, UserX, Trash2 } from 'lucide-react';
+import { Search, Users, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { queryClient, apiRequest, getCsrfHeaders } from '@/lib/queryClient';
 import { EmptyState } from '@/components/EmptyState';
 import { getRoleBadge } from './adminUtils';
@@ -40,8 +41,15 @@ import { AdminPagination } from './AdminPagination';
 
 const PER_PAGE = 20;
 
+const ROLE_OPTIONS = [
+  { value: 'user', label: 'User' },
+  { value: 'dermatologist', label: 'Dermatologist' },
+  { value: 'admin', label: 'Admin' },
+];
+
 export function AdminUsers() {
   const { toast } = useToast();
+  const { user: currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [page, setPage] = useState(1);
@@ -82,29 +90,30 @@ export function AdminUsers() {
     },
   });
 
-  const changeRole = async (userId: string, userEmail: string, action: 'promote' | 'demote') => {
+  const setRole = async (userId: string, userEmail: string, role: string) => {
     setIsChangingRole(userId);
     try {
-      const response = await fetch(`/api/admin/users/${userId}/${action}`, {
+      const response = await fetch(`/api/admin/users/${userId}/role`, {
         method: 'PUT',
-        headers: await getCsrfHeaders(),
+        headers: { 'Content-Type': 'application/json', ...(await getCsrfHeaders()) },
         credentials: 'include',
+        body: JSON.stringify({ role }),
       });
-      if (!response.ok) throw new Error(`Failed to ${action} user`);
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.error || 'Failed to change role');
+      }
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users/paginated'] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/stats'] });
       toast({
-        title: 'Success',
-        description:
-          action === 'promote'
-            ? `${userEmail} has been promoted to admin`
-            : `${userEmail} has been demoted to user`,
+        title: 'Role updated',
+        description: `${userEmail} is now ${role}`,
         variant: 'success',
       });
-    } catch {
+    } catch (error: any) {
       toast({
         title: 'Error',
-        description: `Failed to ${action} user`,
+        description: error?.message || 'Failed to change role',
         variant: 'destructive',
       });
     } finally {
@@ -122,72 +131,31 @@ export function AdminUsers() {
     return matchesSearch && matchesRole;
   });
 
-  const RoleActionButton = ({ user }: { user: any }) =>
-    user.role !== 'admin' ? (
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isChangingRole === user.id}
-            data-testid={`button-promote-user-${user.id}`}
-          >
-            <Shield className="w-4 h-4 mr-1" />
-            Promote
-          </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Promote User to Admin</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to promote {user.email} to admin? This will give them full
-              administrative privileges.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => changeRole(user.id, user.email, 'promote')}
-              data-testid={`confirm-promote-${user.id}`}
-            >
-              Promote to Admin
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    ) : (
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isChangingRole === user.id}
-            data-testid={`button-demote-user-${user.id}`}
-          >
-            <UserX className="w-4 h-4 mr-1" />
-            Demote
-          </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Demote Admin to User</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to demote {user.email} from admin? This will remove their
-              administrative privileges.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => changeRole(user.id, user.email, 'demote')}
-              data-testid={`confirm-demote-${user.id}`}
-            >
-              Demote to User
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+  // Unified role control: set any user to User / Dermatologist / Admin.
+  // Changing your own role is disabled (server also guards) to avoid self-lockout.
+  const RoleSelect = ({ user }: { user: any }) => {
+    const isSelf = currentUser?.id === user.id;
+    return (
+      <Select
+        value={user.role}
+        onValueChange={(role) => {
+          if (role !== user.role) setRole(user.id, user.email, role);
+        }}
+        disabled={isChangingRole === user.id || isSelf}
+      >
+        <SelectTrigger className="w-[150px]" data-testid={`select-user-role-${user.id}`}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {ROLE_OPTIONS.map((o) => (
+            <SelectItem key={o.value} value={o.value} data-testid={`role-${o.value}-${user.id}`}>
+              {o.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     );
+  };
 
   const DeleteUserButton = ({ user }: { user: any }) => (
     <AlertDialog>
@@ -253,6 +221,7 @@ export function AdminUsers() {
               <SelectContent>
                 <SelectItem value="all">All Roles</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="dermatologist">Dermatologist</SelectItem>
                 <SelectItem value="user">User</SelectItem>
               </SelectContent>
             </Select>
@@ -305,7 +274,7 @@ export function AdminUsers() {
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-2">
-                              <RoleActionButton user={user} />
+                              <RoleSelect user={user} />
                               <DeleteUserButton user={user} />
                             </div>
                           </TableCell>
@@ -336,7 +305,7 @@ export function AdminUsers() {
                         {user.createdAt ? format(new Date(user.createdAt), 'MMM dd, yyyy') : 'N/A'}
                       </p>
                       <div className="mt-3 flex gap-2">
-                        <RoleActionButton user={user} />
+                        <RoleSelect user={user} />
                         <DeleteUserButton user={user} />
                       </div>
                     </div>

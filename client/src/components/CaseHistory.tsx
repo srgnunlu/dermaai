@@ -1,109 +1,163 @@
-import React, { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'wouter';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { History, Eye, FileText, Download } from 'lucide-react';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
+import { History, Eye, FileText, Download, Search, ImageIcon, ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Case } from '@shared/schema';
 import { getCsrfHeaders } from '@/lib/queryClient';
 
-// Helper function to get top diagnosis from either finalDiagnoses or merged separate AI results
-const getTopDiagnosis = (caseRecord: Case) => {
-  if (caseRecord.finalDiagnoses && caseRecord.finalDiagnoses.length > 0) {
-    return caseRecord.finalDiagnoses[0];
-  }
+interface CaseHistoryProps {
+  /** Teaser mode: show only the first `limit` cases with a "View all" link, no filters. */
+  compact?: boolean;
+  limit?: number;
+}
 
-  // If finalDiagnoses is null, try to get from separate AI results
-  const allDiagnoses: any[] = [];
+type Diagnosis = { name: string; confidence: number; description?: string; keyFeatures?: string[] };
 
-  if (caseRecord.geminiAnalysis?.diagnoses && Array.isArray(caseRecord.geminiAnalysis.diagnoses)) {
-    allDiagnoses.push(...caseRecord.geminiAnalysis.diagnoses);
-  }
-
-  if (caseRecord.openaiAnalysis?.diagnoses && Array.isArray(caseRecord.openaiAnalysis.diagnoses)) {
-    allDiagnoses.push(...caseRecord.openaiAnalysis.diagnoses);
-  }
-
-  if (allDiagnoses.length === 0) return undefined;
-
-  // Sort by confidence and deduplicate
-  allDiagnoses.sort((a, b) => b.confidence - a.confidence);
-  const seen = new Set<string>();
-  const unique = allDiagnoses.filter((d) => {
-    const key = d.name.toLowerCase();
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-
-  return unique[0];
-};
-
-// Helper function to get all diagnoses for modal
-const getAllDiagnoses = (caseRecord: Case) => {
+// Merge + dedupe diagnoses from either finalDiagnoses or separate AI results.
+const mergeDiagnoses = (caseRecord: Case): Diagnosis[] => {
   if (caseRecord.finalDiagnoses && caseRecord.finalDiagnoses.length > 0) {
     return caseRecord.finalDiagnoses;
   }
-
-  // If finalDiagnoses is null, merge separate AI results
-  const allDiagnoses: any[] = [];
-
-  if (caseRecord.geminiAnalysis?.diagnoses && Array.isArray(caseRecord.geminiAnalysis.diagnoses)) {
-    allDiagnoses.push(...caseRecord.geminiAnalysis.diagnoses);
+  const all: Diagnosis[] = [];
+  if (Array.isArray(caseRecord.geminiAnalysis?.diagnoses)) {
+    all.push(...caseRecord.geminiAnalysis.diagnoses);
   }
-
-  if (caseRecord.openaiAnalysis?.diagnoses && Array.isArray(caseRecord.openaiAnalysis.diagnoses)) {
-    allDiagnoses.push(...caseRecord.openaiAnalysis.diagnoses);
+  if (Array.isArray(caseRecord.openaiAnalysis?.diagnoses)) {
+    all.push(...caseRecord.openaiAnalysis.diagnoses);
   }
-
-  if (allDiagnoses.length === 0) return [];
-
-  // Sort by confidence and deduplicate
-  allDiagnoses.sort((a, b) => b.confidence - a.confidence);
+  if (all.length === 0) return [];
+  all.sort((a, b) => b.confidence - a.confidence);
   const seen = new Set<string>();
-  const unique = allDiagnoses.filter((d) => {
+  return all.filter((d) => {
     const key = d.name.toLowerCase();
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
-
-  return unique;
 };
 
-export function CaseHistory() {
-  const { data: cases = [], isLoading } = useQuery<Case[]>({
-    queryKey: ['/api/cases'],
-  });
+const getTopDiagnosis = (caseRecord: Case): Diagnosis | undefined => mergeDiagnoses(caseRecord)[0];
+
+const PAGE_SIZE = 6;
+
+export function CaseHistory({ compact = false, limit = 6 }: CaseHistoryProps) {
+  const { data: cases = [], isLoading } = useQuery<Case[]>({ queryKey: ['/api/cases'] });
   const { toast } = useToast();
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
-  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
-
-  const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 80) return 'text-success';
-    if (confidence >= 60) return 'text-foreground';
-    return 'text-destructive';
-  };
+  const [reportingId, setReportingId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<'all' | 'high' | 'favorites'>('all');
+  const [page, setPage] = useState(1);
 
   const formatDate = (date: Date | string | null | undefined) => {
     if (!date) return 'N/A';
     const d = typeof date === 'string' ? new Date(date) : date;
-    return d.toLocaleDateString();
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  };
+
+  const getConfidenceTone = (confidence: number) => {
+    if (confidence >= 80) return 'border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400';
+    if (confidence >= 60) return 'border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-400';
+    return 'border-orange-400/30 bg-orange-400/10 text-orange-700 dark:text-orange-400';
+  };
+
+  // Apply search + filter (full mode only).
+  const filteredCases = useMemo(() => {
+    let result = cases;
+    if (!compact) {
+      const q = search.trim().toLowerCase();
+      if (q) {
+        result = result.filter((c) => {
+          const top = getTopDiagnosis(c);
+          return (
+            c.caseId?.toLowerCase().includes(q) ||
+            (c.patientId ?? '').toLowerCase().includes(q) ||
+            (top?.name ?? '').toLowerCase().includes(q)
+          );
+        });
+      }
+      if (filter === 'high') {
+        result = result.filter((c) => (getTopDiagnosis(c)?.confidence ?? 0) >= 80);
+      } else if (filter === 'favorites') {
+        result = result.filter((c) => !!c.isFavorite);
+      }
+    }
+    return result;
+  }, [cases, search, filter, compact]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredCases.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const visibleCases = compact
+    ? filteredCases.slice(0, limit)
+    : filteredCases.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  const handleGenerateReport = async (caseRecord: Case) => {
+    setReportingId(caseRecord.id);
+    try {
+      const response = await fetch(`/api/cases/${caseRecord.id}/report`, {
+        method: 'POST',
+        headers: await getCsrfHeaders(),
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to generate report');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Case-Report-${caseRecord.caseId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast({
+        title: 'Report Generated',
+        description: `Medical report for case ${caseRecord.caseId} has been downloaded.`,
+        variant: 'success',
+      });
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Failed to generate report. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setReportingId(null);
+    }
   };
 
   if (isLoading) {
     return (
-      <Card className="bg-card border border-border shadow-sm">
+      <Card className="border border-border bg-card shadow-sm">
         <CardContent className="p-6">
-          <div className="animate-pulse space-y-4">
-            <div className="h-4 bg-muted rounded w-1/4"></div>
-            <div className="space-y-2">
-              <div className="h-8 bg-muted rounded"></div>
-              <div className="h-8 bg-muted rounded"></div>
-              <div className="h-8 bg-muted rounded"></div>
-            </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="animate-pulse space-y-3 rounded-xl border border-border p-4">
+                <div className="h-32 rounded-lg bg-muted" />
+                <div className="h-4 w-2/3 rounded bg-muted" />
+                <div className="h-4 w-1/2 rounded bg-muted" />
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -112,172 +166,204 @@ export function CaseHistory() {
 
   return (
     <>
-      <Card className="bg-card border border-border shadow-sm">
-        <div className="px-6 py-4 border-b border-border">
-          <h3 className="text-lg font-semibold text-foreground flex items-center">
-            <History className="text-primary mr-2" size={20} />
-            Recent Cases
+      <Card className="border border-border bg-card shadow-sm">
+        {/* Header */}
+        <div className="flex flex-col gap-4 border-b border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <h3 className="flex items-center text-lg font-semibold text-foreground">
+            <History className="mr-2 text-primary" size={20} />
+            {compact ? 'Recent Cases' : 'Case History'}
           </h3>
+
+          {!compact && cases.length > 0 && (
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                  placeholder="Search cases..."
+                  className="w-full pl-9 sm:w-56"
+                  data-testid="input-search-cases"
+                />
+              </div>
+              <Select
+                value={filter}
+                onValueChange={(v) => {
+                  setFilter(v as typeof filter);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-full sm:w-44" data-testid="select-case-filter">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All cases</SelectItem>
+                  <SelectItem value="high">High confidence (≥80%)</SelectItem>
+                  <SelectItem value="favorites">Saved / favorites</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
+
         <CardContent className="p-6">
-          {cases.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">No cases found</p>
+          {visibleCases.length === 0 ? (
+            <div className="py-12 text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                <History className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <p className="text-muted-foreground">
+                {cases.length === 0 ? 'No cases yet' : 'No cases match your search'}
+              </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">
-                      Case ID
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Date</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">
-                      Patient ID
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">
-                      Top Possible Finding
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">
-                      Model Confidence Score
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cases.map((caseRecord) => {
-                    const topDiagnosis = getTopDiagnosis(caseRecord);
-                    return (
-                      <tr
-                        key={caseRecord.id}
-                        className="border-b border-border hover:bg-muted/20 transition-colors"
-                        data-testid={`row-case-${caseRecord.caseId}`}
-                      >
-                        <td
-                          className="py-3 px-4 text-sm text-foreground font-mono"
-                          data-testid={`text-case-id-${caseRecord.caseId}`}
-                        >
-                          {caseRecord.caseId}
-                        </td>
-                        <td
-                          className="py-3 px-4 text-sm text-muted-foreground"
-                          data-testid={`text-date-${caseRecord.caseId}`}
-                        >
-                          {formatDate(caseRecord.createdAt)}
-                        </td>
-                        <td
-                          className="py-3 px-4 text-sm text-foreground"
-                          data-testid={`text-patient-id-${caseRecord.caseId}`}
-                        >
-                          {caseRecord.patientId || 'N/A'}
-                        </td>
-                        <td
-                          className="py-3 px-4 text-sm text-foreground"
-                          data-testid={`text-top-diagnosis-${caseRecord.caseId}`}
-                        >
-                          {topDiagnosis?.name || 'N/A'}
-                        </td>
-                        <td
-                          className="py-3 px-4 text-sm font-medium"
+            <div
+              className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+              data-testid="cases-grid"
+            >
+              {visibleCases.map((caseRecord) => {
+                const top = getTopDiagnosis(caseRecord);
+                const thumb = caseRecord.imageUrls?.[0] || caseRecord.imageUrl || null;
+                return (
+                  <div
+                    key={caseRecord.id}
+                    className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg"
+                    data-testid={`card-case-${caseRecord.caseId}`}
+                  >
+                    {/* Thumbnail */}
+                    <div className="relative h-36 w-full overflow-hidden bg-muted">
+                      {thumb ? (
+                        <img
+                          src={thumb}
+                          alt={`Case ${caseRecord.caseId}`}
+                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                          <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+                        </div>
+                      )}
+                      {top && (
+                        <Badge
+                          className={`absolute right-2 top-2 border ${getConfidenceTone(top.confidence)}`}
+                          variant="outline"
                           data-testid={`text-confidence-${caseRecord.caseId}`}
                         >
-                          {topDiagnosis ? (
-                            <span className={getConfidenceColor(topDiagnosis.confidence)}>
-                              {topDiagnosis.confidence}%
-                            </span>
+                          {top.confidence}%
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* Body */}
+                    <div className="flex flex-1 flex-col p-4">
+                      <div className="mb-1 flex items-center justify-between">
+                        <span className="font-mono text-xs text-muted-foreground">
+                          {caseRecord.caseId}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDate(caseRecord.createdAt)}
+                        </span>
+                      </div>
+                      <p
+                        className="mb-3 line-clamp-2 font-semibold text-foreground"
+                        data-testid={`text-top-diagnosis-${caseRecord.caseId}`}
+                      >
+                        {top?.name || 'No findings'}
+                      </p>
+
+                      <div className="mt-auto flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 gap-1"
+                          onClick={() => setSelectedCase(caseRecord)}
+                          data-testid={`button-view-${caseRecord.caseId}`}
+                        >
+                          <Eye size={14} />
+                          View
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex-1 gap-1 text-primary"
+                          onClick={() => handleGenerateReport(caseRecord)}
+                          disabled={reportingId === caseRecord.id}
+                          data-testid={`button-report-${caseRecord.caseId}`}
+                        >
+                          {reportingId === caseRecord.id ? (
+                            <Download size={14} className="animate-spin" />
                           ) : (
-                            'N/A'
+                            <FileText size={14} />
                           )}
-                        </td>
-                        <td className="py-3 px-4 text-sm">
-                          <div className="flex space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-primary hover:underline"
-                              onClick={() => {
-                                setSelectedCase(caseRecord);
-                              }}
-                              data-testid={`button-view-${caseRecord.caseId}`}
-                            >
-                              <Eye size={14} className="mr-1" />
-                              View
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-secondary hover:underline"
-                              onClick={async () => {
-                                setIsGeneratingReport(true);
-                                try {
-                                  const response = await fetch(
-                                    `/api/cases/${caseRecord.id}/report`,
-                                    {
-                                      method: 'POST',
-                                      headers: await getCsrfHeaders(),
-                                      credentials: 'include',
-                                    }
-                                  );
-
-                                  if (response.ok) {
-                                    const blob = await response.blob();
-                                    const url = window.URL.createObjectURL(blob);
-                                    const a = document.createElement('a');
-                                    a.href = url;
-                                    a.download = `Case-Report-${caseRecord.caseId}.pdf`;
-                                    document.body.appendChild(a);
-                                    a.click();
-                                    window.URL.revokeObjectURL(url);
-                                    document.body.removeChild(a);
-
-                                    toast({
-                                      title: 'Report Generated',
-                                      description: `Medical report for case ${caseRecord.caseId} has been downloaded.`,
-                                    });
-                                  } else {
-                                    throw new Error('Failed to generate report');
-                                  }
-                                } catch (error) {
-                                  toast({
-                                    title: 'Error',
-                                    description: 'Failed to generate report. Please try again.',
-                                    variant: 'destructive',
-                                  });
-                                } finally {
-                                  setIsGeneratingReport(false);
-                                }
-                              }}
-                              data-testid={`button-report-${caseRecord.caseId}`}
-                            >
-                              {isGeneratingReport ? (
-                                <Download size={14} className="mr-1 animate-spin" />
-                              ) : (
-                                <FileText size={14} className="mr-1" />
-                              )}
-                              {isGeneratingReport ? 'Generating...' : 'Report'}
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          Report
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
 
-          {cases.length > 0 && (
+          {/* Pagination (full mode) */}
+          {!compact && totalPages > 1 && (
+            <Pagination className="mt-6">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setPage((p) => Math.max(1, p - 1));
+                    }}
+                    className={safePage === 1 ? 'pointer-events-none opacity-50' : ''}
+                  />
+                </PaginationItem>
+                {Array.from({ length: totalPages }).map((_, i) => (
+                  <PaginationItem key={i}>
+                    <PaginationLink
+                      href="#"
+                      isActive={safePage === i + 1}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setPage(i + 1);
+                      }}
+                      data-testid={`pagination-page-${i + 1}`}
+                    >
+                      {i + 1}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setPage((p) => Math.min(totalPages, p + 1));
+                    }}
+                    className={safePage === totalPages ? 'pointer-events-none opacity-50' : ''}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
+
+          {/* View all (compact mode) */}
+          {compact && filteredCases.length > limit && (
             <div className="mt-6 text-center">
-              <Button
-                variant="ghost"
-                className="text-primary hover:underline text-sm font-medium"
-                data-testid="button-view-all-cases"
-              >
-                View all cases →
-              </Button>
+              <Link href="/case-history">
+                <Button
+                  variant="ghost"
+                  className="gap-1 text-primary"
+                  data-testid="button-view-all-cases"
+                >
+                  View all {filteredCases.length} cases
+                  <ChevronRight size={16} />
+                </Button>
+              </Link>
             </div>
           )}
         </CardContent>
@@ -285,51 +371,65 @@ export function CaseHistory() {
 
       {/* Case Detail Modal */}
       <Dialog open={!!selectedCase} onOpenChange={() => setSelectedCase(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Case Details - {selectedCase?.caseId}</DialogTitle>
+            <DialogTitle>Case Details — {selectedCase?.caseId}</DialogTitle>
           </DialogHeader>
           {selectedCase && (
             <div className="space-y-6">
-              {/* Case Info */}
+              {/* Images */}
+              {(selectedCase.imageUrls?.length || selectedCase.imageUrl) && (
+                <div className="flex flex-wrap gap-3">
+                  {(selectedCase.imageUrls ?? [selectedCase.imageUrl!]).filter(Boolean).map((url, i) => (
+                    <img
+                      key={i}
+                      src={url as string}
+                      alt={`Case image ${i + 1}`}
+                      className="h-28 w-28 rounded-lg border border-border object-cover"
+                    />
+                  ))}
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <h4 className="font-semibold text-sm text-muted-foreground">Case ID</h4>
+                  <h4 className="text-sm font-semibold text-muted-foreground">Case ID</h4>
                   <p className="font-mono">{selectedCase.caseId}</p>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-sm text-muted-foreground">Date</h4>
+                  <h4 className="text-sm font-semibold text-muted-foreground">Date</h4>
                   <p>{formatDate(selectedCase.createdAt)}</p>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-sm text-muted-foreground">Patient ID</h4>
-                  <p>{selectedCase.patientId}</p>
+                  <h4 className="text-sm font-semibold text-muted-foreground">Patient ID</h4>
+                  <p>{selectedCase.patientId || 'N/A'}</p>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-sm text-muted-foreground">Status</h4>
+                  <h4 className="text-sm font-semibold text-muted-foreground">Status</h4>
                   <Badge variant={selectedCase.status === 'completed' ? 'default' : 'secondary'}>
                     {selectedCase.status}
                   </Badge>
                 </div>
               </div>
 
-              {/* Possible findings */}
-              {getAllDiagnoses(selectedCase).length > 0 && (
+              {mergeDiagnoses(selectedCase).length > 0 && (
                 <div>
-                  <h4 className="font-semibold mb-3">AI-Assisted Possible Findings</h4>
+                  <h4 className="mb-3 font-semibold">AI-Assisted Possible Findings</h4>
                   <div className="space-y-3">
-                    {getAllDiagnoses(selectedCase).map((diagnosis, index) => (
-                      <div key={index} className="border rounded-lg p-3">
-                        <div className="flex items-center justify-between mb-2">
+                    {mergeDiagnoses(selectedCase).map((diagnosis, index) => (
+                      <div key={index} className="rounded-lg border p-3">
+                        <div className="mb-2 flex items-center justify-between">
                           <h5 className="font-medium">{diagnosis.name}</h5>
                           <Badge variant={diagnosis.confidence >= 80 ? 'default' : 'secondary'}>
                             {diagnosis.confidence}%
                           </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          {diagnosis.description}
-                        </p>
-                        {diagnosis.keyFeatures.length > 0 && (
+                        {diagnosis.description && (
+                          <p className="mb-2 text-sm text-muted-foreground">
+                            {diagnosis.description}
+                          </p>
+                        )}
+                        {diagnosis.keyFeatures && diagnosis.keyFeatures.length > 0 && (
                           <div className="text-xs">
                             <span className="font-medium">Key Features:</span>{' '}
                             {diagnosis.keyFeatures.join(', ')}

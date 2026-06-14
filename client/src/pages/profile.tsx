@@ -3,13 +3,19 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { MapPin, Award, Loader2 } from 'lucide-react';
+import { MapPin, Award, Loader2, Lock, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import SiteFooter from '@/components/SiteFooter';
@@ -115,20 +121,6 @@ export default function ProfilePage() {
 
   const onSubmit = (data: ProfileFormData) => {
     updateProfileMutation.mutate(data);
-  };
-
-  const handlePasswordChange = () => {
-    toast({
-      title: 'Coming soon',
-      description: 'Password change functionality will be available soon.',
-    });
-  };
-
-  const handleEnable2FA = () => {
-    toast({
-      title: 'Coming soon',
-      description: 'Two-factor authentication will be available soon.',
-    });
   };
 
   // Generate initials for avatar
@@ -411,25 +403,55 @@ export default function ProfilePage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Account Security</CardTitle>
-                  <CardDescription>Manage your password and security settings</CardDescription>
+                  <CardDescription>
+                    Your account is secured through Google sign-in. Password and two-factor
+                    settings are managed in your Google Account.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={handlePasswordChange}
-                    data-testid="button-change-password"
-                  >
-                    Change Password
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={handleEnable2FA}
-                    data-testid="button-enable-2fa"
-                  >
-                    Enable Two-Factor Authentication
-                  </Button>
+                  <div className="flex items-center gap-3 rounded-lg border border-green-500/30 bg-green-500/5 p-3">
+                    <ShieldCheck className="h-5 w-5 shrink-0 text-green-600 dark:text-green-500" />
+                    <p className="text-sm text-muted-foreground">
+                      Signed in securely with Google OAuth.
+                    </p>
+                  </div>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        {/* span wrapper so the tooltip works on a disabled button */}
+                        <span className="block w-full">
+                          <Button
+                            variant="outline"
+                            className="w-full gap-2"
+                            disabled
+                            data-testid="button-change-password"
+                          >
+                            <Lock className="h-4 w-4" />
+                            Change Password
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Coming soon — managed via your Google Account</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="block w-full">
+                          <Button
+                            variant="outline"
+                            className="w-full gap-2"
+                            disabled
+                            data-testid="button-enable-2fa"
+                          >
+                            <ShieldCheck className="h-4 w-4" />
+                            Enable Two-Factor Authentication
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Coming soon — managed via your Google Account</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </CardContent>
               </Card>
             </div>

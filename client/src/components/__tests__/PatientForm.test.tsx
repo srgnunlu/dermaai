@@ -1,208 +1,118 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { PatientForm } from '../PatientForm';
 
-describe('PatientForm Component', () => {
-  const mockOnSubmit = vi.fn();
+// The wizard renders ImageUpload (which calls fetch) on step 4; the early steps
+// under test never touch the network, so a light render harness is enough.
+function renderForm(props: Partial<React.ComponentProps<typeof PatientForm>> = {}) {
+  const onSubmit = props.onSubmit ?? vi.fn();
+  const onImagesUploaded = props.onImagesUploaded ?? vi.fn();
+  render(
+    <PatientForm
+      onSubmit={onSubmit}
+      uploadedImages={props.uploadedImages ?? []}
+      onImagesUploaded={onImagesUploaded}
+      isLoading={props.isLoading ?? false}
+    />
+  );
+  return { onSubmit, onImagesUploaded };
+}
 
-  beforeEach(() => {
-    mockOnSubmit.mockClear();
-  });
+describe('PatientForm wizard', () => {
+  beforeEach(() => vi.clearAllMocks());
 
-  it('should render all form fields', () => {
-    render(<PatientForm onSubmit={mockOnSubmit} />);
-
-    // Başlık kontrolü
-    expect(screen.getByText(/Patient Information & Symptoms/i)).toBeInTheDocument();
-
-    // Form alanlarını kontrol et (testid ile)
+  it('renders the first step with patient demographic fields', () => {
+    renderForm();
+    expect(screen.getByText(/Patient Information/i)).toBeInTheDocument();
     expect(screen.getByTestId('input-patient-id')).toBeInTheDocument();
     expect(screen.getByTestId('input-age')).toBeInTheDocument();
     expect(screen.getByTestId('select-gender')).toBeInTheDocument();
     expect(screen.getByTestId('select-skin-type')).toBeInTheDocument();
-    expect(screen.getByTestId('select-lesion-location')).toBeInTheDocument();
   });
 
-  it('should update patient ID on input change', async () => {
-    const user = userEvent.setup();
-    render(<PatientForm onSubmit={mockOnSubmit} />);
-
-    const patientIdInput = screen.getByTestId('input-patient-id') as HTMLInputElement;
-    await user.type(patientIdInput, 'P-12345');
-
-    expect(patientIdInput.value).toBe('P-12345');
+  it('shows the step stepper indicators', () => {
+    renderForm();
+    expect(screen.getByTestId('step-indicator-patient')).toBeInTheDocument();
+    expect(screen.getByTestId('step-indicator-images')).toBeInTheDocument();
+    expect(screen.getByTestId('step-indicator-review')).toBeInTheDocument();
   });
 
-  it('should update age on input change', async () => {
+  it('updates patient ID on input change', async () => {
     const user = userEvent.setup();
-    render(<PatientForm onSubmit={mockOnSubmit} />);
-
-    const ageInput = screen.getByTestId('input-age') as HTMLInputElement;
-    await user.type(ageInput, '35');
-
-    expect(ageInput.value).toBe('35');
+    renderForm();
+    const input = screen.getByTestId('input-patient-id') as HTMLInputElement;
+    await user.type(input, 'P-12345');
+    expect(input.value).toBe('P-12345');
   });
 
-  it('should handle symptom selection', async () => {
+  it('blocks advancing past step 1 without a patient ID', async () => {
     const user = userEvent.setup();
-    render(<PatientForm onSubmit={mockOnSubmit} />);
-
-    // Semptom checkbox'ını bul ve işaretle
-    const itchingCheckbox = screen.getByLabelText(/Itching \(Kaşıntı\)/i);
-    await user.click(itchingCheckbox);
-
-    expect(itchingCheckbox).toBeChecked();
+    renderForm();
+    await user.click(screen.getByTestId('button-wizard-next'));
+    // Validation error keeps us on step 1
+    expect(await screen.findByText(/Patient ID is required/i)).toBeInTheDocument();
+    expect(screen.getByTestId('input-patient-id')).toBeInTheDocument();
   });
 
-  it('should handle multiple symptom selections', async () => {
+  it('advances to the location step after a valid patient ID', async () => {
     const user = userEvent.setup();
-    render(<PatientForm onSubmit={mockOnSubmit} />);
-
-    const itchingCheckbox = screen.getByLabelText(/Itching \(Kaşıntı\)/i);
-    const painCheckbox = screen.getByLabelText(/Pain \(Ağrı\)/i);
-    const rednessCheckbox = screen.getByLabelText(/Redness \(Kızarıklık\)/i);
-
-    await user.click(itchingCheckbox);
-    await user.click(painCheckbox);
-    await user.click(rednessCheckbox);
-
-    expect(itchingCheckbox).toBeChecked();
-    expect(painCheckbox).toBeChecked();
-    expect(rednessCheckbox).toBeChecked();
-  });
-
-  it('should uncheck symptom when clicked again', async () => {
-    const user = userEvent.setup();
-    render(<PatientForm onSubmit={mockOnSubmit} />);
-
-    const itchingCheckbox = screen.getByLabelText(/Itching \(Kaşıntı\)/i);
-
-    // İşaretle
-    await user.click(itchingCheckbox);
-    expect(itchingCheckbox).toBeChecked();
-
-    // İşareti kaldır
-    await user.click(itchingCheckbox);
-    expect(itchingCheckbox).not.toBeChecked();
-  });
-
-  it('should handle medical history selection', async () => {
-    const user = userEvent.setup();
-    render(<PatientForm onSubmit={mockOnSubmit} />);
-
-    const skinCancerCheckbox = screen.getByLabelText(/Previous skin cancer/i);
-    await user.click(skinCancerCheckbox);
-
-    expect(skinCancerCheckbox).toBeChecked();
-  });
-
-  it('should handle additional symptoms textarea', async () => {
-    const user = userEvent.setup();
-    render(<PatientForm onSubmit={mockOnSubmit} />);
-
-    const additionalSymptomsTextarea = screen.getByTestId(
-      'textarea-additional-symptoms'
-    ) as HTMLTextAreaElement;
-
-    await user.type(additionalSymptomsTextarea, 'Severe itching at night');
-
-    expect(additionalSymptomsTextarea.value).toBe('Severe itching at night');
-  });
-
-  it('should call onSubmit with form data when submitted', async () => {
-    const user = userEvent.setup();
-    render(<PatientForm onSubmit={mockOnSubmit} />);
-
-    // Form doldur
-    const patientIdInput = screen.getByTestId('input-patient-id');
-    await user.type(patientIdInput, 'P-12345');
-
-    const ageInput = screen.getByTestId('input-age');
-    await user.type(ageInput, '35');
-
-    const itchingCheckbox = screen.getByLabelText(/Itching \(Kaşıntı\)/i);
-    await user.click(itchingCheckbox);
-
-    // Form gönder
-    const submitButton = screen.getByTestId('button-analyze');
-    await user.click(submitButton);
-
+    renderForm();
+    await user.type(screen.getByTestId('input-patient-id'), 'P-1');
+    await user.click(screen.getByTestId('button-wizard-next'));
     await waitFor(() => {
-      expect(mockOnSubmit).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId('select-lesion-location')).toBeInTheDocument();
     });
-
-    // Gönderilen data'yı kontrol et
-    const submittedData = mockOnSubmit.mock.calls[0][0];
-    expect(submittedData.patientId).toBe('P-12345');
-    expect(submittedData.age).toBe(35);
-    expect(submittedData.symptoms).toContain('Itching (Kaşıntı)');
   });
 
-  it('should disable submit button when loading', () => {
-    render(<PatientForm onSubmit={mockOnSubmit} isLoading={true} />);
-
-    const submitButton = screen.getByRole('button', { name: /Analyzing/i });
-    expect(submitButton).toBeDisabled();
-  });
-
-  it('should show "Analyze" text when not loading', () => {
-    render(<PatientForm onSubmit={mockOnSubmit} isLoading={false} />);
-
-    const submitButton = screen.getByTestId('button-analyze');
-    expect(submitButton).toHaveTextContent(/Analyze with AI Models/i);
-    expect(submitButton).toBeDisabled(); // Disabled because patientId is empty
-  });
-
-  it('should prevent form submission when button is clicked during loading', async () => {
+  it('allows selecting a symptom on the symptoms step', async () => {
     const user = userEvent.setup();
-    render(<PatientForm onSubmit={mockOnSubmit} isLoading={true} />);
+    renderForm();
+    await user.type(screen.getByTestId('input-patient-id'), 'P-1');
+    await user.click(screen.getByTestId('button-wizard-next')); // -> location
+    await user.click(await screen.findByTestId('button-wizard-next')); // -> symptoms
 
-    const submitButton = screen.getByRole('button', { name: /Analyzing/i });
-
-    // Disabled buton tıklanamaz
-    await user.click(submitButton);
-
-    expect(mockOnSubmit).not.toHaveBeenCalled();
+    const itching = await screen.findByTestId('checkbox-symptom-itching');
+    expect(itching).toHaveAttribute('aria-checked', 'false');
+    await user.click(itching);
+    expect(itching).toHaveAttribute('aria-checked', 'true');
   });
 
-  it('should render all 12 dermatological symptoms', () => {
-    render(<PatientForm onSubmit={mockOnSubmit} />);
+  it('reaches the review step and disables analyze while loading', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    const onImagesUploaded = vi.fn();
+    const { rerender } = render(
+      <PatientForm
+        onSubmit={onSubmit}
+        uploadedImages={['https://example.com/a.jpg']}
+        onImagesUploaded={onImagesUploaded}
+        isLoading={false}
+      />
+    );
 
-    const expectedSymptoms = [
-      'Itching (Kaşıntı)',
-      'Pain (Ağrı)',
-      'Burning sensation (Yanma hissi)',
-      'Redness (Kızarıklık)',
-      'Swelling (Şişlik)',
-      'Discharge/oozing (Sızıntı/akıntı)',
-      'Crusting (Kabuklanma)',
-      'Scaling (Pullanma)',
-      'Dryness (Kuruluk)',
-      'Sensitivity (Hassasiyet)',
-      'Numbness (Uyuşma)',
-      'Hardness (Sertlik)',
-    ];
+    // Walk to the last step, waiting for each step to settle.
+    await user.type(screen.getByTestId('input-patient-id'), 'P-1');
+    await user.click(screen.getByTestId('button-wizard-next'));
+    await screen.findByTestId('select-lesion-location');
+    await user.click(screen.getByTestId('button-wizard-next'));
+    await screen.findByTestId('checkbox-symptom-itching');
+    await user.click(screen.getByTestId('button-wizard-next'));
+    await screen.findByTestId('images-preview');
+    await user.click(screen.getByTestId('button-wizard-next'));
 
-    expectedSymptoms.forEach((symptom) => {
-      expect(screen.getByLabelText(symptom)).toBeInTheDocument();
-    });
-  });
+    const analyze = await screen.findByTestId('button-analyze');
+    expect(analyze).toBeEnabled();
 
-  it('should render all symptom duration options', () => {
-    render(<PatientForm onSubmit={mockOnSubmit} />);
-
-    // Duration label'ını kontrol et
-    expect(screen.getByText(/Symptom Duration/i)).toBeInTheDocument();
-  });
-
-  it('should have empty initial state', () => {
-    render(<PatientForm onSubmit={mockOnSubmit} />);
-
-    const patientIdInput = screen.getByTestId('input-patient-id') as HTMLInputElement;
-    const ageInput = screen.getByTestId('input-age') as HTMLInputElement;
-
-    expect(patientIdInput.value).toBe('');
-    expect(ageInput.value).toBe('');
+    // Now flip to loading and confirm the analyze button is disabled.
+    rerender(
+      <PatientForm
+        onSubmit={onSubmit}
+        uploadedImages={['https://example.com/a.jpg']}
+        onImagesUploaded={onImagesUploaded}
+        isLoading={true}
+      />
+    );
+    expect(screen.getByTestId('button-analyze')).toBeDisabled();
   });
 });

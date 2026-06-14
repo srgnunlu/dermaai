@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ImageUpload } from '@/components/ImageUpload';
 import { PatientForm } from '@/components/PatientForm';
 import { DiagnosisResults } from '@/components/DiagnosisResults';
 import { CaseHistory } from '@/components/CaseHistory';
@@ -115,11 +114,45 @@ export default function DiagnosisPage() {
     analyzeMutation.mutate({ patientData, imageUrls: uploadedImageUrls });
   };
 
+  const saveCaseMutation = useMutation({
+    mutationFn: async (caseId: string) => {
+      const response = await fetch(`/api/mobile/cases/${caseId}/favorite`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...(await getCsrfHeaders()) },
+        body: JSON.stringify({ isFavorite: true }),
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to save case');
+      return response.json();
+    },
+    onSuccess: (updated: Case) => {
+      setAnalysisResult((prev) => (prev ? { ...prev, isFavorite: true } : updated));
+      queryClient.invalidateQueries({ queryKey: ['/api/cases'] });
+      toast({
+        title: 'Case Saved',
+        description: 'This case has been bookmarked to your history.',
+        variant: 'success',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Save Failed',
+        description: 'Unable to save this case. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+
   const handleSaveCase = () => {
-    toast({
-      title: 'Case Saved',
-      description: 'Case has been saved to the database.',
-    });
+    if (!analysisResult?.id) {
+      toast({
+        title: 'Error',
+        description: 'No case data available to save.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    saveCaseMutation.mutate(analysisResult.id);
   };
 
   const handleGenerateReport = async () => {
@@ -202,18 +235,15 @@ export default function DiagnosisPage() {
           </div>
         )}
 
-        {/* Preliminary assessment workflow */}
+        {/* Preliminary assessment workflow — multi-step wizard */}
         {!analyzeMutation.isPending && !analysisResult && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Image Upload Section */}
-            <div className="lg:col-span-1">
-              <ImageUpload onImagesUploaded={setUploadedImageUrls} uploadedImages={uploadedImageUrls} />
-            </div>
-
-            {/* Patient Information Form */}
-            <div className="lg:col-span-2">
-              <PatientForm onSubmit={handleFormSubmit} isLoading={false} />
-            </div>
+          <div className="mx-auto max-w-3xl">
+            <PatientForm
+              onSubmit={handleFormSubmit}
+              isLoading={false}
+              uploadedImages={uploadedImageUrls}
+              onImagesUploaded={setUploadedImageUrls}
+            />
           </div>
         )}
 
@@ -225,13 +255,15 @@ export default function DiagnosisPage() {
               onSaveCase={handleSaveCase}
               onGenerateReport={handleGenerateReport}
               onNewAnalysis={handleNewAnalysis}
+              isSaving={saveCaseMutation.isPending}
+              isSaved={!!analysisResult.isFavorite}
             />
           </div>
         )}
 
         {/* Case History */}
         <div className="mt-8">
-          <CaseHistory />
+          <CaseHistory compact limit={6} />
         </div>
       </main>
 

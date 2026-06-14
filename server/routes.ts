@@ -1852,7 +1852,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .fontSize(14)
           .font('Helvetica-Bold')
           .fillColor('#ffffff')
-          .text(sanitizeTextForPDF('GEMINI 2.5 FLASH ANALYSIS'), 50, 50);
+          .text(sanitizeTextForPDF('GOOGLE GEMINI ANALYSIS'), 50, 50);
 
         doc.y = 85;
         doc.fillColor('#000000');
@@ -1975,7 +1975,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .fontSize(14)
           .font('Helvetica-Bold')
           .fillColor('#ffffff')
-          .text(sanitizeTextForPDF('GPT-5 MINI ANALYSIS'), 50, 50);
+          .text(sanitizeTextForPDF('OPENAI GPT ANALYSIS'), 50, 50);
 
         doc.y = 85;
         doc.fillColor('#000000');
@@ -2085,7 +2085,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .text('No OpenAI analysis available', 50, 100);
       }
 
-      // PAGE 4: Final page with disclaimers
+      // PAGE 4: Claude Analysis (dedicated page)
+      doc.addPage();
+
+      if (caseRecord.claudeAnalysis?.diagnoses && caseRecord.claudeAnalysis.diagnoses.length > 0) {
+        // Page header
+        doc
+          .rect(40, 40, pageWidth - 80, 30)
+          .fillAndStroke('#ea580c', '#ea580c');
+
+        doc
+          .fontSize(14)
+          .font('Helvetica-Bold')
+          .fillColor('#ffffff')
+          .text(sanitizeTextForPDF('ANTHROPIC CLAUDE ANALYSIS'), 50, 50);
+
+        doc.y = 85;
+        doc.fillColor('#000000');
+
+        caseRecord.claudeAnalysis.diagnoses.slice(0, 5).forEach((diagnosis: any, index: number) => {
+          const startY = doc.y;
+
+          if (startY > doc.page.height - 150) {
+            doc.addPage();
+            doc.y = 50;
+          }
+
+          const cardY = doc.y;
+
+          doc
+            .fontSize(11)
+            .font('Helvetica-Bold')
+            .fillColor('#ea580c')
+            .text(`${index + 1}. ${sanitizeTextForPDF(diagnosis.name)}`, 50, cardY, {
+              width: pageWidth - 150,
+            });
+
+          doc
+            .fontSize(10)
+            .font('Helvetica-Bold')
+            .fillColor('#ea580c')
+            .text(`${diagnosis.confidence}%`, pageWidth - 95, cardY, { width: 45, align: 'right' });
+
+          doc.y = cardY + 15;
+
+          drawConfidenceBar(50, doc.y, pageWidth - 100, diagnosis.confidence, '#ea580c');
+          doc.y += 15;
+
+          doc
+            .fontSize(9)
+            .font('Helvetica')
+            .fillColor('#000000')
+            .text(sanitizeTextForPDF(diagnosis.description || 'N/A'), 50, doc.y, {
+              width: pageWidth - 100,
+            });
+
+          doc.moveDown(0.5);
+
+          if (diagnosis.keyFeatures && diagnosis.keyFeatures.length > 0) {
+            doc
+              .fontSize(9)
+              .font('Helvetica-Bold')
+              .fillColor('#ea580c')
+              .text('Key Features:', 50, doc.y);
+
+            doc.moveDown(0.3);
+
+            diagnosis.keyFeatures.forEach((feature: string) => {
+              doc
+                .fontSize(8)
+                .font('Helvetica')
+                .fillColor('#000000')
+                .text(`• ${sanitizeTextForPDF(feature)}`, 60, doc.y, {
+                  width: pageWidth - 120,
+                });
+              doc.moveDown(0.3);
+            });
+          }
+
+          if (diagnosis.recommendations && diagnosis.recommendations.length > 0) {
+            doc.moveDown(0.3);
+            doc
+              .fontSize(9)
+              .font('Helvetica-Bold')
+              .fillColor('#ea580c')
+              .text('Recommendations:', 50, doc.y);
+
+            doc.moveDown(0.3);
+
+            diagnosis.recommendations.forEach((rec: string) => {
+              doc
+                .fontSize(8)
+                .font('Helvetica')
+                .fillColor('#000000')
+                .text(`• ${sanitizeTextForPDF(rec)}`, 60, doc.y, {
+                  width: pageWidth - 120,
+                });
+              doc.moveDown(0.3);
+            });
+          }
+
+          if (index < 4) {
+            doc.moveDown(0.5);
+            doc
+              .moveTo(50, doc.y)
+              .lineTo(pageWidth - 50, doc.y)
+              .stroke('#e5e7eb');
+            doc.moveDown(0.5);
+          }
+        });
+      } else {
+        // Page header even when empty, so the report always shows all three models
+        doc
+          .rect(40, 40, pageWidth - 80, 30)
+          .fillAndStroke('#ea580c', '#ea580c');
+        doc
+          .fontSize(14)
+          .font('Helvetica-Bold')
+          .fillColor('#ffffff')
+          .text(sanitizeTextForPDF('ANTHROPIC CLAUDE ANALYSIS'), 50, 50);
+        doc
+          .fontSize(11)
+          .font('Helvetica')
+          .fillColor('#6b7280')
+          .text('No findings were returned by this model for this case.', 50, 100);
+        doc.fillColor('#000000');
+      }
+
+      // PAGE 5: Final page with disclaimers
       doc.addPage();
 
       // Final page header
@@ -2167,7 +2294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .fillColor('#000000')
         .text(
           sanitizeTextForPDF(
-            '• Gemini 3: Google\'s advanced vision-language model specialized in image analysis'
+            '• Google Gemini: Google\'s vision-language model specialized in image analysis'
           ),
           50,
           doc.y,
@@ -2178,7 +2305,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       doc.text(
         sanitizeTextForPDF(
-          '• GPT-5.5: OpenAI\'s advanced multimodal model with dermatological knowledge'
+          '• OpenAI GPT: OpenAI\'s multimodal model with broad medical knowledge'
+        ),
+        50,
+        doc.y,
+        { width: pageWidth - 100 }
+      );
+
+      doc.moveDown(0.5);
+
+      doc.text(
+        sanitizeTextForPDF(
+          '• Anthropic Claude: Anthropic\'s multimodal model with careful clinical reasoning'
         ),
         50,
         doc.y,

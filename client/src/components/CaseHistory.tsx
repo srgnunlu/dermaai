@@ -33,20 +33,34 @@ interface CaseHistoryProps {
   limit?: number;
 }
 
-type Diagnosis = { name: string; confidence: number; description?: string; keyFeatures?: string[] };
+type Diagnosis = {
+  name: string;
+  confidence: number;
+  description?: string;
+  keyFeatures?: string[];
+  recommendations?: string[];
+};
 
-// Merge + dedupe diagnoses from either finalDiagnoses or separate AI results.
+// Per-model display config — used to show each AI model's findings separately
+// so it is always clear which model produced which finding.
+const MODELS: { key: 'geminiAnalysis' | 'openaiAnalysis' | 'claudeAnalysis'; label: string; dot: string }[] = [
+  { key: 'geminiAnalysis', label: 'Google Gemini', dot: 'bg-purple-500' },
+  { key: 'openaiAnalysis', label: 'OpenAI GPT', dot: 'bg-green-500' },
+  { key: 'claudeAnalysis', label: 'Anthropic Claude', dot: 'bg-orange-500' },
+];
+
+const modelDiagnoses = (caseRecord: Case, key: (typeof MODELS)[number]['key']): Diagnosis[] => {
+  const d = (caseRecord as any)[key]?.diagnoses;
+  return Array.isArray(d) ? d : [];
+};
+
+// Merge + dedupe across all three models — used only for the card's single
+// "top finding" summary and the high-confidence filter, not the detail view.
 const mergeDiagnoses = (caseRecord: Case): Diagnosis[] => {
   if (caseRecord.finalDiagnoses && caseRecord.finalDiagnoses.length > 0) {
     return caseRecord.finalDiagnoses;
   }
-  const all: Diagnosis[] = [];
-  if (Array.isArray(caseRecord.geminiAnalysis?.diagnoses)) {
-    all.push(...caseRecord.geminiAnalysis.diagnoses);
-  }
-  if (Array.isArray(caseRecord.openaiAnalysis?.diagnoses)) {
-    all.push(...caseRecord.openaiAnalysis.diagnoses);
-  }
+  const all: Diagnosis[] = MODELS.flatMap((m) => modelDiagnoses(caseRecord, m.key));
   if (all.length === 0) return [];
   all.sort((a, b) => b.confidence - a.confidence);
   const seen = new Set<string>();
@@ -423,34 +437,70 @@ export function CaseHistory({ compact = false, limit = 6 }: CaseHistoryProps) {
                 </div>
               </div>
 
-              {mergeDiagnoses(selectedCase).length > 0 && (
-                <div>
-                  <h4 className="mb-3 font-semibold">AI-Assisted Possible Findings</h4>
-                  <div className="space-y-3">
-                    {mergeDiagnoses(selectedCase).map((diagnosis, index) => (
-                      <div key={index} className="rounded-lg border p-3">
-                        <div className="mb-2 flex items-center justify-between">
-                          <h5 className="font-medium">{diagnosis.name}</h5>
-                          <Badge variant={diagnosis.confidence >= 80 ? 'default' : 'secondary'}>
-                            {diagnosis.confidence}%
-                          </Badge>
+              <div>
+                <h4 className="font-semibold">AI Model Findings</h4>
+                <p className="mb-4 mt-0.5 text-xs text-muted-foreground">
+                  Each model assessed this case independently. Findings are non-diagnostic.
+                </p>
+                <div className="space-y-4">
+                  {MODELS.map((m) => {
+                    const diags = modelDiagnoses(selectedCase, m.key);
+                    return (
+                      <div key={m.key} className="overflow-hidden rounded-xl border border-border">
+                        <div className="flex items-center gap-2 border-b border-border bg-muted/40 px-4 py-2.5">
+                          <span className={`h-2.5 w-2.5 rounded-full ${m.dot}`} />
+                          <span className="font-semibold">{m.label}</span>
+                          <span className="ml-auto text-xs text-muted-foreground">
+                            {diags.length > 0
+                              ? `${diags.length} finding${diags.length > 1 ? 's' : ''}`
+                              : 'No findings'}
+                          </span>
                         </div>
-                        {diagnosis.description && (
-                          <p className="mb-2 text-sm text-muted-foreground">
-                            {diagnosis.description}
+                        {diags.length > 0 ? (
+                          <div className="divide-y divide-border">
+                            {diags.map((diagnosis, index) => (
+                              <div key={index} className="px-4 py-3">
+                                <div className="mb-1.5 flex items-center justify-between gap-2">
+                                  <h5 className="font-medium">
+                                    {index + 1}. {diagnosis.name}
+                                  </h5>
+                                  <Badge
+                                    variant="outline"
+                                    className={`border ${getConfidenceTone(diagnosis.confidence)}`}
+                                  >
+                                    {diagnosis.confidence}%
+                                  </Badge>
+                                </div>
+                                {diagnosis.description && (
+                                  <p className="mb-2 text-sm text-muted-foreground">
+                                    {diagnosis.description}
+                                  </p>
+                                )}
+                                {diagnosis.keyFeatures && diagnosis.keyFeatures.length > 0 && (
+                                  <p className="text-xs">
+                                    <span className="font-medium">Key features:</span>{' '}
+                                    {diagnosis.keyFeatures.join(', ')}
+                                  </p>
+                                )}
+                                {diagnosis.recommendations && diagnosis.recommendations.length > 0 && (
+                                  <p className="mt-1 text-xs">
+                                    <span className="font-medium">Recommendations:</span>{' '}
+                                    {diagnosis.recommendations.join('; ')}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="px-4 py-3 text-sm text-muted-foreground">
+                            This model did not return findings for this case.
                           </p>
                         )}
-                        {diagnosis.keyFeatures && diagnosis.keyFeatures.length > 0 && (
-                          <div className="text-xs">
-                            <span className="font-medium">Key Features:</span>{' '}
-                            {diagnosis.keyFeatures.join(', ')}
-                          </div>
-                        )}
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
-              )}
+              </div>
             </div>
           )}
         </DialogContent>

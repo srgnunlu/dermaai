@@ -22,18 +22,18 @@ function ModelDiagnoses({
   diagnoses,
 }: {
   title: string;
-  accent: 'purple' | 'green';
+  accent: 'blue' | 'green' | 'orange';
   diagnoses: any[];
 }) {
   const tone = {
-    purple: {
-      border: 'border-purple-300',
-      dot: 'bg-purple-600',
-      heading: 'text-purple-900',
-      bar: 'border-purple-600',
-      num: 'bg-purple-600',
-      chip: 'bg-purple-100 text-purple-900',
-      feature: 'bg-purple-100 text-purple-900 border-purple-300',
+    blue: {
+      border: 'border-blue-300',
+      dot: 'bg-blue-600',
+      heading: 'text-blue-900',
+      bar: 'border-blue-600',
+      num: 'bg-blue-600',
+      chip: 'bg-blue-100 text-blue-900',
+      feature: 'bg-blue-100 text-blue-900 border-blue-300',
     },
     green: {
       border: 'border-green-300',
@@ -43,6 +43,15 @@ function ModelDiagnoses({
       num: 'bg-green-600',
       chip: 'bg-green-100 text-green-900',
       feature: 'bg-green-100 text-green-900 border-green-300',
+    },
+    orange: {
+      border: 'border-orange-300',
+      dot: 'bg-orange-600',
+      heading: 'text-orange-900',
+      bar: 'border-orange-600',
+      num: 'bg-orange-600',
+      chip: 'bg-orange-100 text-orange-900',
+      feature: 'bg-orange-100 text-orange-900 border-orange-300',
     },
   }[accent];
 
@@ -251,7 +260,7 @@ export function CaseDetailModal({ caseItem, open, onOpenChange }: CaseDetailModa
                 {caseItem?.geminiAnalysis?.diagnoses?.length > 0 && (
                   <ModelDiagnoses
                     title="Gemini 3 Analysis"
-                    accent="purple"
+                    accent="blue"
                     diagnoses={caseItem.geminiAnalysis.diagnoses}
                   />
                 )}
@@ -261,6 +270,14 @@ export function CaseDetailModal({ caseItem, open, onOpenChange }: CaseDetailModa
                     title="GPT-5.5 Analysis"
                     accent="green"
                     diagnoses={caseItem.openaiAnalysis.diagnoses}
+                  />
+                )}
+
+                {caseItem?.claudeAnalysis?.diagnoses?.length > 0 && (
+                  <ModelDiagnoses
+                    title="Claude Sonnet 4.6 Analysis"
+                    accent="orange"
+                    diagnoses={caseItem.claudeAnalysis.diagnoses}
                   />
                 )}
               </div>

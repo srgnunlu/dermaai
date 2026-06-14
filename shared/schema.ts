@@ -5,6 +5,8 @@ import { z } from 'zod';
 
 export const DEFAULT_OPENAI_MODEL = 'gpt-5.5' as const;
 export const OPENAI_MODEL_OPTIONS = ['gpt-5.5', 'gpt-5.5-pro'] as const;
+export const DEFAULT_CLAUDE_MODEL = 'claude-sonnet-4-6' as const;
+export const CLAUDE_MODEL_OPTIONS = ['claude-sonnet-4-6', 'claude-opus-4-8'] as const;
 const genderOptions = ['male', 'female', 'other'] as const;
 const skinTypeOptions = ['type1', 'type2', 'type3', 'type4', 'type5', 'type6'] as const;
 const durationOptions = [
@@ -16,7 +18,7 @@ const durationOptions = [
   'more-than-6-months',
 ] as const;
 const statusOptions = ['pending', 'analyzing', 'completed', 'failed'] as const;
-const analysisProviderOptions = ['gemini', 'openai'] as const;
+const analysisProviderOptions = ['gemini', 'openai', 'claude'] as const;
 const trackingStatusOptions = ['monitoring', 'resolved', 'urgent'] as const;
 const goldStandardSourceOptions = ['biopsy', 'clinical', 'followup'] as const;
 const reviewStatusOptions = ['pending', 'in_progress', 'completed', 'skipped'] as const;
@@ -128,6 +130,16 @@ export const cases = pgTable(
       analysisTime: number;
     }>(),
     openaiAnalysis: jsonb('openai_analysis').$type<{
+      diagnoses: Array<{
+        name: string;
+        confidence: number;
+        description: string;
+        keyFeatures: string[];
+        recommendations: string[];
+      }>;
+      analysisTime: number;
+    }>(),
+    claudeAnalysis: jsonb('claude_analysis').$type<{
       diagnoses: Array<{
         name: string;
         confidence: number;
@@ -259,6 +271,7 @@ export const userSettings = pgTable('user_settings', {
     .references(() => users.id),
   useGemini: jsonb('use_gemini').default(true).$type<boolean>(),
   useOpenAI: jsonb('use_openai').default(true).$type<boolean>(),
+  useClaude: jsonb('use_claude').default(true).$type<boolean>(),
   confidenceThreshold: integer('confidence_threshold').default(40),
   autoSaveCases: jsonb('auto_save_cases').default(true).$type<boolean>(),
   anonymizeData: jsonb('anonymize_data').default(false).$type<boolean>(),
@@ -282,6 +295,7 @@ export const insertUserSettingsSchema = createInsertSchema(userSettings).omit({
 export const updateUserSettingsSchema = z.object({
   useGemini: z.boolean().optional(),
   useOpenAI: z.boolean().optional(),
+  useClaude: z.boolean().optional(),
   confidenceThreshold: z.number().int().min(0).max(100).optional(),
   autoSaveCases: z.boolean().optional(),
   anonymizeData: z.boolean().optional(),
@@ -304,7 +318,9 @@ export const systemSettings = pgTable('system_settings', {
     .default(sql`gen_random_uuid()`),
   enableGemini: jsonb('enable_gemini').default(true).$type<boolean>(),
   enableOpenAI: jsonb('enable_openai').default(true).$type<boolean>(),
+  enableClaude: jsonb('enable_claude').default(true).$type<boolean>(),
   openaiModel: text('openai_model').default(DEFAULT_OPENAI_MODEL),
+  claudeModel: text('claude_model').default(DEFAULT_CLAUDE_MODEL),
   openaiAllowFallback: jsonb('openai_allow_fallback').default(true).$type<boolean>(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
@@ -312,7 +328,9 @@ export const systemSettings = pgTable('system_settings', {
 export const updateSystemSettingsSchema = z.object({
   enableGemini: z.boolean().optional(),
   enableOpenAI: z.boolean().optional(),
+  enableClaude: z.boolean().optional(),
   openaiModel: z.enum(OPENAI_MODEL_OPTIONS).optional(),
+  claudeModel: z.enum(CLAUDE_MODEL_OPTIONS).optional(),
   openaiAllowFallback: z.boolean().optional(),
 });
 

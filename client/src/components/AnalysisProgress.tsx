@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent } from '@/components/ui/card';
-import { Brain, Microscope, Sparkles, Zap, GitMerge, CheckCircle } from 'lucide-react';
+import { Brain, Microscope, Sparkles, Zap, Bot, GitMerge, CheckCircle } from 'lucide-react';
 
 interface AnalysisStage {
   id: string;
@@ -19,10 +19,11 @@ interface AnalysisProgressProps {
 // bar never claims "done" before the real API result arrives.
 const ANALYSIS_STAGES: AnalysisStage[] = [
   { id: 'upload', text: 'Uploading images', threshold: 0, icon: <Microscope className="h-5 w-5 text-primary" /> },
-  { id: 'prepare', text: 'Preparing AI models', threshold: 12, icon: <Brain className="h-5 w-5 text-primary" /> },
-  { id: 'gemini', text: 'Gemini 3 is analyzing', threshold: 25, icon: <Sparkles className="h-5 w-5 text-purple-500" /> },
-  { id: 'openai', text: 'GPT-5.5 is analyzing', threshold: 55, icon: <Zap className="h-5 w-5 text-green-500" /> },
-  { id: 'merge', text: 'Merging results', threshold: 80, icon: <GitMerge className="h-5 w-5 text-primary" /> },
+  { id: 'prepare', text: 'Preparing AI models', threshold: 10, icon: <Brain className="h-5 w-5 text-primary" /> },
+  { id: 'gemini', text: 'Gemini 3 is analyzing', threshold: 22, icon: <Sparkles className="h-5 w-5 text-blue-500" /> },
+  { id: 'openai', text: 'GPT-5.5 is analyzing', threshold: 42, icon: <Zap className="h-5 w-5 text-green-500" /> },
+  { id: 'claude', text: 'Claude is analyzing', threshold: 62, icon: <Bot className="h-5 w-5 text-orange-500" /> },
+  { id: 'merge', text: 'Comparing results', threshold: 82, icon: <GitMerge className="h-5 w-5 text-primary" /> },
 ];
 
 const TICK_MS = 120;
@@ -80,7 +81,7 @@ export function AnalysisProgress({ isActive, onComplete }: AnalysisProgressProps
             <h3 className="text-lg font-semibold text-foreground">AI Analysis in Progress</h3>
           </div>
           <p className="text-sm text-muted-foreground">
-            Two AI models are reviewing the case — this usually takes 30–60 seconds.
+            Three AI models are reviewing the case — this usually takes 30–60 seconds.
           </p>
         </div>
 

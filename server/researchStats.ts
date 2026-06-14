@@ -60,7 +60,7 @@ function rankedFinal(c: Case): RankedDiagnosis[] {
     .map((d) => ({ name: d.name, confidence: Number(d.confidence) || 0 }));
 }
 
-export type ModelKey = 'gemini' | 'openai' | 'final' | 'dermatologist';
+export type ModelKey = 'gemini' | 'openai' | 'claude' | 'final' | 'dermatologist';
 
 // Majority-vote consensus label across completed expert reviews for a case.
 function dermatologistConsensus(reviews: DermatologistReview[]): { label: string | null; confidence: number } {
@@ -96,6 +96,8 @@ function rankedForModel(
       return rankedFromAnalysis(c.geminiAnalysis);
     case 'openai':
       return rankedFromAnalysis(c.openaiAnalysis);
+    case 'claude':
+      return rankedFromAnalysis(c.claudeAnalysis);
     case 'final':
       return rankedFinal(c);
     case 'dermatologist': {
@@ -241,6 +243,7 @@ export interface ResearchAnalytics {
 const MODEL_LABELS: Record<ModelKey, string> = {
   gemini: 'Gemini',
   openai: 'OpenAI (GPT)',
+  claude: 'Claude',
   final: 'AI Consensus',
   dermatologist: 'Dermatologist',
 };
@@ -361,7 +364,7 @@ export function computeResearchAnalytics(
     reviewsByCase.set(r.caseId, list);
   }
 
-  const models: ModelKey[] = ['gemini', 'openai', 'final', 'dermatologist'];
+  const models: ModelKey[] = ['gemini', 'openai', 'claude', 'final', 'dermatologist'];
   const modelSummaries: ModelSummary[] = models.map((model) => ({
     model,
     label: MODEL_LABELS[model],
@@ -376,7 +379,11 @@ export function computeResearchAnalytics(
     { label: 'AI Consensus vs Dermatologist', a: 'final', b: 'dermatologist' },
     { label: 'Gemini vs Dermatologist', a: 'gemini', b: 'dermatologist' },
     { label: 'OpenAI vs Dermatologist', a: 'openai', b: 'dermatologist' },
+    { label: 'Claude vs Dermatologist', a: 'claude', b: 'dermatologist' },
     { label: 'Gemini vs OpenAI', a: 'gemini', b: 'openai' },
+    { label: 'Gemini vs Claude', a: 'gemini', b: 'claude' },
+    { label: 'OpenAI vs Claude', a: 'openai', b: 'claude' },
+    { label: 'Claude vs Gold Standard', a: 'claude', b: 'gold' },
     { label: 'AI Consensus vs Gold Standard', a: 'final', b: 'gold' },
     { label: 'Dermatologist vs Gold Standard', a: 'dermatologist', b: 'gold' },
   ];
@@ -545,6 +552,7 @@ export function buildResearchCsv(
   for (const c of cases) {
     addModelRows(c, 'gemini', rankedFromAnalysis(c.geminiAnalysis), 'gemini', 'pct');
     addModelRows(c, 'openai', rankedFromAnalysis(c.openaiAnalysis), 'openai', 'pct');
+    addModelRows(c, 'claude', rankedFromAnalysis(c.claudeAnalysis), 'claude', 'pct');
     addModelRows(c, 'final', rankedFinal(c), 'final', 'pct');
     // Each dermatologist review as its own row
     const caseReviews = reviewsByCase.get(c.id) ?? [];

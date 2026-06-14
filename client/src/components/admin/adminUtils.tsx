@@ -21,6 +21,9 @@ export const getMergedDiagnoses = (caseItem: any) => {
   if (caseItem.openaiAnalysis?.diagnoses && Array.isArray(caseItem.openaiAnalysis.diagnoses)) {
     allDiagnoses.push(...caseItem.openaiAnalysis.diagnoses);
   }
+  if (caseItem.claudeAnalysis?.diagnoses && Array.isArray(caseItem.claudeAnalysis.diagnoses)) {
+    allDiagnoses.push(...caseItem.claudeAnalysis.diagnoses);
+  }
 
   if (allDiagnoses.length === 0) return [];
 
@@ -99,52 +102,53 @@ export const getUrgencyBadge = (diagnoses: any[]) => {
 };
 
 export const getAIAnalysisInfo = (caseItem: any) => {
-  const geminiDiagnoses = caseItem?.geminiAnalysis?.diagnoses ?? [];
-  const openaiDiagnoses = caseItem?.openaiAnalysis?.diagnoses ?? [];
-  const hasGemini = geminiDiagnoses.length > 0;
-  const hasOpenAI = openaiDiagnoses.length > 0;
+  const formatConfidence = (confidence: number) => `${Math.round(confidence)}%`;
 
-  if (!hasGemini && !hasOpenAI) {
+  const rows = [
+    {
+      key: 'gemini',
+      label: 'Gemini 3',
+      className: 'bg-blue-50 text-blue-700 border-blue-200',
+      analysis: caseItem?.geminiAnalysis,
+    },
+    {
+      key: 'openai',
+      label: 'GPT-5.5',
+      className: 'bg-green-50 text-green-700 border-green-200',
+      analysis: caseItem?.openaiAnalysis,
+    },
+    {
+      key: 'claude',
+      label: 'Claude',
+      className: 'bg-orange-50 text-orange-700 border-orange-200',
+      analysis: caseItem?.claudeAnalysis,
+    },
+  ].filter((r) => (r.analysis?.diagnoses?.length ?? 0) > 0);
+
+  if (rows.length === 0) {
     return <span className="text-gray-400 text-sm">No AI analysis</span>;
   }
 
-  const formatConfidence = (confidence: number) => `${Math.round(confidence)}%`;
-
-  const geminiTopConfidence = hasGemini
-    ? Math.max(...geminiDiagnoses.map((d: any) => d?.confidence ?? 0))
-    : 0;
-  const openaiTopConfidence = hasOpenAI
-    ? Math.max(...openaiDiagnoses.map((d: any) => d?.confidence ?? 0))
-    : 0;
-
   return (
     <div className="flex flex-col gap-1">
-      {hasGemini && (
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-            Gemini 3
-          </Badge>
-          <span className="text-sm font-medium">{formatConfidence(geminiTopConfidence)}</span>
-          {typeof caseItem?.geminiAnalysis?.analysisTime === 'number' && (
-            <span className="text-xs text-muted-foreground">
-              {caseItem.geminiAnalysis.analysisTime.toFixed(1)}s
-            </span>
-          )}
-        </div>
-      )}
-      {hasOpenAI && (
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-            GPT-5.5
-          </Badge>
-          <span className="text-sm font-medium">{formatConfidence(openaiTopConfidence)}</span>
-          {typeof caseItem?.openaiAnalysis?.analysisTime === 'number' && (
-            <span className="text-xs text-muted-foreground">
-              {caseItem.openaiAnalysis.analysisTime.toFixed(1)}s
-            </span>
-          )}
-        </div>
-      )}
+      {rows.map((r) => {
+        const topConfidence = Math.max(
+          ...r.analysis.diagnoses.map((d: any) => d?.confidence ?? 0)
+        );
+        return (
+          <div key={r.key} className="flex items-center gap-2">
+            <Badge variant="outline" className={r.className}>
+              {r.label}
+            </Badge>
+            <span className="text-sm font-medium">{formatConfidence(topConfidence)}</span>
+            {typeof r.analysis?.analysisTime === 'number' && (
+              <span className="text-xs text-muted-foreground">
+                {r.analysis.analysisTime.toFixed(1)}s
+              </span>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 };

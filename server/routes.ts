@@ -5,6 +5,7 @@ import { LocalFileStorageService } from './localFileStorage';
 import { CloudinaryStorageService } from './cloudinaryStorage';
 import { analyzeWithGemini, compareWithGemini } from './gemini';
 import { analyzeWithOpenAI } from './openai';
+import { analyzeWithClaude } from './claude';
 import { insertLesionTrackingSchema, insertLesionSnapshotSchema } from '@shared/schema';
 import {
   insertPatientSchema,
@@ -26,7 +27,7 @@ import { setupMobileAuth } from './mobileAuth';
 import { requireAdmin } from './middleware';
 import PDFDocument from 'pdfkit';
 import logger from './logger';
-import { sanitizeCSVFormula, formatSymptomsForCSV, mapDurationToTurkish } from './utils/csv';
+import { sanitizeCSVFormula } from './utils/csv';
 import { sanitizeTextForPDF } from './utils/pdf';
 import { lookupCaseWithAuth } from './utils/caseHelpers';
 import { mergeAnalysesWithoutConsensus } from './utils/aiAnalysis';
@@ -378,92 +379,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Create CSV content with Turkish headers including separate AI results
+      // Wide-format research dataset (one row per case). English snake_case
+      // headers + numeric confidences so SPSS/R/Excel can ingest directly.
+      // 3 AI models (Gemini, GPT, Claude) × top-3 diagnoses each, plus
+      // dermatologist, gold-standard and study metadata.
+      const TOP_N = 3;
+      const modelHeaders = (prefix: string) =>
+        Array.from({ length: TOP_N }, (_, i) => [
+          `${prefix}_diagnosis_${i + 1}`,
+          `${prefix}_confidence_${i + 1}`,
+        ]).flat();
+
       const csvHeaders = [
-        'Vaka ID',
-        'Kullanıcı Email',
-        'Hasta ID',
-        'Yaş',
-        'Cinsiyet',
-        'Fitzpatrick Cilt Tipi',
-        'Durum',
-        'Oluşturma Tarihi',
-        'Lezyon Lokasyonu',
-        'Belirtiler',
-        'Ek Belirtiler',
-        'Belirti Süresi',
-        'Dermatolog Tanısı',
-        'Dermatolog Notları',
-        'Tanı Tarihi',
-        'Gemini Top1 Tanı',
-        'Gemini Top1 Güven',
-        'Gemini Top2 Tanı',
-        'Gemini Top2 Güven',
-        'Gemini Top3 Tanı',
-        'Gemini Top3 Güven',
-        'Gemini Top4 Tanı',
-        'Gemini Top4 Güven',
-        'Gemini Top5 Tanı',
-        'Gemini Top5 Güven',
-        'ChatGPT Top1 Tanı',
-        'ChatGPT Top1 Güven',
-        'ChatGPT Top2 Tanı',
-        'ChatGPT Top2 Güven',
-        'ChatGPT Top3 Tanı',
-        'ChatGPT Top3 Güven',
-        'ChatGPT Top4 Tanı',
-        'ChatGPT Top4 Güven',
-        'ChatGPT Top5 Tanı',
-        'ChatGPT Top5 Güven',
+        'case_id',
+        'patientId',
+        'age',
+        'gender',
+        'fitzpatrickType',
+        'lesionLocation',
+        'symptoms',
+        'duration',
+        'medicalHistory',
+        'imageCount',
+        'imageUrls',
+        ...modelHeaders('gemini'),
+        ...modelHeaders('gpt'),
+        ...modelHeaders('claude'),
+        'derm_diagnosis',
+        'derm_confidence',
+        'derm_icd10',
+        'gold_standard_diagnosis',
+        'gold_standard_source',
+        'createdAt',
+        'analysisDate',
+        'studyId',
       ];
+
+      // Push top-N (name, confidence) pairs for a model's analysis into a row.
+      const pushModelDiagnoses = (row: any[], diagnoses: Array<{ name?: string; confidence?: number }>) => {
+        for (let i = 0; i < TOP_N; i++) {
+          if (diagnoses[i]?.name) {
+            row.push(sanitizeCSVFormula(diagnoses[i].name) || '');
+            row.push(diagnoses[i].confidence ?? '');
+          } else {
+            row.push('');
+            row.push('');
+          }
+        }
+      };
+
+      const isoDate = (d: Date | string | null | undefined) =>
+        d ? new Date(d).toISOString().slice(0, 10) : '';
 
       const csvRows = cases.map((c) => {
         const patient = c.patientId ? patientMap.get(c.patientId) : null;
-        const geminiDiagnoses = c.geminiAnalysis?.diagnoses ?? [];
-        const openaiDiagnoses = c.openaiAnalysis?.diagnoses ?? [];
+        const imageUrls = Array.isArray(c.imageUrls) ? c.imageUrls : c.imageUrl ? [c.imageUrl] : [];
 
-        // Build base row
-        const baseRow = [
+        const row: any[] = [
           c.caseId,
-          sanitizeCSVFormula(c.user?.email) || 'Bilinmiyor',
-          c.patientId || 'Yok',
-          patient?.age ? patient.age.toString() : 'Belirtilmedi',
-          patient?.gender ? sanitizeCSVFormula(patient.gender) : 'Belirtilmedi',
-          patient?.skinType ? sanitizeCSVFormula(patient.skinType) : 'Belirtilmedi',
-          c.status === 'pending' ? 'Beklemede' : c.status === 'completed' ? 'Tamamlandı' : c.status,
-          c.createdAt ? new Date(c.createdAt).toLocaleDateString('tr-TR') : 'Yok',
-          sanitizeCSVFormula(c.lesionLocation) || 'Belirtilmedi',
-          formatSymptomsForCSV(c.symptoms as string[]),
-          sanitizeCSVFormula(c.additionalSymptoms) || 'Yok',
-          mapDurationToTurkish(c.symptomDuration),
-          sanitizeCSVFormula(c.dermatologistDiagnosis) || 'Yok',
-          sanitizeCSVFormula(c.dermatologistNotes) || 'Yok',
-          c.dermatologistDiagnosedAt ? new Date(c.dermatologistDiagnosedAt).toLocaleDateString('tr-TR') : 'Yok',
+          c.patientId || '',
+          patient?.age ?? '',
+          patient?.gender ? sanitizeCSVFormula(patient.gender) : '',
+          patient?.skinType ? sanitizeCSVFormula(patient.skinType) : '',
+          sanitizeCSVFormula(c.lesionLocation) || '',
+          sanitizeCSVFormula(((c.symptoms as string[]) || []).join('; ')) || '',
+          c.symptomDuration || '',
+          sanitizeCSVFormula(((c.medicalHistory as string[]) || []).join('; ')) || '',
+          imageUrls.length,
+          sanitizeCSVFormula(imageUrls.join('; ')) || '',
         ];
 
-        // Add Gemini diagnoses (top 5)
-        for (let i = 0; i < 5; i++) {
-          if (geminiDiagnoses[i]) {
-            baseRow.push(sanitizeCSVFormula(geminiDiagnoses[i].name) || 'Yok');
-            baseRow.push(`%${geminiDiagnoses[i].confidence}`);
-          } else {
-            baseRow.push('Yok');
-            baseRow.push('Yok');
-          }
-        }
+        pushModelDiagnoses(row, c.geminiAnalysis?.diagnoses ?? []);
+        pushModelDiagnoses(row, c.openaiAnalysis?.diagnoses ?? []);
+        pushModelDiagnoses(row, c.claudeAnalysis?.diagnoses ?? []);
 
-        // Add ChatGPT diagnoses (top 5)
-        for (let i = 0; i < 5; i++) {
-          if (openaiDiagnoses[i]) {
-            baseRow.push(sanitizeCSVFormula(openaiDiagnoses[i].name) || 'Yok');
-            baseRow.push(`%${openaiDiagnoses[i].confidence}`);
-          } else {
-            baseRow.push('Yok');
-            baseRow.push('Yok');
-          }
-        }
+        row.push(
+          sanitizeCSVFormula(c.dermatologistDiagnosis) || '',
+          '', // derm_confidence (per-reviewer scores live in the long-format export)
+          sanitizeCSVFormula(c.goldStandardIcd10) || '',
+          sanitizeCSVFormula(c.goldStandardDiagnosis) || '',
+          c.goldStandardSource || '',
+          isoDate(c.createdAt),
+          isoDate(c.createdAt), // analysisDate ≈ creation (analysis runs immediately after)
+          c.studyId || ''
+        );
 
-        return baseRow;
+        return row;
       });
 
       // Add UTF-8 BOM for proper Turkish character support
@@ -719,8 +720,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sys = await storage.getSystemSettings();
       const runGemini = sys.enableGemini !== false;
       const runOpenAI = sys.enableOpenAI !== false;
+      const runClaude = sys.enableClaude !== false;
 
-      if (!runGemini && !runOpenAI) {
+      if (!runGemini && !runOpenAI && !runClaude) {
         return res.status(503).json({ error: 'Analysis disabled by admin settings' });
       }
 
@@ -755,6 +757,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           )
         );
       }
+      if (runClaude) {
+        tasks.push(
+          analyzeWithClaude(
+            imageUrls,
+            symptomsString,
+            {
+              lesionLocation: caseData.lesionLocation || undefined,
+              medicalHistory: (caseData.medicalHistory as string[]) || undefined,
+              language,
+              isHealthProfessional,
+              isMobileRequest,
+            },
+            { model: sys.claudeModel || undefined }
+          )
+        );
+      }
 
       const settled = await Promise.allSettled(tasks);
       // Map results back to providers by order
@@ -766,6 +784,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: 'rejected',
         reason: 'OpenAI not run',
       } as any;
+      let claudeResult: PromiseSettledResult<any> = {
+        status: 'rejected',
+        reason: 'Claude not run',
+      } as any;
       let idx = 0;
       if (runGemini) {
         geminiResult = settled[idx++];
@@ -773,9 +795,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (runOpenAI) {
         openaiResult = settled[idx++];
       }
+      if (runClaude) {
+        claudeResult = settled[idx++];
+      }
 
       let geminiAnalysis = null;
       let openaiAnalysis = null;
+      let claudeAnalysis = null;
       const analysisErrors: Array<{
         provider: string;
         code?: string;
@@ -830,6 +856,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      if (claudeResult.status === 'fulfilled') {
+        claudeAnalysis = claudeResult.value;
+        // Check if AI returned an error (non-skin-lesion image)
+        if ((claudeAnalysis as any).error) {
+          analysisErrors.push({
+            provider: 'claude',
+            code: 'INVALID_IMAGE',
+            message: (claudeAnalysis as any).message || 'Image does not appear to be a skin lesion',
+          });
+          claudeAnalysis = null;
+        }
+      } else {
+        logger.error('Claude analysis failed:', claudeResult.reason);
+        const reason: any = claudeResult.reason;
+        if (reason && typeof reason.toJSON === 'function') {
+          analysisErrors.push(reason.toJSON());
+        } else if (reason?.info) {
+          analysisErrors.push(reason.info);
+        } else {
+          analysisErrors.push({ provider: 'claude', message: String(reason) });
+        }
+      }
+
       // Store separate AI analyses (no consensus combining)
       // Each AI's results will be displayed separately in the UI
 
@@ -837,6 +886,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedCase = await storage.updateCase(newCase.id, userId, {
         geminiAnalysis,
         openaiAnalysis,
+        claudeAnalysis,
         finalDiagnoses: null, // No longer combining results
         status: 'completed',
       });
@@ -943,8 +993,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const sys = await storage.getSystemSettings();
           const runGemini = sys.enableGemini !== false;
           const runOpenAI = sys.enableOpenAI !== false;
+          const runClaude = sys.enableClaude !== false;
 
-          if (!runGemini && !runOpenAI) {
+          if (!runGemini && !runOpenAI && !runClaude) {
             logger.error(`[Background] Analysis disabled for case ${newCase.caseId}`);
             await storage.updateCase(newCase.id, userId, { status: 'failed' });
             return;
@@ -981,17 +1032,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
               )
             );
           }
+          if (runClaude) {
+            tasks.push(
+              analyzeWithClaude(
+                imageUrls,
+                symptomsString,
+                {
+                  lesionLocation: caseData.lesionLocation || undefined,
+                  medicalHistory: (caseData.medicalHistory as string[]) || undefined,
+                  language,
+                  isHealthProfessional,
+                  isMobileRequest,
+                },
+                { model: sys.claudeModel || undefined }
+              )
+            );
+          }
 
           const settled = await Promise.allSettled(tasks);
 
           let geminiResult: PromiseSettledResult<any> = { status: 'rejected', reason: 'Not run' } as any;
           let openaiResult: PromiseSettledResult<any> = { status: 'rejected', reason: 'Not run' } as any;
+          let claudeResult: PromiseSettledResult<any> = { status: 'rejected', reason: 'Not run' } as any;
           let idx = 0;
           if (runGemini) geminiResult = settled[idx++];
           if (runOpenAI) openaiResult = settled[idx++];
+          if (runClaude) claudeResult = settled[idx++];
 
           let geminiAnalysis = null;
           let openaiAnalysis = null;
+          let claudeAnalysis = null;
 
           if (geminiResult.status === 'fulfilled' && !(geminiResult.value as any).error) {
             geminiAnalysis = geminiResult.value;
@@ -999,11 +1069,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (openaiResult.status === 'fulfilled' && !(openaiResult.value as any).error) {
             openaiAnalysis = openaiResult.value;
           }
+          if (claudeResult.status === 'fulfilled' && !(claudeResult.value as any).error) {
+            claudeAnalysis = claudeResult.value;
+          }
 
           // Update case with results
           await storage.updateCase(newCase.id, userId, {
             geminiAnalysis,
             openaiAnalysis,
+            claudeAnalysis,
             finalDiagnoses: null,
             status: 'completed',
           });

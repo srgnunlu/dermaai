@@ -33,6 +33,7 @@ export default function SettingsPage() {
   const [formData, setFormData] = useState<Partial<UserSettings>>({
     useGemini: true,
     useOpenAI: true,
+    useClaude: true,
     confidenceThreshold: 40,
     autoSaveCases: true,
     anonymizeData: false,
@@ -50,6 +51,7 @@ export default function SettingsPage() {
       setFormData({
         useGemini: settings.useGemini ?? true,
         useOpenAI: settings.useOpenAI ?? true,
+        useClaude: settings.useClaude ?? true,
         confidenceThreshold: settings.confidenceThreshold ?? 40,
         autoSaveCases: settings.autoSaveCases ?? true,
         anonymizeData: settings.anonymizeData ?? false,
@@ -163,6 +165,15 @@ export default function SettingsPage() {
                     checked={formData.useOpenAI ?? false}
                     onCheckedChange={(checked) => setFormData({ ...formData, useOpenAI: checked })}
                     data-testid="switch-use-openai"
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="use-claude">Use Claude Sonnet 4.6</Label>
+                  <Switch
+                    id="use-claude"
+                    checked={formData.useClaude ?? false}
+                    onCheckedChange={(checked) => setFormData({ ...formData, useClaude: checked })}
+                    data-testid="switch-use-claude"
                   />
                 </div>
                 <div className="space-y-2">

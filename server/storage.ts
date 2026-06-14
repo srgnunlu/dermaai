@@ -34,6 +34,7 @@ import {
   studies,
   dermatologistReviews,
   DEFAULT_OPENAI_MODEL,
+  DEFAULT_CLAUDE_MODEL,
 } from '@shared/schema';
 import { db } from './db';
 import { count, desc, eq, and, or, sql, inArray, gte } from 'drizzle-orm';
@@ -118,6 +119,7 @@ export interface IStorage {
   getAnalyticsAIPerformance(): Promise<{
     gemini: { total: number; avgConfidence: number; avgTime: number };
     openai: { total: number; avgConfidence: number; avgTime: number };
+    claude: { total: number; avgConfidence: number; avgTime: number };
     consensus: number;
   }>;
   getAnalyticsUserActivity(): Promise<
@@ -526,6 +528,7 @@ export class DatabaseStorage implements IStorage {
             userId,
             useGemini: true,
             useOpenAI: true,
+            useClaude: true,
             confidenceThreshold: 40,
             autoSaveCases: true,
             anonymizeData: false,
@@ -872,7 +875,9 @@ export class DatabaseStorage implements IStorage {
       .values({
         enableGemini: true,
         enableOpenAI: true,
+        enableClaude: true,
         openaiModel: DEFAULT_OPENAI_MODEL,
+        claudeModel: DEFAULT_CLAUDE_MODEL,
         openaiAllowFallback: true,
       })
       .returning();
@@ -989,6 +994,7 @@ export class DatabaseStorage implements IStorage {
   async getAnalyticsAIPerformance(): Promise<{
     gemini: { total: number; avgConfidence: number; avgTime: number };
     openai: { total: number; avgConfidence: number; avgTime: number };
+    claude: { total: number; avgConfidence: number; avgTime: number };
     consensus: number;
   }> {
     return cache.cached(
@@ -996,60 +1002,51 @@ export class DatabaseStorage implements IStorage {
       async () => {
         const allCases = await db.select().from(cases);
 
-        let geminiTotal = 0;
-        let geminiConfidenceSum = 0;
-        let geminiTimeSum = 0;
+        // Accumulate per-model totals; reused across all three providers.
+        const acc = {
+          gemini: { total: 0, conf: 0, time: 0 },
+          openai: { total: 0, conf: 0, time: 0 },
+          claude: { total: 0, conf: 0, time: 0 },
+        };
 
-        let openaiTotal = 0;
-        let openaiConfidenceSum = 0;
-        let openaiTimeSum = 0;
+        const tally = (analysis: any, bucket: { total: number; conf: number; time: number }) => {
+          if (!analysis) return;
+          bucket.total++;
+          if (analysis.analysisTime) bucket.time += analysis.analysisTime;
+          if (analysis.diagnoses && Array.isArray(analysis.diagnoses) && analysis.diagnoses.length) {
+            const avgConf =
+              analysis.diagnoses.reduce((sum: number, d: any) => sum + (d.confidence || 0), 0) /
+              analysis.diagnoses.length;
+            bucket.conf += avgConf;
+          }
+        };
 
         let consensusCount = 0;
 
         for (const caseRecord of allCases) {
-          // Gemini stats
-          if (caseRecord.geminiAnalysis) {
-            geminiTotal++;
-            const analysis = caseRecord.geminiAnalysis as any;
-            if (analysis.analysisTime) geminiTimeSum += analysis.analysisTime;
-            if (analysis.diagnoses && Array.isArray(analysis.diagnoses)) {
-              const avgConf =
-                analysis.diagnoses.reduce((sum: number, d: any) => sum + (d.confidence || 0), 0) /
-                analysis.diagnoses.length;
-              geminiConfidenceSum += avgConf;
-            }
-          }
+          tally(caseRecord.geminiAnalysis, acc.gemini);
+          tally(caseRecord.openaiAnalysis, acc.openai);
+          tally(caseRecord.claudeAnalysis, acc.claude);
 
-          // OpenAI stats
-          if (caseRecord.openaiAnalysis) {
-            openaiTotal++;
-            const analysis = caseRecord.openaiAnalysis as any;
-            if (analysis.analysisTime) openaiTimeSum += analysis.analysisTime;
-            if (analysis.diagnoses && Array.isArray(analysis.diagnoses)) {
-              const avgConf =
-                analysis.diagnoses.reduce((sum: number, d: any) => sum + (d.confidence || 0), 0) /
-                analysis.diagnoses.length;
-              openaiConfidenceSum += avgConf;
-            }
-          }
-
-          // Consensus (both models analyzed)
-          if (caseRecord.geminiAnalysis && caseRecord.openaiAnalysis) {
-            consensusCount++;
-          }
+          // Consensus: every enabled model that ran produced a result for this case.
+          const ran = [
+            caseRecord.geminiAnalysis,
+            caseRecord.openaiAnalysis,
+            caseRecord.claudeAnalysis,
+          ].filter(Boolean).length;
+          if (ran >= 2) consensusCount++;
         }
 
+        const summarize = (b: { total: number; conf: number; time: number }) => ({
+          total: b.total,
+          avgConfidence: b.total > 0 ? Math.round(b.conf / b.total) : 0,
+          avgTime: b.total > 0 ? Math.round((b.time / b.total) * 10) / 10 : 0,
+        });
+
         return {
-          gemini: {
-            total: geminiTotal,
-            avgConfidence: geminiTotal > 0 ? Math.round(geminiConfidenceSum / geminiTotal) : 0,
-            avgTime: geminiTotal > 0 ? Math.round((geminiTimeSum / geminiTotal) * 10) / 10 : 0,
-          },
-          openai: {
-            total: openaiTotal,
-            avgConfidence: openaiTotal > 0 ? Math.round(openaiConfidenceSum / openaiTotal) : 0,
-            avgTime: openaiTotal > 0 ? Math.round((openaiTimeSum / openaiTotal) * 10) / 10 : 0,
-          },
+          gemini: summarize(acc.gemini),
+          openai: summarize(acc.openai),
+          claude: summarize(acc.claude),
           consensus: allCases.length > 0 ? Math.round((consensusCount / allCases.length) * 100) : 0,
         };
       },

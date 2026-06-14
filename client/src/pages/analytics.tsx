@@ -65,6 +65,11 @@ interface AIPerformanceData {
     avgConfidence: number;
     avgTime: number;
   };
+  claude: {
+    total: number;
+    avgConfidence: number;
+    avgTime: number;
+  };
   consensus: number;
 }
 
@@ -195,11 +200,11 @@ export default function AnalyticsPage() {
               {aiLoading ? (
                 <Skeleton className="h-[200px] w-full" />
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-lg flex items-center gap-2">
-                        <Brain className="h-5 w-5 text-purple-500" />
+                        <Brain className="h-5 w-5 text-blue-500" />
                         Gemini 3
                       </CardTitle>
                     </CardHeader>
@@ -249,6 +254,31 @@ export default function AnalyticsPage() {
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-lg flex items-center gap-2">
+                        <Brain className="h-5 w-5 text-orange-500" />
+                        Claude
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Total Analyses:</span>
+                        <span className="font-semibold">{aiPerformance?.claude.total || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Avg Confidence:</span>
+                        <span className="font-semibold">
+                          {aiPerformance?.claude.avgConfidence || 0}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Avg Time:</span>
+                        <span className="font-semibold">{aiPerformance?.claude.avgTime || 0}s</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
                         <Activity className="h-5 w-5 text-blue-500" />
                         Consensus Rate
                       </CardTitle>
@@ -259,7 +289,7 @@ export default function AnalyticsPage() {
                           {aiPerformance?.consensus || 0}%
                         </div>
                         <p className="text-sm text-muted-foreground mt-2">
-                          Cases analyzed by both AI models
+                          Cases analyzed by 2+ AI models
                         </p>
                       </div>
                     </CardContent>
@@ -334,7 +364,7 @@ export default function AnalyticsPage() {
                 <CardHeader>
                   <CardTitle>AI Model Performance Comparison</CardTitle>
                   <CardDescription>
-                    Comparative analysis of Gemini and OpenAI models
+                    Comparative analysis of Gemini, OpenAI and Claude models
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -348,16 +378,19 @@ export default function AnalyticsPage() {
                             name: 'Total Analyses',
                             Gemini: aiPerformance?.gemini.total || 0,
                             OpenAI: aiPerformance?.openai.total || 0,
+                            Claude: aiPerformance?.claude.total || 0,
                           },
                           {
                             name: 'Avg Confidence',
                             Gemini: aiPerformance?.gemini.avgConfidence || 0,
                             OpenAI: aiPerformance?.openai.avgConfidence || 0,
+                            Claude: aiPerformance?.claude.avgConfidence || 0,
                           },
                           {
                             name: 'Avg Time (s)',
                             Gemini: aiPerformance?.gemini.avgTime || 0,
                             OpenAI: aiPerformance?.openai.avgTime || 0,
+                            Claude: aiPerformance?.claude.avgTime || 0,
                           },
                         ]}
                       >
@@ -366,8 +399,9 @@ export default function AnalyticsPage() {
                         <YAxis />
                         <Tooltip />
                         <Legend />
-                        <Bar dataKey="Gemini" fill="#8b5cf6" />
+                        <Bar dataKey="Gemini" fill="#3b82f6" />
                         <Bar dataKey="OpenAI" fill="#10b981" />
+                        <Bar dataKey="Claude" fill="#f97316" />
                       </BarChart>
                     </ResponsiveContainer>
                   )}

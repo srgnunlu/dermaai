@@ -42,6 +42,18 @@ describe('DiagnosisResults', () => {
       ],
       analysisTime: 3.2,
     },
+    claudeAnalysis: {
+      diagnoses: [
+        {
+          name: 'Psoriasis',
+          confidence: 70,
+          description: 'Chronic autoimmune skin condition',
+          keyFeatures: ['Scaling', 'Plaques'],
+          recommendations: ['Topical treatment', 'Phototherapy'],
+        },
+      ],
+      analysisTime: 4.1,
+    },
     finalDiagnoses: null,
     dermatologistDiagnosis: null,
     dermatologistNotes: null,
@@ -66,14 +78,19 @@ describe('DiagnosisResults', () => {
   };
 
   it('should show loading state when no analysis is available', () => {
-    const loadingCase = { ...mockCase, geminiAnalysis: null, openaiAnalysis: null };
+    const loadingCase = {
+      ...mockCase,
+      geminiAnalysis: null,
+      openaiAnalysis: null,
+      claudeAnalysis: null,
+    };
     render(<DiagnosisResults caseData={loadingCase} {...mockHandlers} />);
 
     expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
     expect(screen.getByText('Processing Analysis...')).toBeInTheDocument();
   });
 
-  it('should display both AI analysis results', () => {
+  it('should display all three AI analysis results', () => {
     render(<DiagnosisResults caseData={mockCase} {...mockHandlers} />);
 
     expect(screen.getByText('Gemini 3')).toBeInTheDocument();
@@ -83,6 +100,10 @@ describe('DiagnosisResults', () => {
     expect(screen.getByText('GPT-5.5')).toBeInTheDocument();
     expect(screen.getByText('Contact Dermatitis')).toBeInTheDocument();
     expect(screen.getByText('80%')).toBeInTheDocument();
+
+    expect(screen.getByText('Claude Sonnet 4.6')).toBeInTheDocument();
+    expect(screen.getByText('Psoriasis')).toBeInTheDocument();
+    expect(screen.getByText('70%')).toBeInTheDocument();
   });
 
   it('should display analysis times', () => {

@@ -9,7 +9,9 @@ import {
   Plus,
   Sparkles,
   Zap,
+  Bot,
   Check,
+  Users,
   GitCompareArrows,
   CheckCircle2,
 } from 'lucide-react';
@@ -31,6 +33,8 @@ type Diagnosis = {
   keyFeatures?: string[];
   recommendations?: string[];
 };
+
+type ModelAnalysis = { diagnoses?: Diagnosis[]; analysisTime?: number } | null | undefined;
 
 const normalize = (name: string) => name.trim().toLowerCase();
 
@@ -67,18 +71,23 @@ function ConfidenceBar({ confidence }: { confidence: number }) {
 
 interface AIAnalysisCardProps {
   title: string;
+  subtitle: string;
   icon: React.ReactNode;
-  analysis: { diagnoses?: Diagnosis[]; analysisTime?: number } | null | undefined;
+  analysis: ModelAnalysis;
   color: string;
-  sharedNames: Set<string>;
+  // Map of normalized diagnosis name → how many models agree on it.
+  agreementCounts: Map<string, number>;
+  modelsPresent: number;
 }
 
 const AIAnalysisCard = memo(function AIAnalysisCard({
   title,
+  subtitle,
   icon,
   analysis,
   color,
-  sharedNames,
+  agreementCounts,
+  modelsPresent,
 }: AIAnalysisCardProps) {
   if (!analysis || !analysis.diagnoses || analysis.diagnoses.length === 0) {
     return (
@@ -86,7 +95,10 @@ const AIAnalysisCard = memo(function AIAnalysisCard({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             {icon}
-            {title}
+            <span className="flex flex-col">
+              <span>{title}</span>
+              <span className="text-xs font-normal text-muted-foreground">{subtitle}</span>
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -105,7 +117,10 @@ const AIAnalysisCard = memo(function AIAnalysisCard({
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             {icon}
-            {title}
+            <span className="flex flex-col">
+              <span>{title}</span>
+              <span className="text-xs font-normal text-muted-foreground">{subtitle}</span>
+            </span>
           </CardTitle>
           <Badge variant="secondary" className="text-xs">
             {analysisTime.toFixed(1)}s
@@ -114,14 +129,16 @@ const AIAnalysisCard = memo(function AIAnalysisCard({
       </CardHeader>
       <CardContent className="space-y-4">
         {diagnoses.map((diagnosis: Diagnosis, index: number) => {
-          const isShared = sharedNames.has(normalize(diagnosis.name));
+          const agreement = agreementCounts.get(normalize(diagnosis.name)) ?? 1;
+          const isShared = agreement >= 2;
+          const isFullConsensus = modelsPresent >= 2 && agreement >= modelsPresent;
           return (
             <div
               key={index}
               className={`rounded-xl border p-4 transition-shadow hover:shadow-md ${
                 isShared
                   ? 'border-green-500/40 bg-green-500/5'
-                  : 'border-orange-400/40 bg-orange-400/5'
+                  : 'border-muted-foreground/20 bg-muted/20'
               }`}
             >
               {/* Rank and Confidence */}
@@ -136,12 +153,16 @@ const AIAnalysisCard = memo(function AIAnalysisCard({
                       className={`mt-0.5 inline-flex items-center gap-1 text-[11px] font-medium ${
                         isShared
                           ? 'text-green-600 dark:text-green-500'
-                          : 'text-orange-600 dark:text-orange-500'
+                          : 'text-muted-foreground'
                       }`}
                     >
-                      {isShared ? (
+                      {isFullConsensus ? (
                         <>
-                          <Check className="h-3 w-3" /> Both models agree
+                          <Users className="h-3 w-3" /> All models agree
+                        </>
+                      ) : isShared ? (
+                        <>
+                          <Check className="h-3 w-3" /> {agreement} models agree
                         </>
                       ) : (
                         <>
@@ -206,9 +227,9 @@ export const DiagnosisResults = memo(function DiagnosisResults({
   isSaving = false,
   isSaved = false,
 }: DiagnosisResultsProps) {
-  const { geminiAnalysis, openaiAnalysis } = caseData;
+  const { geminiAnalysis, openaiAnalysis, claudeAnalysis } = caseData;
 
-  const isAnalyzing = !geminiAnalysis && !openaiAnalysis;
+  const isAnalyzing = !geminiAnalysis && !openaiAnalysis && !claudeAnalysis;
 
   if (isAnalyzing) {
     return (
@@ -227,17 +248,38 @@ export const DiagnosisResults = memo(function DiagnosisResults({
     );
   }
 
-  // Compute consensus between the two models (by normalized diagnosis name).
-  const geminiNames = new Set((geminiAnalysis?.diagnoses ?? []).map((d) => normalize(d.name)));
-  const openaiNames = new Set((openaiAnalysis?.diagnoses ?? []).map((d) => normalize(d.name)));
-  const sharedNames = new Set(Array.from(geminiNames).filter((n) => openaiNames.has(n)));
+  // Models that actually returned results.
+  const models: ModelAnalysis[] = [geminiAnalysis, openaiAnalysis, claudeAnalysis];
+  const presentModels = models.filter((m) => (m?.diagnoses?.length ?? 0) > 0);
+  const modelsPresent = presentModels.length;
 
-  // Human-readable shared diagnosis labels (original casing from Gemini).
-  const sharedLabels = (geminiAnalysis?.diagnoses ?? [])
-    .filter((d) => sharedNames.has(normalize(d.name)))
-    .map((d) => d.name);
+  // Cross-model agreement: for each normalized diagnosis name, count how many
+  // models include it. ≥2 = shared, === modelsPresent = full consensus.
+  const agreementCounts = new Map<string, number>();
+  for (const m of presentModels) {
+    const seen = new Set<string>();
+    for (const d of m?.diagnoses ?? []) {
+      const key = normalize(d.name);
+      if (seen.has(key)) continue; // count each model at most once per diagnosis
+      seen.add(key);
+      agreementCounts.set(key, (agreementCounts.get(key) ?? 0) + 1);
+    }
+  }
 
-  const hasBoth = !!geminiAnalysis && !!openaiAnalysis;
+  // Human-readable labels for findings shared by ≥2 models (original casing,
+  // preferring the first model that mentions each).
+  const sharedLabelMap = new Map<string, string>();
+  for (const m of presentModels) {
+    for (const d of m?.diagnoses ?? []) {
+      const key = normalize(d.name);
+      if ((agreementCounts.get(key) ?? 0) >= 2 && !sharedLabelMap.has(key)) {
+        sharedLabelMap.set(key, d.name);
+      }
+    }
+  }
+  const sharedLabels = Array.from(sharedLabelMap.values());
+
+  const hasMultiple = modelsPresent >= 2;
 
   return (
     <div className="space-y-6">
@@ -251,7 +293,7 @@ export const DiagnosisResults = memo(function DiagnosisResults({
                 AI Analysis Results
               </h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Independent analysis from two AI models
+                Independent analysis from three AI models
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -289,7 +331,7 @@ export const DiagnosisResults = memo(function DiagnosisResults({
       </Card>
 
       {/* Consensus banner */}
-      {hasBoth && (
+      {hasMultiple && (
         <Card
           className={`border-2 ${
             sharedLabels.length > 0
@@ -307,25 +349,26 @@ export const DiagnosisResults = memo(function DiagnosisResults({
               <div>
                 <p className="font-semibold text-foreground">
                   {sharedLabels.length > 0
-                    ? `Models agree on ${sharedLabels.length} finding${sharedLabels.length > 1 ? 's' : ''}`
-                    : 'Models diverge on all findings'}
+                    ? `${modelsPresent} models agree on ${sharedLabels.length} finding${sharedLabels.length > 1 ? 's' : ''}`
+                    : `${modelsPresent} models diverge on all findings`}
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {sharedLabels.length > 0
-                    ? 'Shared findings are highlighted in green; model-specific findings in orange.'
-                    : 'No overlapping findings — review both columns carefully.'}
+                    ? 'Findings shared by 2+ models are highlighted in green; model-specific findings are muted.'
+                    : 'No overlapping findings — review each model carefully.'}
                 </p>
               </div>
             </div>
             {sharedLabels.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
-                {sharedLabels.map((label) => (
+                {Array.from(sharedLabelMap.entries()).map(([key, label]) => (
                   <Badge
-                    key={label}
+                    key={key}
                     className="border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400"
                     variant="outline"
                   >
                     {label}
+                    <span className="ml-1 opacity-70">×{agreementCounts.get(key)}</span>
                   </Badge>
                 ))}
               </div>
@@ -334,21 +377,34 @@ export const DiagnosisResults = memo(function DiagnosisResults({
         </Card>
       )}
 
-      {/* Side-by-side AI Results */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      {/* Side-by-side AI Results (stacks on mobile, 3 columns on desktop) */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <AIAnalysisCard
           title="Gemini 3"
-          icon={<Sparkles className="h-5 w-5 text-purple-600" />}
+          subtitle="Google"
+          icon={<Sparkles className="h-5 w-5 text-blue-600" />}
           analysis={geminiAnalysis}
-          color="border-purple-500/30"
-          sharedNames={sharedNames}
+          color="border-blue-500/30"
+          agreementCounts={agreementCounts}
+          modelsPresent={modelsPresent}
         />
         <AIAnalysisCard
           title="GPT-5.5"
+          subtitle="OpenAI"
           icon={<Zap className="h-5 w-5 text-green-600" />}
           analysis={openaiAnalysis}
           color="border-green-500/30"
-          sharedNames={sharedNames}
+          agreementCounts={agreementCounts}
+          modelsPresent={modelsPresent}
+        />
+        <AIAnalysisCard
+          title="Claude Sonnet 4.6"
+          subtitle="Anthropic"
+          icon={<Bot className="h-5 w-5 text-orange-600" />}
+          analysis={claudeAnalysis}
+          color="border-orange-500/30"
+          agreementCounts={agreementCounts}
+          modelsPresent={modelsPresent}
         />
       </div>
 
@@ -359,7 +415,7 @@ export const DiagnosisResults = memo(function DiagnosisResults({
             <strong>Medical Disclaimer:</strong> These AI-assisted possible findings are for
             awareness and preliminary assessment only. They do not provide a diagnosis or treatment
             recommendation. Consult a qualified healthcare professional for medical concerns. The
-            results from both AI models are shown independently for comparison.
+            results from all three AI models are shown independently for comparison.
           </p>
         </CardContent>
       </Card>

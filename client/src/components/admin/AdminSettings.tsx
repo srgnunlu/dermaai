@@ -14,7 +14,9 @@ import { getCsrfHeaders } from '@/lib/queryClient';
 interface SystemSettings {
   enableGemini?: boolean;
   enableOpenAI?: boolean;
+  enableClaude?: boolean;
   openaiModel?: string;
+  claudeModel?: string;
   openaiAllowFallback?: boolean;
 }
 
@@ -91,6 +93,37 @@ export function AdminSettings() {
             <SelectContent>
               <SelectItem value="gpt-5.5">gpt-5.5</SelectItem>
               <SelectItem value="gpt-5.5-pro">gpt-5.5-pro</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <div className="font-medium">Enable Claude</div>
+            <div className="text-sm text-muted-foreground">Run Anthropic Claude analysis</div>
+          </div>
+          <Switch
+            checked={systemSettings?.enableClaude !== false}
+            onCheckedChange={(v) => updateMutation.mutate({ enableClaude: v })}
+            data-testid="switch-enable-claude"
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <div className="font-medium">Claude Model</div>
+            <div className="text-sm text-muted-foreground">Choose which Claude model to use</div>
+          </div>
+          <Select
+            value={systemSettings?.claudeModel || 'claude-sonnet-4-6'}
+            onValueChange={(v) => updateMutation.mutate({ claudeModel: v })}
+          >
+            <SelectTrigger className="w-[160px] sm:w-[200px]">
+              <SelectValue placeholder="Select model" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="claude-sonnet-4-6">claude-sonnet-4-6</SelectItem>
+              <SelectItem value="claude-opus-4-8">claude-opus-4-8</SelectItem>
             </SelectContent>
           </Select>
         </div>

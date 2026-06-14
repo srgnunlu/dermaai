@@ -82,8 +82,9 @@ const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
 const ci = (lo: number, hi: number) => `${(lo * 100).toFixed(0)}–${(hi * 100).toFixed(0)}%`;
 
 const MODEL_COLORS: Record<string, string> = {
-  gemini: '#8b5cf6',
+  gemini: '#3b82f6',
   openai: '#10b981',
+  claude: '#f97316',
   final: '#0891b2',
   dermatologist: '#f59e0b',
 };

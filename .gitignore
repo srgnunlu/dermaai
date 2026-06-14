@@ -92,6 +92,9 @@ jspm_packages/
 tmp/
 temp/
 1
+
+# Codex agent state
+.codex/
 dermaai-mobile/1
 
 # Local agent/tooling state

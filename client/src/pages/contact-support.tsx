@@ -30,6 +30,7 @@ export default function ContactSupportPage() {
     toast({
       title: 'Email app opened',
       description: 'Send the prepared email to reach Corio Scan support.',
+      variant: 'info',
     });
   };
 
@@ -61,7 +62,7 @@ export default function ContactSupportPage() {
                   onChange={handleChange}
                   required
                   className="mt-2"
-                  placeholder="Dr. Sergen Ünlu"
+                  placeholder="Dr. Jane Smith"
                 />
               </div>
               <div>

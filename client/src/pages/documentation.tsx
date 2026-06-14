@@ -24,7 +24,7 @@ const modules = [
     icon: GaugeCircle,
     title: 'Model Performance',
     description:
-      'Benchmark methodology, confidence scoring, and guidance on monitoring agreement between Gemini and GPT-5 analyses over time.',
+      'Benchmark methodology, confidence scoring, and guidance on monitoring agreement between Gemini 3 and GPT-5.5 analyses over time.',
   },
 ];
 

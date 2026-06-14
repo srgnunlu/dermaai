@@ -20,8 +20,8 @@ interface AnalysisProgressProps {
 const ANALYSIS_STAGES: AnalysisStage[] = [
   { id: 'upload', text: 'Uploading images', threshold: 0, icon: <Microscope className="h-5 w-5 text-primary" /> },
   { id: 'prepare', text: 'Preparing AI models', threshold: 12, icon: <Brain className="h-5 w-5 text-primary" /> },
-  { id: 'gemini', text: 'Gemini is analyzing', threshold: 25, icon: <Sparkles className="h-5 w-5 text-purple-500" /> },
-  { id: 'openai', text: 'GPT is analyzing', threshold: 55, icon: <Zap className="h-5 w-5 text-green-500" /> },
+  { id: 'gemini', text: 'Gemini 3 is analyzing', threshold: 25, icon: <Sparkles className="h-5 w-5 text-purple-500" /> },
+  { id: 'openai', text: 'GPT-5.5 is analyzing', threshold: 55, icon: <Zap className="h-5 w-5 text-green-500" /> },
   { id: 'merge', text: 'Merging results', threshold: 80, icon: <GitMerge className="h-5 w-5 text-primary" /> },
 ];
 

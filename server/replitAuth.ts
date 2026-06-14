@@ -320,9 +320,12 @@ export async function setupAuth(app: Express) {
     // callbackURL as http:// and would mismatch the https:// URI registered in
     // Google Cloud Console, failing the token exchange with a 500. Use an
     // explicit absolute https callback derived from the deployment base URL.
+    // Prefer the explicit canonical domain (BASE_URL, e.g. https://www.corioscan.com)
+    // over Render's auto-assigned *.onrender.com URL, so the OAuth callback and the
+    // session cookie stay on the domain the user actually browses.
     const configuredBaseUrl = (
-      process.env.RENDER_EXTERNAL_URL ||
       process.env.BASE_URL ||
+      process.env.RENDER_EXTERNAL_URL ||
       ''
     ).replace(/\/$/, '');
     const googleCallbackURL = configuredBaseUrl

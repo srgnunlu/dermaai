@@ -22,11 +22,14 @@ class GeminiAnalysisError extends Error {
   }
 }
 
-// Use the stable, generally-available "gemini-2.5-flash" model. Preview aliases
-// (e.g. gemini-3-pro-preview / gemini-3.1-pro-preview) get rotated/shut down and
-// then fail with NOT_FOUND. gemini-2.5-flash is a known-good vision-capable model.
-// Allow overriding via env without code changes.
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+// Use the latest generally-available Gemini Flash model. Root cause of the
+// earlier NOT_FOUND: preview aliases are retired once a model reaches GA (the
+// "-preview" suffix is dropped), so gemini-3-pro-preview / gemini-3.1-pro-preview
+// stopped resolving. "gemini-3.5-flash" is the current GA, multimodal,
+// cost-efficient Flash model (Google I/O 2026). If the API key lacks access to
+// it, set GEMINI_MODEL to a confirmed-GA fallback (gemini-3.1-pro,
+// gemini-2.5-flash) without a code change.
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '',
 });

@@ -316,12 +316,28 @@ export async function setupAuth(app: Express) {
 
   // Configure Google OAuth strategy
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    // Behind a TLS-terminating proxy (Render), passport rebuilds a relative
+    // callbackURL as http:// and would mismatch the https:// URI registered in
+    // Google Cloud Console, failing the token exchange with a 500. Use an
+    // explicit absolute https callback derived from the deployment base URL.
+    const configuredBaseUrl = (
+      process.env.RENDER_EXTERNAL_URL ||
+      process.env.BASE_URL ||
+      ''
+    ).replace(/\/$/, '');
+    const googleCallbackURL = configuredBaseUrl
+      ? `${configuredBaseUrl}/api/auth/google/callback`
+      : '/api/auth/google/callback';
+    logger.debug(`[AUTH] Google OAuth callback URL: ${googleCallbackURL}`);
+
     passport.use(
       new GoogleStrategy(
         {
           clientID: process.env.GOOGLE_CLIENT_ID,
           clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-          callbackURL: '/api/auth/google/callback',
+          callbackURL: googleCallbackURL,
+          // Honor X-Forwarded-Proto so the relative fallback also stays https.
+          proxy: true,
         },
         async (accessToken, refreshToken, profile, done) => {
           try {

@@ -18,6 +18,7 @@ const ProfilePage = lazy(() => import('@/pages/profile'));
 const AdminPage = lazy(() => import('@/pages/admin'));
 const AnalyticsPage = lazy(() => import('@/pages/analytics'));
 const DermatologistPage = lazy(() => import('@/pages/dermatologist'));
+const ResearchAnalyticsPage = lazy(() => import('@/pages/research-analytics'));
 const PrivacyPolicyPage = lazy(() => import('@/pages/privacy-policy'));
 const TermsOfServicePage = lazy(() => import('@/pages/terms-of-service'));
 const MedicalDisclaimerPage = lazy(() => import('@/pages/medical-disclaimer'));
@@ -63,6 +64,7 @@ function Router() {
               <Route path="/admin" component={AdminPage} />
               <Route path="/analytics" component={AnalyticsPage} />
               <Route path="/dermatologist" component={DermatologistPage} />
+              <Route path="/research-analytics" component={ResearchAnalyticsPage} />
             </>
           )}
           <Route component={NotFound} />

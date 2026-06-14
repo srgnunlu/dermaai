@@ -17,6 +17,11 @@ import {
   type LesionSnapshot,
   type InsertLesionSnapshot,
   type LesionComparison,
+  type Study,
+  type UpdateStudy,
+  type DermatologistReview,
+  type SubmitReview,
+  type UpdateGoldStandard,
   patients,
   cases,
   users,
@@ -26,6 +31,8 @@ import {
   lesionTrackings,
   lesionSnapshots,
   lesionComparisons,
+  studies,
+  dermatologistReviews,
   DEFAULT_OPENAI_MODEL,
 } from '@shared/schema';
 import { db } from './db';
@@ -1428,6 +1435,239 @@ export class DatabaseStorage implements IStorage {
       snapshots: enrichedSnapshots,
       comparisons,
     };
+  }
+
+  // ============================================
+  // RESEARCH: Studies, multi-reviewer reviews, gold standard
+  // ============================================
+
+  async createStudy(data: { name: string; description?: string | null; inclusionCriteria?: string | null; status?: string }, createdBy: string): Promise<Study> {
+    const [study] = await db
+      .insert(studies)
+      .values({
+        name: data.name,
+        description: data.description ?? null,
+        inclusionCriteria: data.inclusionCriteria ?? null,
+        status: data.status ?? 'draft',
+        createdBy,
+      })
+      .returning();
+    cache.invalidatePattern('research:');
+    return study;
+  }
+
+  async getStudies(): Promise<Study[]> {
+    return db.select().from(studies).orderBy(desc(studies.createdAt));
+  }
+
+  async getStudy(id: string): Promise<Study | undefined> {
+    const [study] = await db.select().from(studies).where(eq(studies.id, id));
+    return study;
+  }
+
+  async updateStudy(id: string, updates: UpdateStudy): Promise<Study | undefined> {
+    const [study] = await db
+      .update(studies)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(studies.id, id))
+      .returning();
+    cache.invalidatePattern('research:');
+    return study;
+  }
+
+  // Cases for blind review by a specific reviewer, with that reviewer's own
+  // review status merged in. AI analysis is stripped (blind review guarantee).
+  async getCasesForReviewer(
+    reviewerId: string,
+    studyId?: string
+  ): Promise<Array<Case & { myReview: DermatologistReview | null }>> {
+    const conditions = [eq(cases.status, 'completed')];
+    if (studyId) {
+      conditions.push(eq(cases.studyId, studyId));
+    }
+    const allCases = await db
+      .select()
+      .from(cases)
+      .where(and(...conditions));
+
+    const myReviews = await db
+      .select()
+      .from(dermatologistReviews)
+      .where(eq(dermatologistReviews.reviewerId, reviewerId));
+    const reviewByCase = new Map(myReviews.map((r) => [r.caseId, r]));
+
+    return allCases
+      .map((c) => ({
+        ...c,
+        geminiAnalysis: null,
+        openaiAnalysis: null,
+        finalDiagnoses: null,
+        myReview: reviewByCase.get(c.id) ?? null,
+      }))
+      .sort((a, b) => {
+        // Randomized order takes precedence, then newest first.
+        if (a.reviewOrder != null && b.reviewOrder != null) {
+          return a.reviewOrder - b.reviewOrder;
+        }
+        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return bTime - aTime;
+      });
+  }
+
+  // Upsert a reviewer's structured review for a case.
+  async submitReview(reviewerId: string, data: SubmitReview): Promise<DermatologistReview> {
+    const now = new Date();
+    const [existing] = await db
+      .select()
+      .from(dermatologistReviews)
+      .where(
+        and(
+          eq(dermatologistReviews.caseId, data.caseId),
+          eq(dermatologistReviews.reviewerId, reviewerId)
+        )
+      );
+
+    const completedAt = data.status === 'completed' ? now : existing?.completedAt ?? null;
+
+    if (existing) {
+      const [updated] = await db
+        .update(dermatologistReviews)
+        .set({
+          studyId: data.studyId ?? existing.studyId ?? null,
+          structuredDiagnosis: data.structuredDiagnosis ?? null,
+          icd10Code: data.icd10Code ?? null,
+          freeTextDiagnosis: data.freeTextDiagnosis ?? null,
+          confidenceScore: data.confidenceScore ?? null,
+          notes: data.notes ?? null,
+          status: data.status,
+          startedAt: existing.startedAt ?? now,
+          completedAt,
+          updatedAt: now,
+        })
+        .where(eq(dermatologistReviews.id, existing.id))
+        .returning();
+      cache.invalidatePattern('research:');
+      return updated;
+    }
+
+    const [created] = await db
+      .insert(dermatologistReviews)
+      .values({
+        caseId: data.caseId,
+        reviewerId,
+        studyId: data.studyId ?? null,
+        structuredDiagnosis: data.structuredDiagnosis ?? null,
+        icd10Code: data.icd10Code ?? null,
+        freeTextDiagnosis: data.freeTextDiagnosis ?? null,
+        confidenceScore: data.confidenceScore ?? null,
+        notes: data.notes ?? null,
+        status: data.status,
+        startedAt: now,
+        completedAt,
+      })
+      .returning();
+    cache.invalidatePattern('research:');
+    return created;
+  }
+
+  async getReviewsForCase(caseId: string): Promise<DermatologistReview[]> {
+    return db
+      .select()
+      .from(dermatologistReviews)
+      .where(eq(dermatologistReviews.caseId, caseId));
+  }
+
+  async updateGoldStandard(caseId: string, data: UpdateGoldStandard): Promise<Case | undefined> {
+    const [updated] = await db
+      .update(cases)
+      .set({
+        goldStandardDiagnosis: data.goldStandardDiagnosis ?? null,
+        goldStandardIcd10: data.goldStandardIcd10 ?? null,
+        goldStandardSource: data.goldStandardSource || null,
+        goldStandardDate: data.goldStandardDate ?? null,
+      })
+      .where(eq(cases.id, caseId))
+      .returning();
+    cache.invalidatePattern('research:');
+    cache.invalidatePattern('admin:');
+    return updated;
+  }
+
+  // Raw data for the analytics engine: every completed case joined with its
+  // patient (for Fitzpatrick subgroup) and all expert reviews.
+  async getResearchDataset(studyId?: string): Promise<{
+    cases: Array<Case & { skinType: string | null }>;
+    reviews: DermatologistReview[];
+  }> {
+    const caseConditions = [eq(cases.status, 'completed')];
+    if (studyId) {
+      caseConditions.push(eq(cases.studyId, studyId));
+    }
+    const rows = await db
+      .select({ caseRow: cases, skinType: patients.skinType })
+      .from(cases)
+      .leftJoin(patients, eq(cases.patientId, patients.id))
+      .where(and(...caseConditions));
+
+    const caseRows = rows.map((r) => ({ ...r.caseRow, skinType: r.skinType ?? null }));
+
+    const reviewConditions = studyId ? [eq(dermatologistReviews.studyId, studyId)] : [];
+    const reviews = reviewConditions.length
+      ? await db.select().from(dermatologistReviews).where(and(...reviewConditions))
+      : await db.select().from(dermatologistReviews);
+
+    return { cases: caseRows, reviews };
+  }
+
+  async getResearchPoolStatus(studyId?: string): Promise<{
+    totalCases: number;
+    withGoldStandard: number;
+    reviewsTotal: number;
+    reviewsCompleted: number;
+    reviewsPending: number;
+    reviewsInProgress: number;
+    reviewsSkipped: number;
+    reviewerCount: number;
+  }> {
+    const { cases: caseRows, reviews } = await this.getResearchDataset(studyId);
+    const reviewerSet = new Set(reviews.map((r) => r.reviewerId));
+    return {
+      totalCases: caseRows.length,
+      withGoldStandard: caseRows.filter((c) => !!c.goldStandardDiagnosis).length,
+      reviewsTotal: reviews.length,
+      reviewsCompleted: reviews.filter((r) => r.status === 'completed').length,
+      reviewsPending: reviews.filter((r) => r.status === 'pending').length,
+      reviewsInProgress: reviews.filter((r) => r.status === 'in_progress').length,
+      reviewsSkipped: reviews.filter((r) => r.status === 'skipped').length,
+      reviewerCount: reviewerSet.size,
+    };
+  }
+
+  // Assign a randomized review order to cases (optionally scoped to a study).
+  async randomizeReviewOrder(studyId?: string): Promise<number> {
+    const conditions = [eq(cases.status, 'completed')];
+    if (studyId) {
+      conditions.push(eq(cases.studyId, studyId));
+    }
+    const rows = await db
+      .select({ id: cases.id })
+      .from(cases)
+      .where(and(...conditions));
+
+    // Fisher-Yates shuffle
+    const ids = rows.map((r) => r.id);
+    for (let i = ids.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [ids[i], ids[j]] = [ids[j], ids[i]];
+    }
+    await Promise.all(
+      ids.map((id, idx) =>
+        db.update(cases).set({ reviewOrder: idx + 1 }).where(eq(cases.id, id))
+      )
+    );
+    cache.invalidatePattern('research:');
+    return ids.length;
   }
 }
 

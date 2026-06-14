@@ -11,7 +11,16 @@ import {
   insertCaseSchema,
   updateUserSettingsSchema,
   updateUserProfileSchema,
+  submitReviewSchema,
+  updateGoldStandardSchema,
+  insertStudySchema,
+  updateStudySchema,
 } from '@shared/schema';
+import {
+  computeResearchAnalytics,
+  buildResearchCsv,
+  getControlledDiagnoses,
+} from './researchStats';
 import { setupAuth, isAuthenticated } from './replitAuth';
 import { setupMobileAuth } from './mobileAuth';
 import { requireAdmin } from './middleware';
@@ -1248,6 +1257,168 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       logger.error('Error fetching dermatologist cases:', error);
       res.status(500).json({ error: 'Failed to fetch cases' });
+    }
+  });
+
+  // ============================================
+  // RESEARCH (FAZ 2): multi-reviewer, gold standard, analytics, studies
+  // ============================================
+
+  // Controlled dermatology diagnosis terminology (ICD-10)
+  app.get('/api/research/diagnoses', isAuthenticated, requireAdmin, async (_req, res) => {
+    res.json(getControlledDiagnoses());
+  });
+
+  // Blind-review case list for the authenticated reviewer (merged with own review)
+  app.get('/api/dermatologist/review-cases', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const studyId = typeof req.query.studyId === 'string' ? req.query.studyId : undefined;
+      const cases = await storage.getCasesForReviewer(req.user.id, studyId);
+      res.json(cases);
+    } catch (error) {
+      logger.error('Error fetching reviewer cases:', error);
+      res.status(500).json({ error: 'Failed to fetch cases' });
+    }
+  });
+
+  // Submit / update a structured review
+  app.post('/api/dermatologist/reviews', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const data = submitReviewSchema.parse(req.body);
+      if (data.status === 'completed' && !data.structuredDiagnosis && !data.freeTextDiagnosis) {
+        return res.status(400).json({ error: 'A diagnosis is required to complete a review' });
+      }
+      const review = await storage.submitReview(req.user.id, data);
+      res.json(review);
+    } catch (error: any) {
+      if (error?.name === 'ZodError') {
+        return res.status(400).json({ error: 'Invalid review data', details: error.errors });
+      }
+      logger.error('Error submitting review:', error);
+      res.status(500).json({ error: 'Failed to submit review' });
+    }
+  });
+
+  // All reviews for a case (admin oversight)
+  app.get('/api/cases/:id/reviews', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const reviews = await storage.getReviewsForCase(req.params.id);
+      res.json(reviews);
+    } catch (error) {
+      logger.error('Error fetching case reviews:', error);
+      res.status(500).json({ error: 'Failed to fetch reviews' });
+    }
+  });
+
+  // Set gold standard (ground truth) for a case
+  app.post('/api/cases/:id/gold-standard', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const data = updateGoldStandardSchema.parse(req.body);
+      const updated = await storage.updateGoldStandard(req.params.id, data);
+      if (!updated) {
+        return res.status(404).json({ error: 'Case not found' });
+      }
+      res.json(updated);
+    } catch (error: any) {
+      if (error?.name === 'ZodError') {
+        return res.status(400).json({ error: 'Invalid gold standard data', details: error.errors });
+      }
+      logger.error('Error updating gold standard:', error);
+      res.status(500).json({ error: 'Failed to update gold standard' });
+    }
+  });
+
+  // Research analytics: kappa, sensitivity/specificity, accuracy, confusion, subgroups
+  app.get('/api/research/analytics', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const studyId = typeof req.query.studyId === 'string' ? req.query.studyId : undefined;
+      const { cases, reviews } = await storage.getResearchDataset(studyId);
+      res.json(computeResearchAnalytics(cases, reviews));
+    } catch (error) {
+      logger.error('Error computing research analytics:', error);
+      res.status(500).json({ error: 'Failed to compute analytics' });
+    }
+  });
+
+  // Research pool status (case counts, review progress)
+  app.get('/api/research/pool-status', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const studyId = typeof req.query.studyId === 'string' ? req.query.studyId : undefined;
+      res.json(await storage.getResearchPoolStatus(studyId));
+    } catch (error) {
+      logger.error('Error fetching pool status:', error);
+      res.status(500).json({ error: 'Failed to fetch pool status' });
+    }
+  });
+
+  // Long-format CSV export (R/SPSS ready)
+  app.get('/api/research/export', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const studyId = typeof req.query.studyId === 'string' ? req.query.studyId : undefined;
+      const { cases, reviews } = await storage.getResearchDataset(studyId);
+      const csv = buildResearchCsv(cases, reviews);
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="research-export-${new Date().toISOString().slice(0, 10)}.csv"`
+      );
+      res.send('﻿' + csv); // BOM for Excel UTF-8
+    } catch (error) {
+      logger.error('Error exporting research data:', error);
+      res.status(500).json({ error: 'Failed to export data' });
+    }
+  });
+
+  // Randomize case presentation order
+  app.post('/api/research/randomize', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const studyId = typeof req.body?.studyId === 'string' ? req.body.studyId : undefined;
+      const count = await storage.randomizeReviewOrder(studyId);
+      res.json({ randomized: count });
+    } catch (error) {
+      logger.error('Error randomizing review order:', error);
+      res.status(500).json({ error: 'Failed to randomize' });
+    }
+  });
+
+  // Studies CRUD
+  app.get('/api/studies', isAuthenticated, requireAdmin, async (_req, res) => {
+    try {
+      res.json(await storage.getStudies());
+    } catch (error) {
+      logger.error('Error fetching studies:', error);
+      res.status(500).json({ error: 'Failed to fetch studies' });
+    }
+  });
+
+  app.post('/api/studies', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const data = insertStudySchema.parse(req.body);
+      const study = await storage.createStudy(data, req.user.id);
+      res.json(study);
+    } catch (error: any) {
+      if (error?.name === 'ZodError') {
+        return res.status(400).json({ error: 'Invalid study data', details: error.errors });
+      }
+      logger.error('Error creating study:', error);
+      res.status(500).json({ error: 'Failed to create study' });
+    }
+  });
+
+  app.patch('/api/studies/:id', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const data = updateStudySchema.parse(req.body);
+      const study = await storage.updateStudy(req.params.id, data);
+      if (!study) {
+        return res.status(404).json({ error: 'Study not found' });
+      }
+      res.json(study);
+    } catch (error: any) {
+      if (error?.name === 'ZodError') {
+        return res.status(400).json({ error: 'Invalid study data', details: error.errors });
+      }
+      logger.error('Error updating study:', error);
+      res.status(500).json({ error: 'Failed to update study' });
     }
   });
 

@@ -38,6 +38,7 @@ import {
   Bell,
   BarChart3,
   Stethoscope,
+  FlaskConical,
   Menu,
 } from 'lucide-react';
 import { getCsrfHeaders, queryClient } from '@/lib/queryClient';
@@ -74,6 +75,7 @@ export default function Header() {
     navigation.push({ name: 'Admin', href: '/admin', icon: Shield });
     navigation.push({ name: 'Analytics', href: '/analytics', icon: BarChart3 });
     navigation.push({ name: 'Dermatologist Review', href: '/dermatologist', icon: Stethoscope });
+    navigation.push({ name: 'Research', href: '/research-analytics', icon: FlaskConical });
   }
 
   if (!isAuthenticated) {

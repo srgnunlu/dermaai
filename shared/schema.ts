@@ -18,6 +18,9 @@ const durationOptions = [
 const statusOptions = ['pending', 'analyzing', 'completed', 'failed'] as const;
 const analysisProviderOptions = ['gemini', 'openai'] as const;
 const trackingStatusOptions = ['monitoring', 'resolved', 'urgent'] as const;
+const goldStandardSourceOptions = ['biopsy', 'clinical', 'followup'] as const;
+const reviewStatusOptions = ['pending', 'in_progress', 'completed', 'skipped'] as const;
+const studyStatusOptions = ['draft', 'active', 'completed', 'archived'] as const;
 
 const optionalText = (max: number) => z.string().trim().max(max).nullable().optional();
 const requiredText = (max: number) => z.string().trim().min(1).max(max);
@@ -149,6 +152,14 @@ export const cases = pgTable(
     dermatologistNotes: text('dermatologist_notes'),
     dermatologistDiagnosedBy: varchar('dermatologist_diagnosed_by').references(() => users.id),
     dermatologistDiagnosedAt: timestamp('dermatologist_diagnosed_at'),
+    // Research: gold standard (ground truth) diagnosis for accuracy analysis
+    goldStandardDiagnosis: text('gold_standard_diagnosis'),
+    goldStandardIcd10: text('gold_standard_icd10'),
+    goldStandardSource: text('gold_standard_source'), // 'biopsy' | 'clinical' | 'followup'
+    goldStandardDate: timestamp('gold_standard_date'),
+    // Research: study assignment + randomized presentation order
+    studyId: varchar('study_id'),
+    reviewOrder: integer('review_order'),
     status: text('status').default('pending'),
     selectedAnalysisProvider: text('selected_analysis_provider').default('gemini'), // 'gemini' | 'openai'
     isHidden: jsonb('is_hidden').default(false).$type<boolean>(), // Hidden from history when anonymization is enabled
@@ -460,3 +471,105 @@ export const insertPushTokenSchema = createInsertSchema(pushTokens).omit({
 
 export type InsertPushToken = z.infer<typeof insertPushTokenSchema>;
 export type PushToken = typeof pushTokens.$inferSelect;
+
+// ============================================
+// RESEARCH: Studies & Multi-reviewer reviews
+// ============================================
+
+// A research study groups cases and defines inclusion criteria.
+export const studies = pgTable(
+  'studies',
+  {
+    id: varchar('id')
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    name: text('name').notNull(),
+    description: text('description'),
+    inclusionCriteria: text('inclusion_criteria'),
+    status: text('status').default('draft'), // draft | active | completed | archived
+    createdBy: varchar('created_by').references(() => users.id),
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow(),
+  },
+  (table) => [
+    index('idx_studies_status').on(table.status),
+    index('idx_studies_created_by').on(table.createdBy),
+  ]
+);
+
+// Per-reviewer structured diagnosis for a case (replaces the single
+// dermatologistDiagnosis field; multiple experts can each review a case).
+export const dermatologistReviews = pgTable(
+  'dermatologist_reviews',
+  {
+    id: varchar('id')
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    caseId: varchar('case_id')
+      .notNull()
+      .references(() => cases.id, { onDelete: 'cascade' }),
+    reviewerId: varchar('reviewer_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    studyId: varchar('study_id').references(() => studies.id, { onDelete: 'set null' }),
+    structuredDiagnosis: text('structured_diagnosis'), // controlled-list diagnosis name
+    icd10Code: text('icd10_code'),
+    freeTextDiagnosis: text('free_text_diagnosis'), // optional fallback / clarification
+    confidenceScore: integer('confidence_score'), // 1-5 Likert
+    notes: text('notes'),
+    status: text('status').default('pending').notNull(), // pending | in_progress | completed | skipped
+    reviewOrder: integer('review_order'), // randomized presentation order for this reviewer
+    startedAt: timestamp('started_at'),
+    completedAt: timestamp('completed_at'),
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow(),
+  },
+  (table) => [
+    index('idx_derm_reviews_case').on(table.caseId),
+    index('idx_derm_reviews_reviewer').on(table.reviewerId),
+    index('idx_derm_reviews_status').on(table.status),
+    index('idx_derm_reviews_case_reviewer').on(table.caseId, table.reviewerId),
+  ]
+);
+
+export const insertStudySchema = createInsertSchema(studies)
+  .omit({ id: true, createdBy: true, createdAt: true, updatedAt: true })
+  .extend({
+    name: requiredText(160),
+    description: optionalText(2000),
+    inclusionCriteria: optionalText(2000),
+    status: z.enum(studyStatusOptions).optional(),
+  });
+
+export const updateStudySchema = z.object({
+  name: z.string().trim().min(1).max(160).optional(),
+  description: optionalText(2000),
+  inclusionCriteria: optionalText(2000),
+  status: z.enum(studyStatusOptions).optional(),
+});
+
+// Save a structured review. Diagnosis is required when completing.
+export const submitReviewSchema = z.object({
+  caseId: requiredText(128),
+  studyId: z.string().trim().max(128).nullable().optional(),
+  structuredDiagnosis: optionalText(200),
+  icd10Code: optionalText(20),
+  freeTextDiagnosis: optionalText(1000),
+  confidenceScore: z.number().int().min(1).max(5).nullable().optional(),
+  notes: optionalText(2000),
+  status: z.enum(reviewStatusOptions).default('completed'),
+});
+
+export const updateGoldStandardSchema = z.object({
+  goldStandardDiagnosis: optionalText(200),
+  goldStandardIcd10: optionalText(20),
+  goldStandardSource: z.enum(goldStandardSourceOptions).or(z.literal('')).nullable().optional(),
+  goldStandardDate: z.coerce.date().nullable().optional(),
+});
+
+export type Study = typeof studies.$inferSelect;
+export type InsertStudy = z.infer<typeof insertStudySchema>;
+export type UpdateStudy = z.infer<typeof updateStudySchema>;
+export type DermatologistReview = typeof dermatologistReviews.$inferSelect;
+export type SubmitReview = z.infer<typeof submitReviewSchema>;
+export type UpdateGoldStandard = z.infer<typeof updateGoldStandardSchema>;

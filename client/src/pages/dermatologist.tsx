@@ -18,7 +18,9 @@ import {
   Loader2,
   EyeOff,
   Search,
+  ArrowLeft,
 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { Case, DermatologistReview } from '@shared/schema';
 import type { ReviewStatus } from '@shared/dermatology-diagnoses';
 import SiteFooter from '@/components/SiteFooter';
@@ -55,6 +57,7 @@ function statusOf(c: ReviewCase): ReviewStatus {
 export default function DermatologistPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [diagnosisName, setDiagnosisName] = useState<string | null>(null);
   const [icd10, setIcd10] = useState<string | null>(null);
@@ -192,8 +195,12 @@ export default function DermatologistPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            {/* Cases List */}
-            <div className="lg:col-span-2 space-y-3">
+            {/* Cases List — hidden on mobile once a case is open (full-screen detail) */}
+            <div
+              className={`lg:col-span-2 space-y-3 ${
+                isMobile && selectedCase ? 'hidden' : ''
+              }`}
+            >
               <div className="space-y-3 lg:max-h-[78vh] overflow-y-auto pr-1">
                 {filtered.map((caseItem) => {
                   const st = statusOf(caseItem);
@@ -242,10 +249,23 @@ export default function DermatologistPage() {
               </div>
             </div>
 
-            {/* Detail + review form */}
-            <div className="lg:col-span-3">
+            {/* Detail + review form — hidden on mobile until a case is picked */}
+            <div
+              className={`lg:col-span-3 ${
+                isMobile && !selectedCase ? 'hidden' : ''
+              }`}
+            >
               {selectedCase ? (
                 <Card className="glass-card-light lg:sticky lg:top-6">
+                  {/* Mobile back navigation to the case list */}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCaseId(null)}
+                    className="lg:hidden flex items-center gap-1.5 px-6 pt-5 text-sm font-medium text-primary"
+                    data-testid="back-to-cases"
+                  >
+                    <ArrowLeft className="h-4 w-4" /> Back to cases
+                  </button>
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between gap-2">
                       <span className="text-lg">Case {selectedCase.caseId}</span>

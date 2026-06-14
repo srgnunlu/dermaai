@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
   SelectContent,
@@ -77,6 +78,7 @@ export default function SettingsPage() {
       toast({
         title: 'Settings saved',
         description: 'Your preferences have been updated successfully.',
+        variant: 'success',
       });
     },
     onError: (error: any) => {
@@ -110,11 +112,19 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading settings...</p>
-        </div>
+      <div className="min-h-screen bg-background">
+        <main className="container mx-auto px-4 py-8">
+          <div className="mx-auto max-w-4xl space-y-6">
+            <Skeleton className="h-9 w-48" />
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="space-y-3 rounded-xl border border-border p-6">
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+            ))}
+          </div>
+        </main>
       </div>
     );
   }

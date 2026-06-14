@@ -83,11 +83,13 @@ export default function DiagnosisPage() {
         toast({
           title: 'Partial Analysis',
           description: msgs,
+          variant: 'info',
         });
       } else {
         toast({
           title: 'Analysis Complete',
           description: 'AI models have successfully analyzed the case.',
+          variant: 'success',
         });
       }
     },
@@ -169,6 +171,7 @@ export default function DiagnosisPage() {
       toast({
         title: 'Generating Report',
         description: 'Please wait while we generate your PDF report...',
+        variant: 'info',
       });
 
       const response = await fetch(`/api/cases/${analysisResult.id}/report`, {
@@ -191,6 +194,7 @@ export default function DiagnosisPage() {
         toast({
           title: 'Report Downloaded',
           description: `Medical report for case ${analysisResult.caseId} has been downloaded.`,
+          variant: 'success',
         });
       } else {
         throw new Error('Failed to generate report');

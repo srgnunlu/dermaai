@@ -21,7 +21,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import { History, Eye, FileText, Download, Search, ImageIcon, ChevronRight } from 'lucide-react';
+import { History, Eye, FileText, Download, Search, ImageIcon, ChevronRight, Plus } from 'lucide-react';
+import { EmptyState } from '@/components/EmptyState';
 import { useToast } from '@/hooks/use-toast';
 import type { Case } from '@shared/schema';
 import { getCsrfHeaders } from '@/lib/queryClient';
@@ -211,14 +212,20 @@ export function CaseHistory({ compact = false, limit = 6 }: CaseHistoryProps) {
 
         <CardContent className="p-6">
           {visibleCases.length === 0 ? (
-            <div className="py-12 text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                <History className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <p className="text-muted-foreground">
-                {cases.length === 0 ? 'No cases yet' : 'No cases match your search'}
-              </p>
-            </div>
+            cases.length === 0 ? (
+              <EmptyState
+                icon={History}
+                title="No cases yet"
+                description="Once you analyze a skin image, your cases will appear here for review and reporting."
+                action={{ label: 'Start a diagnosis', href: '/diagnosis', icon: Plus }}
+              />
+            ) : (
+              <EmptyState
+                icon={Search}
+                title="No matching cases"
+                description="No cases match your current search or filter. Try a different term or clear the filter."
+              />
+            )
           ) : (
             <div
               className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
@@ -239,6 +246,8 @@ export function CaseHistory({ compact = false, limit = 6 }: CaseHistoryProps) {
                         <img
                           src={thumb}
                           alt={`Case ${caseRecord.caseId}`}
+                          loading="lazy"
+                          decoding="async"
                           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                       ) : (
@@ -385,6 +394,8 @@ export function CaseHistory({ compact = false, limit = 6 }: CaseHistoryProps) {
                       key={i}
                       src={url as string}
                       alt={`Case image ${i + 1}`}
+                      loading="lazy"
+                      decoding="async"
                       className="h-28 w-28 rounded-lg border border-border object-cover"
                     />
                   ))}

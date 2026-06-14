@@ -139,7 +139,7 @@ export default function ResearchAnalyticsPage() {
     try {
       const res = await apiRequest('POST', '/api/research/randomize', { studyId });
       const { randomized } = await res.json();
-      toast({ title: 'Randomized', description: `${randomized} cases assigned a review order.` });
+      toast({ title: 'Randomized', description: `${randomized} cases assigned a review order.`, variant: 'info' });
     } catch {
       toast({ title: 'Randomization failed', variant: 'destructive' });
     }

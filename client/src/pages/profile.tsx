@@ -107,6 +107,7 @@ export default function ProfilePage() {
       toast({
         title: 'Profile updated',
         description: 'Your profile has been successfully updated.',
+        variant: 'success',
       });
       setIsEditing(false);
     },

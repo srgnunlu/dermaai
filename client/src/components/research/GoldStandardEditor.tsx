@@ -56,7 +56,7 @@ export default function GoldStandardEditor() {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/cases'] });
       queryClient.invalidateQueries({ queryKey: ['/api/research/analytics'] });
       queryClient.invalidateQueries({ queryKey: ['/api/research/pool-status'] });
-      toast({ title: 'Gold standard saved' });
+      toast({ title: 'Gold standard saved', variant: 'success' });
     },
     onError: () => toast({ title: 'Error', description: 'Could not save gold standard.', variant: 'destructive' }),
   });

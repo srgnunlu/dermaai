@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -109,6 +110,7 @@ export default function DermatologistPage() {
           status === 'completed'
             ? 'Your structured review has been recorded.'
             : 'Your changes were saved.',
+        variant: status === 'completed' ? 'success' : 'info',
       });
       if (status === 'completed' || status === 'skipped') {
         setSelectedCaseId(null);
@@ -190,8 +192,15 @@ export default function DermatologistPage() {
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-16 text-muted-foreground">
-            <Loader2 className="h-6 w-6 animate-spin mr-2" /> Loading cases...
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+            <div className="space-y-3 lg:col-span-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-24 w-full rounded-xl" />
+              ))}
+            </div>
+            <div className="hidden lg:col-span-3 lg:block">
+              <Skeleton className="h-96 w-full rounded-xl" />
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -331,6 +340,8 @@ export default function DermatologistPage() {
                             <img
                               src={url}
                               alt={`Lesion ${i + 1}`}
+                              loading="lazy"
+                              decoding="async"
                               className="w-full h-full object-cover hover:scale-105 transition-transform"
                             />
                           </a>

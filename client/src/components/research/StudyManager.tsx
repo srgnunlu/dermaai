@@ -57,7 +57,7 @@ export default function StudyManager({ selectedStudyId, onSelectStudy }: StudyMa
       setDescription('');
       setCriteria('');
       setShowForm(false);
-      toast({ title: 'Study created' });
+      toast({ title: 'Study created', variant: 'success' });
     },
     onError: () => toast({ title: 'Error', description: 'Could not create study.', variant: 'destructive' }),
   });

@@ -66,6 +66,27 @@ function buildSignedLocalFileUrl(req: any, filePath: string): string {
   return `${getRequestBaseUrl(req)}/files/${filePath}?token=${encodeURIComponent(token)}`;
 }
 
+// Retry a transient DB operation a few times. Neon (serverless Postgres) can
+// drop the first query after the compute has been idle/scaled to zero, which
+// previously surfaced as an intermittent "Analysis failed" until the user retried.
+async function withDbRetry<T>(operation: () => Promise<T>, label: string, maxAttempts = 3): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      logger.warn(`[DB] ${label} failed (attempt ${attempt}/${maxAttempts})`, {
+        message: error instanceof Error ? error.message : String(error),
+      });
+      if (attempt < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 400 * attempt));
+      }
+    }
+  }
+  throw lastError;
+}
+
 async function saveImageBuffer(req: any, buffer: Buffer, providedMimeType?: string) {
   const imageType = validateImageUploadBuffer(buffer, providedMimeType);
   const filename = buildImageFilename(imageType.extension);
@@ -698,7 +719,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         imageUrls: imageUrls, // Store all URLs
       };
 
-      const newCase = await storage.createCase(caseDataToStore, userId);
+      const newCase = await withDbRetry(
+        () => storage.createCase(caseDataToStore, userId),
+        'createCase'
+      );
 
       // Start AI analysis in parallel
       const symptomsString = Array.isArray(caseData.symptoms)
@@ -883,13 +907,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Each AI's results will be displayed separately in the UI
 
       // Update case with analysis results
-      const updatedCase = await storage.updateCase(newCase.id, userId, {
-        geminiAnalysis,
-        openaiAnalysis,
-        claudeAnalysis,
-        finalDiagnoses: null, // No longer combining results
-        status: 'completed',
-      });
+      const updatedCase = await withDbRetry(
+        () =>
+          storage.updateCase(newCase.id, userId, {
+            geminiAnalysis,
+            openaiAnalysis,
+            claudeAnalysis,
+            finalDiagnoses: null, // No longer combining results
+            status: 'completed',
+          }),
+        'updateCase'
+      );
 
       // Send push notification if user has registered tokens
       try {

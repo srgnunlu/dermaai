@@ -174,6 +174,9 @@ export function PatientForm({
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
   const [imageError, setImageError] = useState(false);
+  // True while at least one lesion image is still being uploaded — blocks Analyze
+  // so we never submit a case whose image URLs are not yet persisted server-side.
+  const [isUploading, setIsUploading] = useState(false);
 
   const {
     control,
@@ -207,6 +210,8 @@ export function PatientForm({
       if (!ok) return;
     }
     if (step === 3) {
+      // Don't let the user move past the image step while an upload is still running.
+      if (isUploading) return;
       if (uploadedImages.length === 0) {
         setImageError(true);
         return;
@@ -223,6 +228,12 @@ export function PatientForm({
   }, []);
 
   const submitForm = handleSubmit((values) => {
+    // Guard against submitting while an image upload is still in flight.
+    if (isUploading) {
+      setDirection(-1);
+      setStep(3);
+      return;
+    }
     if (uploadedImages.length === 0) {
       setImageError(true);
       setDirection(-1);
@@ -275,6 +286,7 @@ export function PatientForm({
                       onImagesUploaded(urls);
                       if (urls.length > 0) setImageError(false);
                     }}
+                    onUploadingChange={setIsUploading}
                     showError={imageError}
                   />
                 )}
@@ -305,17 +317,17 @@ export function PatientForm({
               <Button
                 type="button"
                 onClick={goNext}
-                disabled={isLoading}
+                disabled={isLoading || (step === 3 && isUploading)}
                 className="gap-1.5 bg-gradient-to-r from-[#0891B2] to-[#14B8A6] text-white shadow-md shadow-primary/25 hover:opacity-95"
                 data-testid="button-wizard-next"
               >
-                Next
+                {step === 3 && isUploading ? 'Uploading...' : 'Next'}
                 <ChevronRight className="h-4 w-4" />
               </Button>
             ) : (
               <Button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || isUploading}
                 className="gap-2 bg-gradient-to-r from-[#0891B2] to-[#14B8A6] text-white shadow-md shadow-primary/25 hover:opacity-95"
                 data-testid="button-analyze"
               >
@@ -646,10 +658,12 @@ function StepSymptoms({ control, watch }: { control: ControlType; watch: WatchTy
 function StepImages({
   uploadedImages,
   onImagesUploaded,
+  onUploadingChange,
   showError,
 }: {
   uploadedImages: string[];
   onImagesUploaded: (urls: string[]) => void;
+  onUploadingChange: (uploading: boolean) => void;
   showError: boolean;
 }) {
   return (
@@ -659,7 +673,12 @@ function StepImages({
         title="Lesion Images"
         hint="Capture or upload 1–3 clear photos of the lesion."
       />
-      <ImageUpload onImagesUploaded={onImagesUploaded} uploadedImages={uploadedImages} embedded />
+      <ImageUpload
+        onImagesUploaded={onImagesUploaded}
+        uploadedImages={uploadedImages}
+        onUploadingChange={onUploadingChange}
+        embedded
+      />
       {showError && (
         <p className="mt-3 text-sm font-medium text-destructive" data-testid="error-image-required">
           At least one lesion image is required to continue.

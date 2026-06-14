@@ -11,15 +11,19 @@ interface ImageUploadProps {
   uploadedImages?: string[];
   /** When true, render without the outer Card (used inside the wizard). */
   embedded?: boolean;
+  /** Notifies the parent while an upload is in flight, so it can block "Analyze". */
+  onUploadingChange?: (uploading: boolean) => void;
 }
 
 const MAX_IMAGES = 3;
 const MAX_SIZE_BYTES = 10 * 1024 * 1024;
+const UPLOAD_MAX_ATTEMPTS = 3;
 
 export function ImageUpload({
   onImagesUploaded,
   uploadedImages = [],
   embedded = false,
+  onUploadingChange,
 }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -33,6 +37,11 @@ export function ImageUpload({
   useEffect(() => {
     currentUrlsRef.current = previewUrls;
   }, [previewUrls]);
+
+  // Keep the parent in sync with upload progress so it can gate the Analyze action.
+  useEffect(() => {
+    onUploadingChange?.(isUploading);
+  }, [isUploading, onUploadingChange]);
 
   const uploadFilesSequentially = useCallback(
     async (files: File[]): Promise<string[]> => {
@@ -65,30 +74,43 @@ export function ImageUpload({
           break;
         }
 
-        try {
-          const formData = new FormData();
-          formData.append('file', file);
-          const response = await fetch('/api/upload', {
-            method: 'POST',
-            headers: await getCsrfHeaders(),
-            body: formData,
-            credentials: 'include',
-          });
-          if (!response.ok) throw new Error('Failed to upload file');
-          const { url } = await response.json();
-          uploadedUrls.push(url);
-          setPreviewUrls([...uploadedUrls]);
-        } catch (error) {
-          console.error(`Upload error for ${file.name}:`, error);
+        // Retry transient upload failures (cold server, flaky network) before giving up.
+        let uploaded = false;
+        let lastError: unknown = null;
+        for (let attempt = 1; attempt <= UPLOAD_MAX_ATTEMPTS && !uploaded; attempt++) {
+          try {
+            const formData = new FormData();
+            formData.append('file', file);
+            const response = await fetch('/api/upload', {
+              method: 'POST',
+              headers: await getCsrfHeaders(),
+              body: formData,
+              credentials: 'include',
+            });
+            if (!response.ok) throw new Error(`Upload failed with status ${response.status}`);
+            const { url } = await response.json();
+            if (!url) throw new Error('Upload response missing file URL');
+            uploadedUrls.push(url);
+            setPreviewUrls([...uploadedUrls]);
+            uploaded = true;
+          } catch (error) {
+            lastError = error;
+            console.error(`Upload error for ${file.name} (attempt ${attempt}/${UPLOAD_MAX_ATTEMPTS}):`, error);
+            if (attempt < UPLOAD_MAX_ATTEMPTS) {
+              await new Promise((resolve) => setTimeout(resolve, 600 * attempt));
+            }
+          }
+        }
+        if (!uploaded) {
+          console.error(`Upload gave up for ${file.name}:`, lastError);
           toast({
             title: 'Upload failed',
             description: `Could not upload "${file.name}". Please try again.`,
             variant: 'destructive',
           });
-        } finally {
-          done += 1;
-          setProgress(Math.round((done / files.length) * 100));
         }
+        done += 1;
+        setProgress(Math.round((done / files.length) * 100));
       }
       return uploadedUrls;
     },

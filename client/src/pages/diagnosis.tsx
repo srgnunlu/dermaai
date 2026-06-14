@@ -29,6 +29,10 @@ export default function DiagnosisPage() {
 
   const analyzeMutation = useMutation({
     mutationFn: async (data: { patientData: PatientData; imageUrls: string[] }) => {
+      if (data.imageUrls.length === 0) {
+        throw new Error('Please upload at least one lesion image before analyzing.');
+      }
+
       // First create/get patient
       const patientResponse = await fetch('/api/patients', {
         method: 'POST',
@@ -54,18 +58,44 @@ export default function DiagnosisPage() {
         medicalHistory: data.patientData.medicalHistory,
       };
 
-      const analysisResponse = await fetch('/api/cases/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(await getCsrfHeaders()) },
-        body: JSON.stringify(caseData),
-        credentials: 'include',
-      });
+      // Retry the analyze call on transient server errors (e.g. DB cold-start / 5xx).
+      // The patient record is already created above, so retrying here does not
+      // duplicate it — only the idempotent analyze POST is repeated.
+      const MAX_ATTEMPTS = 3;
+      let lastError: Error | null = null;
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        const analysisResponse = await fetch('/api/cases/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(await getCsrfHeaders()) },
+          body: JSON.stringify(caseData),
+          credentials: 'include',
+        });
 
-      if (!analysisResponse.ok) {
-        throw new Error('Failed to analyze case');
+        if (analysisResponse.ok) {
+          return analysisResponse.json();
+        }
+
+        // Surface the server's message when available (e.g. subscription limit).
+        let serverMessage = '';
+        try {
+          const body = await analysisResponse.json();
+          serverMessage = body?.message || body?.error || '';
+        } catch {
+          // response had no JSON body
+        }
+
+        // 4xx are not retryable (bad input, subscription limit) — fail fast.
+        if (analysisResponse.status < 500) {
+          throw new Error(serverMessage || 'Failed to analyze case');
+        }
+
+        lastError = new Error(serverMessage || `Analysis failed (status ${analysisResponse.status})`);
+        if (attempt < MAX_ATTEMPTS) {
+          await new Promise((resolve) => setTimeout(resolve, 800 * attempt));
+        }
       }
 
-      return analysisResponse.json();
+      throw lastError ?? new Error('Failed to analyze case');
     },
     onSuccess: (data: Case) => {
       setAnalysisResult(data);
@@ -95,9 +125,13 @@ export default function DiagnosisPage() {
     },
     onError: (error) => {
       console.error('Analysis failed:', error);
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : 'Unable to complete the analysis. Please try again.';
       toast({
         title: 'Analysis Failed',
-        description: 'Unable to complete the analysis. Please try again.',
+        description: message,
         variant: 'destructive',
       });
     },
@@ -244,7 +278,7 @@ export default function DiagnosisPage() {
           <div className="mx-auto max-w-3xl">
             <PatientForm
               onSubmit={handleFormSubmit}
-              isLoading={false}
+              isLoading={analyzeMutation.isPending}
               uploadedImages={uploadedImageUrls}
               onImagesUploaded={setUploadedImageUrls}
             />

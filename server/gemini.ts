@@ -22,10 +22,11 @@ class GeminiAnalysisError extends Error {
   }
 }
 
-// the newest Gemini model is "gemini-3.1-pro-preview"; the old "gemini-3-pro-preview"
-// alias was shut down in 2026, so requests to it fail with NOT_FOUND.
+// Use the stable, generally-available "gemini-2.5-flash" model. Preview aliases
+// (e.g. gemini-3-pro-preview / gemini-3.1-pro-preview) get rotated/shut down and
+// then fail with NOT_FOUND. gemini-2.5-flash is a known-good vision-capable model.
 // Allow overriding via env without code changes.
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.1-pro-preview';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '',
 });

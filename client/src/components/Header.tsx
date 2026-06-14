@@ -123,7 +123,7 @@ export default function Header() {
                     <Microscope className="h-5 w-5" />
                   </span>
                   <span className="flex flex-col leading-tight">
-                    <span className="text-base font-semibold text-foreground">
+                    <span className="font-display text-base font-semibold tracking-tight text-foreground">
                       Corio<span className="text-primary"> Scan</span>
                     </span>
                     <span className="text-xs text-muted-foreground">AI-Powered Skin Analysis</span>
@@ -138,6 +138,7 @@ export default function Header() {
                     <Link key={item.name} href={item.href}>
                       <a
                         onClick={() => setMenuOpen(false)}
+                        aria-current={isActive ? 'page' : undefined}
                         className={`flex min-h-11 items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${
                           isActive
                             ? 'bg-primary text-primary-foreground shadow-md'
@@ -157,7 +158,7 @@ export default function Header() {
                     setMenuOpen(false);
                     setAlertsOpen(true);
                   }}
-                  className="flex min-h-11 items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  className="flex min-h-11 items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   data-testid="drawer-alerts"
                 >
                   <Bell className="h-5 w-5" />
@@ -178,7 +179,7 @@ export default function Header() {
                 <Microscope className="h-5 w-5" />
               </span>
               <span className="hidden flex-col leading-tight sm:flex">
-                <span className="text-lg font-semibold text-foreground">
+                <span className="font-display text-lg font-semibold tracking-tight text-foreground">
                   Corio<span className="text-primary"> Scan</span>
                 </span>
                 <span className="text-xs text-muted-foreground">AI-Powered Skin Analysis</span>
@@ -194,6 +195,7 @@ export default function Header() {
             return (
               <Link key={item.name} href={item.href}>
                 <a
+                  aria-current={isActive ? 'page' : undefined}
                   className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                     isActive
                       ? 'bg-primary text-primary-foreground shadow-md'

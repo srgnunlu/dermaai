@@ -1,0 +1,19 @@
+{
+  "pkg": "corioscan-ui",
+  "globalName": "CorioScan",
+  "shape": "package",
+  "buildCmd": "bash .design-sync/prebuild.sh",
+  "entry": ".design-sync/dslib/_ds_entry.tsx",
+  "srcDir": "../../client/src/components/ui",
+  "tsconfig": "../../tsconfig.json",
+  "cssEntry": "compiled.css",
+  "readmeHeader": ".design-sync/conventions.md",
+  "overrides": {
+    "Dialog": { "cardMode": "single", "viewport": "680x440" },
+    "AlertDialog": { "cardMode": "single", "viewport": "680x440" },
+    "DropdownMenu": { "cardMode": "single", "viewport": "360x420" },
+    "Popover": { "cardMode": "single", "viewport": "400x380" },
+    "Select": { "cardMode": "single", "viewport": "360x440" },
+    "Tooltip": { "cardMode": "single", "viewport": "340x220" }
+  }
+}

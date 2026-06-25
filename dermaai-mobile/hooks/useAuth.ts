@@ -109,6 +109,30 @@ export function useAuth() {
         },
     });
 
+    // App Review demo login (email + password). Backend only accepts the single
+    // pre-configured reviewer credential and is disabled in normal operation.
+    const demoLoginMutation = useMutation({
+        mutationFn: async (credentials: { email: string; password: string }) => {
+            const response = await fetch(`${API_BASE_URL}/api/auth/mobile/demo`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(credentials),
+            });
+
+            if (!response.ok) {
+                const authError = await response.json().catch(() => ({ error: 'Login failed' }));
+                throw new Error(authError.message || authError.error);
+            }
+
+            return response.json() as Promise<AuthResponse>;
+        },
+        onSuccess: async (data: AuthResponse) => {
+            await saveTokens(data.accessToken, data.refreshToken);
+            await saveUserData(data.user);
+            queryClient.setQueryData(['auth', 'user'], data.user);
+        },
+    });
+
     // Update profile mutation
     const updateProfileMutation = useMutation({
         mutationFn: async (profileData: UpdateProfileData) => {
@@ -155,8 +179,9 @@ export function useAuth() {
         // Google OAuth login
         loginWithGoogle: googleLoginMutation.mutateAsync,
         loginWithApple: appleLoginMutation.mutateAsync,
-        isLoggingIn: googleLoginMutation.isPending || appleLoginMutation.isPending,
-        loginError: googleLoginMutation.error || appleLoginMutation.error,
+        loginWithDemo: demoLoginMutation.mutateAsync,
+        isLoggingIn: googleLoginMutation.isPending || appleLoginMutation.isPending || demoLoginMutation.isPending,
+        loginError: googleLoginMutation.error || appleLoginMutation.error || demoLoginMutation.error,
 
         // Update profile
         updateProfile: updateProfileMutation.mutateAsync,

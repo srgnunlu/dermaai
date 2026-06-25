@@ -16,6 +16,9 @@ import {
     Easing,
     Dimensions,
     Platform,
+    Modal,
+    TextInput,
+    ActivityIndicator,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -103,10 +106,43 @@ export default function LoginScreen() {
     const colors = Colors[colorScheme];
     const router = useRouter();
     const { language, toggleLanguage } = useLanguage();
-    const { isAuthenticated, isLoggingIn, loginWithApple } = useAuth();
+    const { isAuthenticated, isLoggingIn, loginWithApple, loginWithDemo } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
     const [legalModalVisible, setLegalModalVisible] = useState(false);
     const [legalModalType, setLegalModalType] = useState<'privacy' | 'terms'>('privacy');
+
+    // Hidden App Review login (revealed by tapping the app name 7 times).
+    const reviewTapCount = useRef(0);
+    const [showReviewLogin, setShowReviewLogin] = useState(false);
+    const [reviewEmail, setReviewEmail] = useState('');
+    const [reviewPassword, setReviewPassword] = useState('');
+    const [reviewSubmitting, setReviewSubmitting] = useState(false);
+
+    const handleAppNameTap = () => {
+        reviewTapCount.current += 1;
+        if (reviewTapCount.current >= 7) {
+            reviewTapCount.current = 0;
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            setShowReviewLogin(true);
+        }
+    };
+
+    const handleReviewLogin = async () => {
+        if (!reviewEmail.trim() || !reviewPassword.trim()) return;
+        setReviewSubmitting(true);
+        try {
+            await loginWithDemo({ email: reviewEmail.trim(), password: reviewPassword });
+            setShowReviewLogin(false);
+            router.replace('/(tabs)');
+        } catch {
+            Alert.alert(
+                language === 'tr' ? 'Giriş Hatası' : 'Login Error',
+                language === 'tr' ? 'Geçersiz kimlik bilgileri.' : 'Invalid credentials.'
+            );
+        } finally {
+            setReviewSubmitting(false);
+        }
+    };
 
     // Animations
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -408,7 +444,7 @@ export default function LoginScreen() {
                         </BlurView>
                     </View>
 
-                    <Text style={styles.appName}>
+                    <Text style={styles.appName} onPress={handleAppNameTap} suppressHighlighting>
                         Corio<Text style={styles.appNameHighlight}> Scan</Text>
                     </Text>
 
@@ -573,6 +609,55 @@ export default function LoginScreen() {
                 type={legalModalType}
                 language={language}
             />
+
+            {/* Hidden App Review login modal */}
+            <Modal
+                visible={showReviewLogin}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowReviewLogin(false)}
+            >
+                <View style={styles.reviewOverlay}>
+                    <View style={styles.reviewCard}>
+                        <Text style={styles.reviewTitle}>App Review Sign-In</Text>
+                        <TextInput
+                            style={styles.reviewInput}
+                            placeholder="Email"
+                            placeholderTextColor="#94A3B8"
+                            value={reviewEmail}
+                            onChangeText={setReviewEmail}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            keyboardType="email-address"
+                        />
+                        <TextInput
+                            style={styles.reviewInput}
+                            placeholder="Password"
+                            placeholderTextColor="#94A3B8"
+                            value={reviewPassword}
+                            onChangeText={setReviewPassword}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            secureTextEntry
+                        />
+                        <TouchableOpacity
+                            style={styles.reviewButton}
+                            onPress={handleReviewLogin}
+                            disabled={reviewSubmitting}
+                            activeOpacity={0.8}
+                        >
+                            {reviewSubmitting ? (
+                                <ActivityIndicator color="#FFFFFF" />
+                            ) : (
+                                <Text style={styles.reviewButtonText}>Sign In</Text>
+                            )}
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => setShowReviewLogin(false)} activeOpacity={0.7}>
+                            <Text style={styles.reviewCancel}>Cancel</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </ImageBackground>
     );
 }
@@ -923,5 +1008,58 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: '#94A3B8',
         marginHorizontal: Spacing.sm,
+    },
+
+    // App Review login modal
+    reviewOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: Spacing.xl,
+    },
+    reviewCard: {
+        width: '100%',
+        maxWidth: 360,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
+        padding: Spacing.xl,
+        gap: Spacing.md,
+    },
+    reviewTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#0F172A',
+        textAlign: 'center',
+        marginBottom: Spacing.sm,
+    },
+    reviewInput: {
+        height: 50,
+        borderWidth: 1,
+        borderColor: '#CBD5E1',
+        borderRadius: 12,
+        paddingHorizontal: Spacing.md,
+        fontSize: 16,
+        color: '#0F172A',
+        backgroundColor: '#F8FAFC',
+    },
+    reviewButton: {
+        height: 50,
+        borderRadius: 12,
+        backgroundColor: '#0891B2',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: Spacing.sm,
+    },
+    reviewButtonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    reviewCancel: {
+        color: '#64748B',
+        fontSize: 14,
+        textAlign: 'center',
+        paddingVertical: Spacing.sm,
     },
 });

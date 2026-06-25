@@ -142,8 +142,6 @@ function RootLayoutNav() {
 
     const inAuthGroup = segments[0] === '(auth)';
 
-    console.log('[AuthDebug]', { isAuthenticated, inAuthGroup, path: segments.join('/') });
-
     if (!isAuthenticated && !inAuthGroup) {
       // Redirect to login if not authenticated
       router.replace('/(auth)/login');
@@ -178,7 +176,6 @@ function RootLayoutNav() {
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data;
-      console.log('[Notification] Tapped:', data);
 
       // Navigate to results page if caseId is present
       if (data?.caseId && isAuthenticated) {

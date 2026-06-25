@@ -154,19 +154,13 @@ export default function ProfileScreen() {
 
         try {
             // Upload image to server
-            console.log('[Profile] Uploading image...');
             const uploadResult = await api.uploadImage(base64Data, `profile-${user?.id}-${Date.now()}.jpg`);
-            console.log('[Profile] Image uploaded, URL:', uploadResult.url);
 
             // Update profile with new photo URL
-            console.log('[Profile] Updating profile with new photo URL...');
             await updateProfile({ profileImageUrl: uploadResult.url });
-            console.log('[Profile] Profile updated');
 
             // Refetch user data to ensure UI updates
-            console.log('[Profile] Refetching user data...');
             await refetch();
-            console.log('[Profile] User refetched, new profileImageUrl:', user?.profileImageUrl);
 
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             Alert.alert(

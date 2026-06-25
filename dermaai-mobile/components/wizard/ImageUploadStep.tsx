@@ -41,6 +41,7 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MAX_IMAGES, IMAGE_QUALITY } from '@/constants/Config';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { showPermissionDeniedAlert } from '@/utils/permissions';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -170,10 +171,7 @@ export function ImageUploadStep({
     const requestCameraPermission = async () => {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert(
-                Translations.cameraPermissionRequired[language],
-                language === 'tr' ? 'Kamera kullanmak için izin vermeniz gerekmektedir.' : 'Permission is required to use the camera.'
-            );
+            showPermissionDeniedAlert(language, 'camera');
             return false;
         }
         return true;
@@ -182,7 +180,7 @@ export function ImageUploadStep({
     const requestGalleryPermission = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert('İzin Gerekli', 'Galeri erişimi için izin vermeniz gerekmektedir.');
+            showPermissionDeniedAlert(language, 'photos');
             return false;
         }
         return true;
@@ -191,7 +189,9 @@ export function ImageUploadStep({
     // Take photo
     const handleTakePhoto = useCallback(async () => {
         if (images.length >= MAX_IMAGES) {
-            Alert.alert('Limit', `En fazla ${MAX_IMAGES} görsel ekleyebilirsiniz.`);
+            Alert.alert('Limit', language === 'tr'
+                ? `En fazla ${MAX_IMAGES} görsel ekleyebilirsiniz.`
+                : `You can add up to ${MAX_IMAGES} images.`);
             return;
         }
 
@@ -213,14 +213,18 @@ export function ImageUploadStep({
                 onImagesChange([...images, result.assets[0].uri]);
             }
         } catch (error) {
-            Alert.alert('Hata', 'Fotoğraf çekilirken bir hata oluştu.');
+            Alert.alert(language === 'tr' ? 'Hata' : 'Error', language === 'tr'
+                ? 'Fotoğraf çekilirken bir hata oluştu.'
+                : 'An error occurred while taking the photo.');
         }
-    }, [images, onImagesChange]);
+    }, [images, onImagesChange, language]);
 
     // Pick from gallery
     const handlePickFromGallery = useCallback(async () => {
         if (images.length >= MAX_IMAGES) {
-            Alert.alert('Limit', `En fazla ${MAX_IMAGES} görsel ekleyebilirsiniz.`);
+            Alert.alert('Limit', language === 'tr'
+                ? `En fazla ${MAX_IMAGES} görsel ekleyebilirsiniz.`
+                : `You can add up to ${MAX_IMAGES} images.`);
             return;
         }
 
@@ -243,9 +247,11 @@ export function ImageUploadStep({
                 onImagesChange([...images, ...newImages].slice(0, MAX_IMAGES));
             }
         } catch (error) {
-            Alert.alert('Hata', 'Görsel seçilirken bir hata oluştu.');
+            Alert.alert(language === 'tr' ? 'Hata' : 'Error', language === 'tr'
+                ? 'Görsel seçilirken bir hata oluştu.'
+                : 'An error occurred while selecting the image.');
         }
-    }, [images, onImagesChange]);
+    }, [images, onImagesChange, language]);
 
     const handleRemoveImage = useCallback((index: number) => {
         const newImages = [...images];

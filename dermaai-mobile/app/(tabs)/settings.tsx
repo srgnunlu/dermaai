@@ -530,6 +530,7 @@ export default function SettingsScreen() {
                                     title={language === 'tr' ? 'Hesabı Sil' : 'Delete Account'}
                                     titleColor="#EF4444"
                                     onPress={handleDeleteAccount}
+                                    loading={isDeletingAccount}
                                 />
                             </GlassCard>
                         </View>
@@ -742,19 +743,23 @@ function SettingActionRow({
     title,
     titleColor,
     onPress,
+    loading = false,
 }: {
     icon: React.ReactNode;
     title: string;
     titleColor?: string;
     onPress: () => void;
+    loading?: boolean;
 }) {
     return (
         <TouchableOpacity
             style={styles.settingRow}
             onPress={onPress}
             activeOpacity={0.7}
+            disabled={loading}
             accessibilityRole="button"
             accessibilityLabel={title}
+            accessibilityState={{ disabled: loading, busy: loading }}
         >
             <View style={styles.settingIconContainer}>
                 {icon}
@@ -762,7 +767,11 @@ function SettingActionRow({
             <View style={styles.settingText}>
                 <Text style={[styles.settingTitle, titleColor ? { color: titleColor } : null]}>{title}</Text>
             </View>
-            <ChevronRight size={20} color="#94A3B8" />
+            {loading ? (
+                <ActivityIndicator size="small" color={titleColor ?? '#94A3B8'} />
+            ) : (
+                <ChevronRight size={20} color="#94A3B8" />
+            )}
         </TouchableOpacity>
     );
 }

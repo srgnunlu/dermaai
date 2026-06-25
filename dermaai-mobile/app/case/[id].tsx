@@ -195,7 +195,12 @@ export default function CaseDetailScreen() {
                 title: language === 'tr' ? 'Corio Scan Farkındalık Raporu' : 'Corio Scan Awareness Report',
             });
         } catch (error) {
-            console.error('Share Error:', error);
+            Alert.alert(
+                language === 'tr' ? 'Hata' : 'Error',
+                language === 'tr'
+                    ? 'Paylaşım sırasında bir hata oluştu.'
+                    : 'An error occurred while sharing.'
+            );
         }
     };
 

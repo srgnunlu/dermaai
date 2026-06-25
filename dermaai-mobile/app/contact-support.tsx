@@ -10,11 +10,14 @@ import { Colors } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
 import { Spacing } from '@/constants/Spacing';
 import { useColorScheme } from '@/components/useColorScheme';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardHeader, CardContent, Button, Input, TextArea } from '@/components/ui';
 
 export default function ContactSupportScreen() {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
+    const { language } = useLanguage();
+    const isTr = language === 'tr';
 
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -23,12 +26,12 @@ export default function ContactSupportScreen() {
 
     const handleSubmit = async () => {
         if (!name.trim() || !email.trim() || !message.trim()) {
-            Alert.alert('Hata', 'Lütfen tüm alanları doldurun.');
+            Alert.alert(isTr ? 'Hata' : 'Error', isTr ? 'Lütfen tüm alanları doldurun.' : 'Please fill in all fields.');
             return;
         }
 
-        const subject = encodeURIComponent(`Corio Scan Destek - ${name.trim()}`);
-        const body = encodeURIComponent(`Ad: ${name.trim()}\nE-posta: ${email.trim()}\n\n${message.trim()}`);
+        const subject = encodeURIComponent(`Corio Scan ${isTr ? 'Destek' : 'Support'} - ${name.trim()}`);
+        const body = encodeURIComponent(`${isTr ? 'Ad' : 'Name'}: ${name.trim()}\n${isTr ? 'E-posta' : 'Email'}: ${email.trim()}\n\n${message.trim()}`);
         const url = `mailto:destek@corioscan.com?subject=${subject}&body=${body}`;
         setIsSubmitting(true);
         try {
@@ -38,7 +41,10 @@ export default function ContactSupportScreen() {
             }
             await Linking.openURL(url);
         } catch {
-            Alert.alert('E-posta Uygulaması Bulunamadı', 'Lütfen destek@corioscan.com adresine e-posta gönderin.');
+            Alert.alert(
+                isTr ? 'E-posta Uygulaması Bulunamadı' : 'No Email App Found',
+                isTr ? 'Lütfen destek@corioscan.com adresine e-posta gönderin.' : 'Please email destek@corioscan.com directly.'
+            );
         } finally {
             setIsSubmitting(false);
         }
@@ -50,7 +56,7 @@ export default function ContactSupportScreen() {
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
-            <Stack.Screen options={{ title: 'Destek' }} />
+            <Stack.Screen options={{ title: isTr ? 'Destek' : 'Support' }} />
 
             <ScrollView
                 style={styles.scrollView}
@@ -64,10 +70,10 @@ export default function ContactSupportScreen() {
                         <HelpCircle size={32} color={colors.primary} />
                         <View style={styles.headerText}>
                             <Text style={[styles.headerTitle, { color: colors.primary }]}>
-                                Yardıma ihtiyacın var mı?
+                                {isTr ? 'Yardıma ihtiyacın var mı?' : 'Need help?'}
                             </Text>
                             <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-                                Size yardımcı olmaktan mutluluk duyarız
+                                {isTr ? 'Size yardımcı olmaktan mutluluk duyarız' : 'We are happy to help you'}
                             </Text>
                         </View>
                     </View>
@@ -75,12 +81,12 @@ export default function ContactSupportScreen() {
 
                 {/* Quick Contact Options */}
                 <Card>
-                    <CardHeader title="Hızlı İletişim" />
+                    <CardHeader title={isTr ? 'Hızlı İletişim' : 'Quick Contact'} />
                     <CardContent>
                         <View style={styles.contactOptions}>
                             <ContactButton
                                 icon={<Mail size={20} color={colors.primary} />}
-                                label="E-posta"
+                                label={isTr ? 'E-posta' : 'Email'}
                                 value="destek@corioscan.com"
                                 onPress={handleEmail}
                                 colors={colors}
@@ -92,27 +98,27 @@ export default function ContactSupportScreen() {
                 {/* Contact Form */}
                 <Card>
                     <CardHeader
-                        title="Mesaj Gönderin"
+                        title={isTr ? 'Mesaj Gönderin' : 'Send a Message'}
                         icon={<MessageCircle size={18} color={colors.primary} />}
                     />
                     <CardContent>
                         <Input
-                            label="Adınız"
-                            placeholder="Adınızı girin"
+                            label={isTr ? 'Adınız' : 'Your Name'}
+                            placeholder={isTr ? 'Adınızı girin' : 'Enter your name'}
                             value={name}
                             onChangeText={setName}
                         />
                         <Input
-                            label="E-posta"
-                            placeholder="E-posta adresinizi girin"
+                            label={isTr ? 'E-posta' : 'Email'}
+                            placeholder={isTr ? 'E-posta adresinizi girin' : 'Enter your email address'}
                             value={email}
                             onChangeText={setEmail}
                             keyboardType="email-address"
                             autoCapitalize="none"
                         />
                         <TextArea
-                            label="Mesajınız"
-                            placeholder="Nasıl yardımcı olabiliriz?"
+                            label={isTr ? 'Mesajınız' : 'Your Message'}
+                            placeholder={isTr ? 'Nasıl yardımcı olabiliriz?' : 'How can we help?'}
                             value={message}
                             onChangeText={setMessage}
                             numberOfLines={5}
@@ -125,28 +131,34 @@ export default function ContactSupportScreen() {
                             loading={isSubmitting}
                             style={{ marginTop: Spacing.sm }}
                         >
-                            Gönder
+                            {isTr ? 'Gönder' : 'Send'}
                         </Button>
                     </CardContent>
                 </Card>
 
                 {/* FAQ Section */}
                 <Card>
-                    <CardHeader title="Sık Sorulan Sorular" />
+                    <CardHeader title={isTr ? 'Sık Sorulan Sorular' : 'Frequently Asked Questions'} />
                     <CardContent>
                         <FAQItem
-                            question="AI analizi ne kadar güvenilir?"
-                            answer="Model güven skoru klinik doğruluk ölçüsü değildir. Sonuçlar farkındalık ve yardımcı ön değerlendirme amaçlıdır; sağlık kararları için dermatoloğa danışın."
+                            question={isTr ? 'AI analizi ne kadar güvenilir?' : 'How reliable is the AI analysis?'}
+                            answer={isTr
+                                ? 'Model güven skoru klinik doğruluk ölçüsü değildir. Sonuçlar farkındalık ve yardımcı ön değerlendirme amaçlıdır; sağlık kararları için dermatoloğa danışın.'
+                                : 'The model confidence score is not a measure of clinical accuracy. Results are for awareness and assisted preliminary assessment only; consult a dermatologist for health decisions.'}
                             colors={colors}
                         />
                         <FAQItem
-                            question="Verilerim güvende mi?"
-                            answer="Evet, tüm verileriniz şifreli olarak saklanır ve KVKK uyumlu şekilde işlenir."
+                            question={isTr ? 'Verilerim güvende mi?' : 'Is my data safe?'}
+                            answer={isTr
+                                ? 'Evet, tüm verileriniz şifreli olarak saklanır ve KVKK uyumlu şekilde işlenir.'
+                                : 'Yes, all your data is stored encrypted and processed in compliance with data protection regulations.'}
                             colors={colors}
                         />
                         <FAQItem
-                            question="Mobil uygulamayı nasıl güncellerim?"
-                            answer="App Store veya Google Play Store üzerinden otomatik güncellemeleri açabilir veya manuel olarak güncelleyebilirsiniz."
+                            question={isTr ? 'Mobil uygulamayı nasıl güncellerim?' : 'How do I update the mobile app?'}
+                            answer={isTr
+                                ? 'App Store veya Google Play Store üzerinden otomatik güncellemeleri açabilir veya manuel olarak güncelleyebilirsiniz.'
+                                : 'You can enable automatic updates or update manually via the App Store or Google Play Store.'}
                             colors={colors}
                             isLast
                         />

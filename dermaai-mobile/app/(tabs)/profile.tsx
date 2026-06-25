@@ -45,6 +45,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCases } from '@/hooks/useCases';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { showPermissionDeniedAlert } from '@/utils/permissions';
 import { api } from '@/lib/api';
 import {
     LoadingSpinner,
@@ -106,10 +107,7 @@ export default function ProfileScreen() {
     const pickFromGallery = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert(
-                Translations.error[language],
-                Translations.galleryPermissionRequired[language]
-            );
+            showPermissionDeniedAlert(language, 'photos');
             return;
         }
 
@@ -129,10 +127,7 @@ export default function ProfileScreen() {
     const takePhoto = async () => {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert(
-                Translations.error[language],
-                Translations.cameraPermissionRequired[language]
-            );
+            showPermissionDeniedAlert(language, 'camera');
             return;
         }
 

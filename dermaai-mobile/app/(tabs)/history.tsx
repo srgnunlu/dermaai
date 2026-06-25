@@ -269,8 +269,12 @@ export default function HistoryScreen() {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } catch (err) {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            Alert.alert(
+                language === 'tr' ? 'Hata' : 'Error',
+                language === 'tr' ? 'İşlem tamamlanamadı. Lütfen tekrar deneyin.' : 'Could not complete the action. Please try again.'
+            );
         }
-    }, [selectedCase, toggleFavorite]);
+    }, [selectedCase, toggleFavorite, language]);
 
     const handleOpenNoteModal = useCallback(() => {
         setContextMenuVisible(false);
@@ -289,8 +293,12 @@ export default function HistoryScreen() {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } catch (err) {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            Alert.alert(
+                language === 'tr' ? 'Hata' : 'Error',
+                language === 'tr' ? 'Not kaydedilemedi. Lütfen tekrar deneyin.' : 'Could not save the note. Please try again.'
+            );
         }
-    }, [selectedCase, updateNotes]);
+    }, [selectedCase, updateNotes, language]);
 
     const handleCloseContextMenu = useCallback(() => {
         setContextMenuVisible(false);

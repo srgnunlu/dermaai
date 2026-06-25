@@ -49,6 +49,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Spacing } from '@/constants/Spacing';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { showPermissionDeniedAlert } from '@/utils/permissions';
 import {
     useLesionTracking,
     useDeleteLesionTracking,
@@ -191,12 +192,7 @@ export default function LesionDetailScreen() {
         try {
             const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (!permissionResult.granted) {
-                Alert.alert(
-                    language === 'tr' ? 'İzin Gerekli' : 'Permission Required',
-                    language === 'tr'
-                        ? 'Galeri erişimi için izin vermeniz gerekmektedir.'
-                        : 'You need to grant permission to access the gallery.'
-                );
+                showPermissionDeniedAlert(language, 'photos');
                 return;
             }
 
@@ -213,7 +209,9 @@ export default function LesionDetailScreen() {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }
         } catch (error) {
-            console.error('Image picker error:', error);
+            Alert.alert(language === 'tr' ? 'Hata' : 'Error', language === 'tr'
+                ? 'Görsel seçilirken bir hata oluştu.'
+                : 'An error occurred while selecting the image.');
         }
     }, [language]);
 
@@ -222,12 +220,7 @@ export default function LesionDetailScreen() {
         try {
             const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
             if (!permissionResult.granted) {
-                Alert.alert(
-                    language === 'tr' ? 'İzin Gerekli' : 'Permission Required',
-                    language === 'tr'
-                        ? 'Kamera erişimi için izin vermeniz gerekmektedir.'
-                        : 'You need to grant permission to access the camera.'
-                );
+                showPermissionDeniedAlert(language, 'camera');
                 return;
             }
 
@@ -241,7 +234,9 @@ export default function LesionDetailScreen() {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }
         } catch (error) {
-            console.error('Camera error:', error);
+            Alert.alert(language === 'tr' ? 'Hata' : 'Error', language === 'tr'
+                ? 'Fotoğraf çekilirken bir hata oluştu.'
+                : 'An error occurred while taking the photo.');
         }
     }, [language]);
 

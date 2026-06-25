@@ -274,6 +274,8 @@ export default function CaseDetailScreen() {
                             router.back();
                         }}
                         activeOpacity={0.7}
+                        accessibilityRole="button"
+                        accessibilityLabel={language === 'tr' ? 'Geri' : 'Back'}
                     >
                         <BlurView intensity={60} tint="light" style={styles.backButtonBlur}>
                             <ArrowLeft size={20} color="#0891B2" />
@@ -291,6 +293,8 @@ export default function CaseDetailScreen() {
                             onPress={handleGenerateReport}
                             disabled={isGeneratingPdf}
                             activeOpacity={0.7}
+                            accessibilityRole="button"
+                            accessibilityLabel={language === 'tr' ? 'Raporu indir' : 'Download report'}
                         >
                             <BlurView intensity={60} tint="light" style={styles.headerIconBlur}>
                                 {isGeneratingPdf ? (
@@ -305,6 +309,8 @@ export default function CaseDetailScreen() {
                             style={styles.headerIconButton}
                             onPress={handleShare}
                             activeOpacity={0.7}
+                            accessibilityRole="button"
+                            accessibilityLabel={language === 'tr' ? 'Paylaş' : 'Share'}
                         >
                             <BlurView intensity={60} tint="light" style={styles.headerIconBlur}>
                                 <Share2 size={18} color="#0891B2" />

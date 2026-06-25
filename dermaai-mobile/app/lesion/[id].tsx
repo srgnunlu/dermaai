@@ -415,6 +415,8 @@ export default function LesionDetailScreen() {
                             router.back();
                         }}
                         activeOpacity={0.7}
+                        accessibilityRole="button"
+                        accessibilityLabel={language === 'tr' ? 'Geri' : 'Back'}
                     >
                         <BlurView intensity={60} tint="light" style={styles.backButtonBlur}>
                             <ArrowLeft size={20} color="#0891B2" />
@@ -430,6 +432,8 @@ export default function LesionDetailScreen() {
                             style={styles.headerIconButton}
                             onPress={handleEdit}
                             activeOpacity={0.7}
+                            accessibilityRole="button"
+                            accessibilityLabel={language === 'tr' ? 'Düzenle' : 'Edit'}
                         >
                             <BlurView intensity={60} tint="light" style={styles.headerIconBlur}>
                                 <Edit3 size={18} color="#0891B2" />
@@ -689,6 +693,8 @@ export default function LesionDetailScreen() {
                                         <TouchableOpacity
                                             onPress={() => setEditModalVisible(false)}
                                             style={styles.closeButton}
+                                            accessibilityRole="button"
+                                            accessibilityLabel={language === 'tr' ? 'Kapat' : 'Close'}
                                         >
                                             <X size={22} color="#64748B" />
                                         </TouchableOpacity>
@@ -774,6 +780,8 @@ export default function LesionDetailScreen() {
                                             <TouchableOpacity
                                                 onPress={() => setSnapshotModalVisible(false)}
                                                 style={styles.closeButton}
+                                                accessibilityRole="button"
+                                                accessibilityLabel={language === 'tr' ? 'Kapat' : 'Close'}
                                             >
                                                 <X size={22} color="#64748B" />
                                             </TouchableOpacity>
@@ -844,6 +852,8 @@ export default function LesionDetailScreen() {
                                                         <TouchableOpacity
                                                             style={styles.removeImageButton}
                                                             onPress={() => handleRemoveImage(index)}
+                                                            accessibilityRole="button"
+                                                            accessibilityLabel={language === 'tr' ? 'Görseli kaldır' : 'Remove image'}
                                                         >
                                                             <X size={14} color="#FFFFFF" />
                                                         </TouchableOpacity>
@@ -854,6 +864,8 @@ export default function LesionDetailScreen() {
                                                         style={styles.addMoreImageButton}
                                                         onPress={handlePickImage}
                                                         activeOpacity={0.7}
+                                                        accessibilityRole="button"
+                                                        accessibilityLabel={language === 'tr' ? 'Fotoğraf ekle' : 'Add photo'}
                                                     >
                                                         <Plus size={24} color="#0891B2" />
                                                     </TouchableOpacity>

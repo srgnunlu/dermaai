@@ -840,7 +840,12 @@ function FilterModal({
                                 <Text style={styles.modalTitle}>
                                     {Translations.filterSort[language]}
                                 </Text>
-                                <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                                <TouchableOpacity
+                                    onPress={onClose}
+                                    style={styles.closeButton}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={language === 'tr' ? 'Kapat' : 'Close'}
+                                >
                                     <X size={22} color="#64748B" />
                                 </TouchableOpacity>
                             </View>

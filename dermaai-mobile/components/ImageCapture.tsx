@@ -202,7 +202,12 @@ const ImageThumbnail = ({
                 end={{ x: 1, y: 1 }}
                 style={styles.imageBorderGradient}
             >
-                <TouchableOpacity onPress={onPreview} activeOpacity={0.8}>
+                <TouchableOpacity
+                    onPress={onPreview}
+                    activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Preview image"
+                >
                     <Image source={{ uri }} style={styles.image} />
                     <View style={[styles.zoomIcon, { backgroundColor: colors.overlay }]}>
                         <ZoomIn size={14} color="#FFFFFF" />
@@ -214,6 +219,8 @@ const ImageThumbnail = ({
             <TouchableOpacity
                 style={styles.removeButton}
                 onPress={handleRemove}
+                accessibilityRole="button"
+                accessibilityLabel="Remove image"
             >
                 <LinearGradient
                     colors={['#EF4444', '#DC2626']}
@@ -470,6 +477,8 @@ export function ImageCapture({
                         <TouchableOpacity
                             style={[styles.closeButton, { backgroundColor: colors.card }]}
                             onPress={() => setPreviewImage(null)}
+                            accessibilityRole="button"
+                            accessibilityLabel={language === 'tr' ? 'Kapat' : 'Close'}
                         >
                             <X size={20} color={colors.text} />
                         </TouchableOpacity>

@@ -253,6 +253,8 @@ export default function ProfileScreen() {
                                 onPress={handleAvatarPress}
                                 activeOpacity={0.8}
                                 disabled={isUploadingPhoto}
+                                accessibilityRole="button"
+                                accessibilityLabel={language === 'tr' ? 'Profil fotoğrafını değiştir' : 'Change profile photo'}
                             >
                                 {user.profileImageUrl ? (
                                     <Image
@@ -277,6 +279,8 @@ export default function ProfileScreen() {
                                     style={styles.editButton}
                                     onPress={handleEditProfile}
                                     activeOpacity={0.7}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={language === 'tr' ? 'Profili düzenle' : 'Edit profile'}
                                 >
                                     <Edit2 size={14} color="#FFFFFF" />
                                 </TouchableOpacity>

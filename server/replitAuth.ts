@@ -35,8 +35,6 @@ type MobileAuthCodeRecord = {
   expiresAt: number;
 };
 
-const mobileAuthCodes = new Map<string, MobileAuthCodeRecord>();
-
 const sessionCookieSettings = {
   httpOnly: true,
   secure: isProduction,
@@ -195,36 +193,51 @@ export function parseSignedOAuthState(state: unknown): OAuthStatePayload | null 
   }
 }
 
-function cleanupExpiredMobileAuthCodes() {
-  const now = Date.now();
-  for (const [code, record] of Array.from(mobileAuthCodes.entries())) {
-    if (record.expiresAt <= now) {
-      mobileAuthCodes.delete(code);
-    }
-  }
-}
-
+// Stateless, signed one-time exchange code: survives any instance/cold-start
+// because nothing is kept in process memory (the previous in-memory Map was
+// empty by exchange time in production, causing every mobile Google login to 401).
 function createMobileAuthCode(user: { id: string; email: string; role?: string }): string {
-  cleanupExpiredMobileAuthCodes();
-  const code = crypto.randomBytes(32).toString('base64url');
-  mobileAuthCodes.set(code, {
+  const payload = {
     userId: user.id,
     email: user.email,
     role: user.role || 'user',
+    nonce: crypto.randomUUID(),
     expiresAt: Date.now() + mobileOAuthCodeTtlMs,
-  });
-  return code;
+  };
+  const encodedPayload = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
+  const signature = signValue(encodedPayload);
+  return `${encodedPayload}.${signature}`;
 }
 
 function consumeMobileAuthCode(code: string): MobileAuthCodeRecord | null {
-  const record = mobileAuthCodes.get(code);
-  mobileAuthCodes.delete(code);
-
-  if (!record || record.expiresAt <= Date.now()) {
+  const [encodedPayload, signature] = code.split('.');
+  if (!encodedPayload || !signature) {
     return null;
   }
 
-  return record;
+  const expectedSignature = signValue(encodedPayload);
+  if (!safeCompare(signature, expectedSignature)) {
+    return null;
+  }
+
+  try {
+    const payload = JSON.parse(
+      Buffer.from(encodedPayload, 'base64url').toString('utf8')
+    ) as MobileAuthCodeRecord & { nonce: string };
+
+    if (!payload.userId || payload.expiresAt <= Date.now()) {
+      return null;
+    }
+
+    return {
+      userId: payload.userId,
+      email: payload.email,
+      role: payload.role,
+      expiresAt: payload.expiresAt,
+    };
+  } catch {
+    return null;
+  }
 }
 
 function buildMobileRedirectUrl(redirectUri: string | undefined, code: string): string {

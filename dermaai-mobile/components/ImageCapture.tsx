@@ -26,8 +26,10 @@ import { Typography } from '@/constants/Typography';
 import { Spacing, Shadows } from '@/constants/Spacing';
 import { Duration } from '@/constants/Animations';
 import { useColorScheme } from '@/components/useColorScheme';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardHeader, CardContent } from '@/components/ui';
 import { MAX_IMAGES, IMAGE_QUALITY } from '@/constants/Config';
+import { showPermissionDeniedAlert } from '@/utils/permissions';
 
 // Max image dimension for AI analysis (maintains quality while reducing size)
 const MAX_IMAGE_DIMENSION = 1920;
@@ -200,7 +202,12 @@ const ImageThumbnail = ({
                 end={{ x: 1, y: 1 }}
                 style={styles.imageBorderGradient}
             >
-                <TouchableOpacity onPress={onPreview} activeOpacity={0.8}>
+                <TouchableOpacity
+                    onPress={onPreview}
+                    activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Preview image"
+                >
                     <Image source={{ uri }} style={styles.image} />
                     <View style={[styles.zoomIcon, { backgroundColor: colors.overlay }]}>
                         <ZoomIn size={14} color="#FFFFFF" />
@@ -212,6 +219,8 @@ const ImageThumbnail = ({
             <TouchableOpacity
                 style={styles.removeButton}
                 onPress={handleRemove}
+                accessibilityRole="button"
+                accessibilityLabel="Remove image"
             >
                 <LinearGradient
                     colors={['#EF4444', '#DC2626']}
@@ -237,6 +246,7 @@ export function ImageCapture({
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
     const gradients = Gradients[colorScheme];
+    const { language } = useLanguage();
     const [previewImage, setPreviewImage] = useState<string | null>(null);
 
     // Optimize image: resize to max 1920x1920 while maintaining aspect ratio
@@ -259,11 +269,7 @@ export function ImageCapture({
     const requestCameraPermission = async () => {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert(
-                'İzin Gerekli',
-                'Kamera kullanmak için izin vermeniz gerekmektedir.',
-                [{ text: 'Tamam' }]
-            );
+            showPermissionDeniedAlert(language, 'camera');
             return false;
         }
         return true;
@@ -273,11 +279,7 @@ export function ImageCapture({
     const requestGalleryPermission = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert(
-                'İzin Gerekli',
-                'Galeri erişimi için izin vermeniz gerekmektedir.',
-                [{ text: 'Tamam' }]
-            );
+            showPermissionDeniedAlert(language, 'photos');
             return false;
         }
         return true;
@@ -286,7 +288,9 @@ export function ImageCapture({
     // Take photo with camera
     const handleTakePhoto = useCallback(async () => {
         if (images.length >= maxImages) {
-            Alert.alert('Limit', `En fazla ${maxImages} görsel ekleyebilirsiniz.`);
+            Alert.alert('Limit', language === 'tr'
+                ? `En fazla ${maxImages} görsel ekleyebilirsiniz.`
+                : `You can add up to ${maxImages} images.`);
             return;
         }
 
@@ -307,15 +311,18 @@ export function ImageCapture({
                 onImagesChange([...images, optimizedUri]);
             }
         } catch (error) {
-            console.error('Camera error:', error);
-            Alert.alert('Hata', 'Fotoğraf çekilirken bir hata oluştu.');
+            Alert.alert(language === 'tr' ? 'Hata' : 'Error', language === 'tr'
+                ? 'Fotoğraf çekilirken bir hata oluştu.'
+                : 'An error occurred while taking the photo.');
         }
-    }, [images, maxImages, onImagesChange]);
+    }, [images, maxImages, onImagesChange, language]);
 
     // Pick from gallery
     const handlePickFromGallery = useCallback(async () => {
         if (images.length >= maxImages) {
-            Alert.alert('Limit', `En fazla ${maxImages} görsel ekleyebilirsiniz.`);
+            Alert.alert('Limit', language === 'tr'
+                ? `En fazla ${maxImages} görsel ekleyebilirsiniz.`
+                : `You can add up to ${maxImages} images.`);
             return;
         }
 
@@ -339,10 +346,11 @@ export function ImageCapture({
                 onImagesChange([...images, ...optimizedImages].slice(0, maxImages));
             }
         } catch (error) {
-            console.error('Gallery error:', error);
-            Alert.alert('Hata', 'Görsel seçilirken bir hata oluştu.');
+            Alert.alert(language === 'tr' ? 'Hata' : 'Error', language === 'tr'
+                ? 'Görsel seçilirken bir hata oluştu.'
+                : 'An error occurred while selecting the image.');
         }
-    }, [images, maxImages, onImagesChange]);
+    }, [images, maxImages, onImagesChange, language]);
 
     // Remove image
     const handleRemoveImage = useCallback(
@@ -469,6 +477,8 @@ export function ImageCapture({
                         <TouchableOpacity
                             style={[styles.closeButton, { backgroundColor: colors.card }]}
                             onPress={() => setPreviewImage(null)}
+                            accessibilityRole="button"
+                            accessibilityLabel={language === 'tr' ? 'Kapat' : 'Close'}
                         >
                             <X size={20} color={colors.text} />
                         </TouchableOpacity>

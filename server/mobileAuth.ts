@@ -107,6 +107,17 @@ async function verifyAppleIdentityToken(identityToken: string): Promise<{
 }
 
 /**
+ * Constant-time string comparison. Both inputs are hashed to a fixed length
+ * first so timingSafeEqual never throws on length mismatch and the comparison
+ * does not leak the secret's length.
+ */
+function timingSafeEqualStr(a: string, b: string): boolean {
+    const bufA = crypto.createHash('sha256').update(a).digest();
+    const bufB = crypto.createHash('sha256').update(b).digest();
+    return crypto.timingSafeEqual(bufA, bufB);
+}
+
+/**
  * Generate access and refresh tokens
  */
 export function generateTokens(user: { id: string; email: string; role: string }) {
@@ -326,6 +337,76 @@ export function setupMobileAuth(app: Express) {
                 message: error instanceof Error ? error.message : 'Unknown error',
             });
             res.status(401).json({ error: 'Apple authentication failed' });
+        }
+    });
+
+    /**
+     * App Review demo login (email + password)
+     *
+     * Lets the App Store reviewer sign in without a third-party (Google/Apple)
+     * account, which they cannot create during review. It is DISABLED unless
+     * BOTH APPLE_REVIEW_EMAIL and APPLE_REVIEW_PASSWORD env vars are set, and it
+     * only ever authenticates that single pre-configured credential — this is
+     * NOT a general email/password login, so there is no broad attack surface.
+     * Remove the env vars after the app is approved to fully disable it.
+     */
+    app.post('/api/auth/mobile/demo', async (req, res) => {
+        try {
+            const reviewEmail = process.env.APPLE_REVIEW_EMAIL;
+            const reviewPassword = process.env.APPLE_REVIEW_PASSWORD;
+
+            // Feature is off unless both secrets are configured.
+            if (!reviewEmail || !reviewPassword) {
+                return res.status(404).json({ error: 'Not found' });
+            }
+
+            const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+            const password = typeof req.body?.password === 'string' ? req.body.password : '';
+
+            if (!email || !password) {
+                return res.status(400).json({ error: 'Email and password are required' });
+            }
+
+            const expectedEmail = reviewEmail.trim().toLowerCase();
+            const emailMatch = timingSafeEqualStr(email, expectedEmail);
+            const passwordMatch = timingSafeEqualStr(password, reviewPassword);
+
+            if (!emailMatch || !passwordMatch) {
+                return res.status(401).json({ error: 'Invalid credentials' });
+            }
+
+            // Find the reviewer user, or auto-provision it on first login with
+            // profile/age already completed so the reviewer lands straight on
+            // the home screen instead of the onboarding flow.
+            let user = await storage.getUserByEmail(expectedEmail).catch(() => undefined);
+
+            if (!user) {
+                user = await storage.upsertUser({
+                    id: crypto.randomUUID(),
+                    email: expectedEmail,
+                    firstName: 'App',
+                    lastName: 'Reviewer',
+                    profileImageUrl: null,
+                    role: 'user',
+                    isProfileComplete: true,
+                    adultConfirmedAt: new Date(),
+                });
+                logger.info('[MOBILE_AUTH] Created App Review demo user');
+            }
+
+            const tokens = generateTokens({
+                id: user.id,
+                email: user.email || '',
+                role: user.role,
+            });
+
+            res.json({
+                ...tokens,
+                user: serializeMobileUser(user),
+            });
+        } catch (error) {
+            logger.error('[MOBILE_AUTH] Demo auth error:', error);
+            res.status(500).json({ error: 'Authentication failed' });
         }
     });
 

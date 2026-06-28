@@ -425,8 +425,8 @@ export default function PrivacyPolicyScreen() {
                 </Card>
 
                 <Text style={[styles.footer, { color: colors.textMuted }]}>
-                    {T.lastUpdated[language]}: 11 {language === 'tr' ? 'Aralık' : 'December'} 2024{'\n'}
-                    {T.effectiveDate[language]}: 11 {language === 'tr' ? 'Aralık' : 'December'} 2024{'\n'}
+                    {T.lastUpdated[language]}: 25 {language === 'tr' ? 'Haziran' : 'June'} 2026{'\n'}
+                    {T.effectiveDate[language]}: 25 {language === 'tr' ? 'Haziran' : 'June'} 2026{'\n'}
                     {T.version[language]}: 1.0
                 </Text>
             </ScrollView>

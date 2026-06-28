@@ -70,7 +70,6 @@ export async function getExpoPushToken(): Promise<string | undefined> {
             projectId,
         });
 
-        console.log('Expo push token:', tokenData.data);
         return tokenData.data;
     } catch (error) {
         console.error('Error getting Expo push token:', error);

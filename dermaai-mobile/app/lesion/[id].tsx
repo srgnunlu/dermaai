@@ -49,6 +49,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Spacing } from '@/constants/Spacing';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { showPermissionDeniedAlert } from '@/utils/permissions';
 import {
     useLesionTracking,
     useDeleteLesionTracking,
@@ -191,12 +192,7 @@ export default function LesionDetailScreen() {
         try {
             const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (!permissionResult.granted) {
-                Alert.alert(
-                    language === 'tr' ? 'İzin Gerekli' : 'Permission Required',
-                    language === 'tr'
-                        ? 'Galeri erişimi için izin vermeniz gerekmektedir.'
-                        : 'You need to grant permission to access the gallery.'
-                );
+                showPermissionDeniedAlert(language, 'photos');
                 return;
             }
 
@@ -213,7 +209,9 @@ export default function LesionDetailScreen() {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }
         } catch (error) {
-            console.error('Image picker error:', error);
+            Alert.alert(language === 'tr' ? 'Hata' : 'Error', language === 'tr'
+                ? 'Görsel seçilirken bir hata oluştu.'
+                : 'An error occurred while selecting the image.');
         }
     }, [language]);
 
@@ -222,12 +220,7 @@ export default function LesionDetailScreen() {
         try {
             const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
             if (!permissionResult.granted) {
-                Alert.alert(
-                    language === 'tr' ? 'İzin Gerekli' : 'Permission Required',
-                    language === 'tr'
-                        ? 'Kamera erişimi için izin vermeniz gerekmektedir.'
-                        : 'You need to grant permission to access the camera.'
-                );
+                showPermissionDeniedAlert(language, 'camera');
                 return;
             }
 
@@ -241,7 +234,9 @@ export default function LesionDetailScreen() {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }
         } catch (error) {
-            console.error('Camera error:', error);
+            Alert.alert(language === 'tr' ? 'Hata' : 'Error', language === 'tr'
+                ? 'Fotoğraf çekilirken bir hata oluştu.'
+                : 'An error occurred while taking the photo.');
         }
     }, [language]);
 
@@ -420,6 +415,8 @@ export default function LesionDetailScreen() {
                             router.back();
                         }}
                         activeOpacity={0.7}
+                        accessibilityRole="button"
+                        accessibilityLabel={language === 'tr' ? 'Geri' : 'Back'}
                     >
                         <BlurView intensity={60} tint="light" style={styles.backButtonBlur}>
                             <ArrowLeft size={20} color="#0891B2" />
@@ -435,6 +432,8 @@ export default function LesionDetailScreen() {
                             style={styles.headerIconButton}
                             onPress={handleEdit}
                             activeOpacity={0.7}
+                            accessibilityRole="button"
+                            accessibilityLabel={language === 'tr' ? 'Düzenle' : 'Edit'}
                         >
                             <BlurView intensity={60} tint="light" style={styles.headerIconBlur}>
                                 <Edit3 size={18} color="#0891B2" />
@@ -694,6 +693,8 @@ export default function LesionDetailScreen() {
                                         <TouchableOpacity
                                             onPress={() => setEditModalVisible(false)}
                                             style={styles.closeButton}
+                                            accessibilityRole="button"
+                                            accessibilityLabel={language === 'tr' ? 'Kapat' : 'Close'}
                                         >
                                             <X size={22} color="#64748B" />
                                         </TouchableOpacity>
@@ -779,6 +780,8 @@ export default function LesionDetailScreen() {
                                             <TouchableOpacity
                                                 onPress={() => setSnapshotModalVisible(false)}
                                                 style={styles.closeButton}
+                                                accessibilityRole="button"
+                                                accessibilityLabel={language === 'tr' ? 'Kapat' : 'Close'}
                                             >
                                                 <X size={22} color="#64748B" />
                                             </TouchableOpacity>
@@ -849,6 +852,8 @@ export default function LesionDetailScreen() {
                                                         <TouchableOpacity
                                                             style={styles.removeImageButton}
                                                             onPress={() => handleRemoveImage(index)}
+                                                            accessibilityRole="button"
+                                                            accessibilityLabel={language === 'tr' ? 'Görseli kaldır' : 'Remove image'}
                                                         >
                                                             <X size={14} color="#FFFFFF" />
                                                         </TouchableOpacity>
@@ -859,6 +864,8 @@ export default function LesionDetailScreen() {
                                                         style={styles.addMoreImageButton}
                                                         onPress={handlePickImage}
                                                         activeOpacity={0.7}
+                                                        accessibilityRole="button"
+                                                        accessibilityLabel={language === 'tr' ? 'Fotoğraf ekle' : 'Add photo'}
                                                     >
                                                         <Plus size={24} color="#0891B2" />
                                                     </TouchableOpacity>

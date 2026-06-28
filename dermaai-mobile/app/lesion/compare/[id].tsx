@@ -158,6 +158,8 @@ export default function ComparisonDetailScreen() {
                             router.back();
                         }}
                         activeOpacity={0.7}
+                        accessibilityRole="button"
+                        accessibilityLabel={language === 'tr' ? 'Geri' : 'Back'}
                     >
                         <BlurView intensity={60} tint="light" style={styles.backButtonBlur}>
                             <ArrowLeft size={20} color="#0891B2" />

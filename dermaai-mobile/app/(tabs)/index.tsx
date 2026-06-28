@@ -51,12 +51,9 @@ export default function DiagnosisScreen() {
     const showOnboarding = user && (user.isProfileComplete !== true || !user.adultConfirmedAt) && !showMedicalConsent;
 
     const handleOnboardingComplete = async (data: UpdateProfileData) => {
-        console.log('[Onboarding] Starting profile update with data:', JSON.stringify(data));
         try {
-            const result = await updateProfile(data);
-            console.log('[Onboarding] Profile update successful:', JSON.stringify(result));
-            const refreshedUser = await refetch(); // Refresh user data to close modal
-            console.log('[Onboarding] User refetch result:', JSON.stringify(refreshedUser.data));
+            await updateProfile(data);
+            await refetch(); // Refresh user data to close modal
         } catch (error) {
             console.error('[Onboarding] Failed to update profile:', error);
             throw error; // Re-throw so OnboardingModal can handle it

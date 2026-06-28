@@ -26,7 +26,7 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { queryClient } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
 import { TabBarVisibilityProvider } from '@/contexts/TabBarVisibilityContext';
-import { LanguageProvider } from '@/contexts/LanguageContext';
+import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
 import { registerPushTokenWithBackend } from '@/lib/notifications';
 import * as Notifications from 'expo-notifications';
 import { getRevenueCatApiKey } from '@/constants/Config';
@@ -134,15 +134,14 @@ function RootLayoutNav() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const { language } = useLanguage();
+  const isTr = language === 'tr';
 
   // Handle authentication routing
   useEffect(() => {
-    // Debug: Visible logs for user
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
-
-    console.log('[AuthDebug]', { isAuthenticated, inAuthGroup, path: segments.join('/') });
 
     if (!isAuthenticated && !inAuthGroup) {
       // Redirect to login if not authenticated
@@ -178,7 +177,6 @@ function RootLayoutNav() {
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data;
-      console.log('[Notification] Tapped:', data);
 
       // Navigate to results page if caseId is present
       if (data?.caseId && isAuthenticated) {
@@ -198,17 +196,17 @@ function RootLayoutNav() {
           name="case/[id]"
           options={{
             headerShown: true,
-            title: 'Vaka Detayı',
+            title: isTr ? 'Vaka Detayı' : 'Case Detail',
             animation: 'slide_from_right',
             gestureEnabled: true,
             gestureDirection: 'horizontal',
-            headerBackTitle: 'Geri',
+            headerBackTitle: isTr ? 'Geri' : 'Back',
           }}
         />
-        <Stack.Screen name="medical-disclaimer" options={{ headerShown: true, title: 'Tıbbi Uyarı' }} />
-        <Stack.Screen name="privacy-policy" options={{ headerShown: true, title: 'Gizlilik Politikası' }} />
-        <Stack.Screen name="terms-of-service" options={{ headerShown: true, title: 'Kullanım Şartları' }} />
-        <Stack.Screen name="contact-support" options={{ headerShown: true, title: 'Destek' }} />
+        <Stack.Screen name="medical-disclaimer" options={{ headerShown: true, title: isTr ? 'Tıbbi Uyarı' : 'Medical Disclaimer' }} />
+        <Stack.Screen name="privacy-policy" options={{ headerShown: true, title: isTr ? 'Gizlilik Politikası' : 'Privacy Policy' }} />
+        <Stack.Screen name="terms-of-service" options={{ headerShown: true, title: isTr ? 'Kullanım Şartları' : 'Terms of Service' }} />
+        <Stack.Screen name="contact-support" options={{ headerShown: true, title: isTr ? 'Destek' : 'Support' }} />
         <Stack.Screen
           name="results/[id]"
           options={{

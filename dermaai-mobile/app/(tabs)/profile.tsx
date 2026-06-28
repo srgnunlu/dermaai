@@ -45,6 +45,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCases } from '@/hooks/useCases';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { showPermissionDeniedAlert } from '@/utils/permissions';
 import { api } from '@/lib/api';
 import {
     LoadingSpinner,
@@ -106,10 +107,7 @@ export default function ProfileScreen() {
     const pickFromGallery = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert(
-                Translations.error[language],
-                Translations.galleryPermissionRequired[language]
-            );
+            showPermissionDeniedAlert(language, 'photos');
             return;
         }
 
@@ -129,10 +127,7 @@ export default function ProfileScreen() {
     const takePhoto = async () => {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert(
-                Translations.error[language],
-                Translations.cameraPermissionRequired[language]
-            );
+            showPermissionDeniedAlert(language, 'camera');
             return;
         }
 
@@ -154,19 +149,13 @@ export default function ProfileScreen() {
 
         try {
             // Upload image to server
-            console.log('[Profile] Uploading image...');
             const uploadResult = await api.uploadImage(base64Data, `profile-${user?.id}-${Date.now()}.jpg`);
-            console.log('[Profile] Image uploaded, URL:', uploadResult.url);
 
             // Update profile with new photo URL
-            console.log('[Profile] Updating profile with new photo URL...');
             await updateProfile({ profileImageUrl: uploadResult.url });
-            console.log('[Profile] Profile updated');
 
             // Refetch user data to ensure UI updates
-            console.log('[Profile] Refetching user data...');
             await refetch();
-            console.log('[Profile] User refetched, new profileImageUrl:', user?.profileImageUrl);
 
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             Alert.alert(
@@ -264,6 +253,8 @@ export default function ProfileScreen() {
                                 onPress={handleAvatarPress}
                                 activeOpacity={0.8}
                                 disabled={isUploadingPhoto}
+                                accessibilityRole="button"
+                                accessibilityLabel={language === 'tr' ? 'Profil fotoğrafını değiştir' : 'Change profile photo'}
                             >
                                 {user.profileImageUrl ? (
                                     <Image
@@ -288,6 +279,8 @@ export default function ProfileScreen() {
                                     style={styles.editButton}
                                     onPress={handleEditProfile}
                                     activeOpacity={0.7}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={language === 'tr' ? 'Profili düzenle' : 'Edit profile'}
                                 >
                                     <Edit2 size={14} color="#FFFFFF" />
                                 </TouchableOpacity>

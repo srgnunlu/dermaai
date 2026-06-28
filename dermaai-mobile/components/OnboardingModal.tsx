@@ -104,14 +104,6 @@ export function OnboardingModal({ visible, user, onComplete }: OnboardingModalPr
         setIsSubmitting(true);
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-        console.log('[OnboardingModal] Submitting with data:', {
-            firstName: firstName.trim(),
-            lastName: lastName.trim() || null,
-            isHealthProfessional,
-            isProfileComplete: true,
-            adultConfirmedAt: new Date().toISOString(),
-        });
-
         try {
             await onComplete({
                 firstName: firstName.trim(),

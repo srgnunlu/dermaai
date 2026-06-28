@@ -1,0 +1,7 @@
+{
+  "name": "corioscan-ui",
+  "version": "1.0.0",
+  "private": true,
+  "types": "index.d.ts",
+  "description": "design-sync shim package: gives the converter a real types entry (index.d.ts barrel + tsc-emitted declarations) for CorioScan's shadcn/ui components, which live in client/src/components/ui and ship no dist."
+}

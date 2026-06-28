@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "allowImportingTsExtensions": false,
+    "incremental": false,
+    "skipLibCheck": true,
+    "rootDir": "../../client/src",
+    "outDir": "types"
+  },
+  "include": ["../../client/src/components/ui/**/*.tsx"]
+}

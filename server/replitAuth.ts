@@ -12,7 +12,7 @@ import { csrfProtection } from './csrf';
 import {
   createMobileExchangeCode,
   fingerprintMobileExchangeCode,
-  isValidMobileExchangeCode,
+  normalizeMobileExchangeCode,
 } from './mobileOAuthCode';
 
 const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
@@ -477,18 +477,26 @@ export async function setupAuth(app: Express) {
     });
 
     app.post('/api/auth/mobile/exchange', async (req, res) => {
-      const code = typeof req.body?.code === 'string' ? req.body.code.trim() : '';
-      if (!code) {
+      const submittedCode = typeof req.body?.code === 'string' ? req.body.code.trim() : '';
+      if (!submittedCode) {
         return res.status(400).json({ error: 'Missing exchange code' });
       }
 
-      const fingerprint = fingerprintMobileExchangeCode(code);
-      if (!isValidMobileExchangeCode(code)) {
+      const code = normalizeMobileExchangeCode(submittedCode);
+      if (!code) {
         logger.warn('[AUTH] Rejected malformed mobile OAuth exchange code', {
-          fingerprint,
-          codeLength: code.length,
+          fingerprint: fingerprintMobileExchangeCode(submittedCode),
+          codeLength: submittedCode.length,
         });
         return res.status(401).json({ error: 'Invalid or expired exchange code' });
+      }
+
+      const fingerprint = fingerprintMobileExchangeCode(code);
+      if (code !== submittedCode) {
+        logger.info('[AUTH] Normalized legacy iOS OAuth fragment suffix', {
+          fingerprint,
+          submittedLength: submittedCode.length,
+        });
       }
 
       const record = await consumeMobileAuthCode(code);

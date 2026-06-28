@@ -38,6 +38,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { API_BASE_URL } from '@/constants/Config';
 import { saveTokens, saveUserData } from '@/lib/storage';
 import { queryClient } from '@/lib/queryClient';
+import { parseOAuthCallbackUrl } from '@/lib/oauthCallback';
 import { StatusBar } from 'expo-status-bar';
 import { LegalTextModal } from '@/components/ui/LegalTextModal';
 import type { AuthResponse } from '@/types/schema';
@@ -247,47 +248,50 @@ export default function LoginScreen() {
             console.log('[Auth] WebBrowser result:', result.type);
 
             if (result.type === 'success' && result.url) {
-                const urlParts = result.url.split('?');
-                if (urlParts.length > 1) {
-                    const params = new URLSearchParams(urlParts[1]);
-                    const code = params.get('code');
+                const { code, error: oauthError } = parseOAuthCallbackUrl(result.url);
 
-                    if (code) {
-                        const exchangeResponse = await fetch(`${API_BASE_URL}/api/auth/mobile/exchange`, {
+                if (code) {
+                    const exchangeResponse = await fetch(
+                        `${API_BASE_URL}/api/auth/mobile/exchange`,
+                        {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ code }),
-                        });
-
-                        if (!exchangeResponse.ok) {
-                            throw new Error('OAuth exchange failed');
                         }
+                    );
 
-                        const authData: AuthResponse = await exchangeResponse.json();
-                        await saveTokens(authData.accessToken, authData.refreshToken);
-
-                        if (authData.user) {
-                            await saveUserData(authData.user);
-                            queryClient.setQueryData(['auth', 'user'], authData.user);
-                        } else {
-                            await queryClient.invalidateQueries({ queryKey: ['auth'] });
-                        }
-
-                        router.replace('/(tabs)');
-                    } else {
-                        const error = params.get('error');
-                        if (error) {
-                            Alert.alert(
-                                language === 'tr' ? 'Giriş Hatası' : 'Login Error',
-                                `${language === 'tr' ? 'Hata' : 'Error'}: ${error}`
-                            );
-                        } else {
-                            Alert.alert(
-                                language === 'tr' ? 'Giriş Hatası' : 'Login Error',
-                                language === 'tr' ? 'Giriş kodu alınamadı. Lütfen tekrar deneyin.' : 'Could not get login code. Please try again.'
-                            );
-                        }
+                    if (!exchangeResponse.ok) {
+                        const exchangeError = await exchangeResponse
+                            .json()
+                            .catch(() => ({ error: 'OAuth exchange failed' }));
+                        throw new Error(
+                            `${exchangeError.error || 'OAuth exchange failed'} (${exchangeResponse.status})`
+                        );
                     }
+
+                    const authData: AuthResponse = await exchangeResponse.json();
+                    await saveTokens(authData.accessToken, authData.refreshToken);
+
+                    if (authData.user) {
+                        await saveUserData(authData.user);
+                        queryClient.setQueryData(['auth', 'user'], authData.user);
+                    } else {
+                        await queryClient.invalidateQueries({ queryKey: ['auth'] });
+                    }
+
+                    router.replace('/(tabs)');
+                } else if (oauthError) {
+                    Alert.alert(
+                        language === 'tr' ? 'Giriş Hatası' : 'Login Error',
+                        `${language === 'tr' ? 'Hata' : 'Error'}: ${oauthError}`
+                    );
+                } else {
+                    Alert.alert(
+                        language === 'tr' ? 'Giriş Hatası' : 'Login Error',
+                        language === 'tr'
+                            ? 'Giriş kodu alınamadı. Lütfen tekrar deneyin.'
+                            : 'Could not get login code. Please try again.'
+                    );
                 }
             } else if (result.type === 'cancel') {
                 console.log('[Auth] User cancelled login');

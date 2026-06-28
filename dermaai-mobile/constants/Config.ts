@@ -1,5 +1,5 @@
 // API Configuration
-const PRODUCTION_API_BASE_URL = 'https://dermaai-1d9i.onrender.com';
+const PRODUCTION_API_BASE_URL = 'https://www.corioscan.com';
 const DEVELOPMENT_API_BASE_URL = 'http://localhost:5000';
 
 const normalizeUrl = (url: string) => url.replace(/\/+$/, '');

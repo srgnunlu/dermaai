@@ -113,9 +113,9 @@ const getGenderOptions = (language: 'tr' | 'en') => [
 
 // Skin type options - Simplified
 const getSkinTypeOptions = (language: 'tr' | 'en') => [
-    { label: language === 'tr' ? 'Açık' : 'Light', value: 'light' },
-    { label: language === 'tr' ? 'Orta' : 'Medium', value: 'medium' },
-    { label: language === 'tr' ? 'Koyu' : 'Dark', value: 'dark' },
+    { label: language === 'tr' ? 'Açık' : 'Light', value: 'type2' },
+    { label: language === 'tr' ? 'Orta' : 'Medium', value: 'type4' },
+    { label: language === 'tr' ? 'Koyu' : 'Dark', value: 'type6' },
 ];
 
 export function PatientInfoStep({

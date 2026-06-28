@@ -23,13 +23,18 @@ const LANGUAGE_STORAGE_KEY = 'corio_language';
 
 /**
  * Get the device's preferred language
- * Returns 'tr' for Turkish devices, 'en' for all other languages
+ * Returns 'tr' if the device language is Turkish OR the region is Turkey, 'en' otherwise
  */
 const getDeviceLanguage = (): Language => {
     try {
-        const locales = Localization.getLocales();
-        const deviceLanguageCode = locales[0]?.languageCode?.toLowerCase();
-        return deviceLanguageCode === 'tr' ? 'tr' : 'en';
+        const primary = Localization.getLocales()[0];
+        const deviceLanguageCode = primary?.languageCode?.toLowerCase();
+        const deviceRegionCode = primary?.regionCode?.toUpperCase();
+        // Turkish device language OR Turkey region → Turkish; everything else → English
+        if (deviceLanguageCode === 'tr' || deviceRegionCode === 'TR') {
+            return 'tr';
+        }
+        return 'en';
     } catch (error) {
         console.error('Failed to get device language:', error);
         return 'en'; // Default to English if detection fails

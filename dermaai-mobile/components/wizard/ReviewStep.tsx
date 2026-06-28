@@ -257,9 +257,9 @@ export function ReviewStep({
                                         {Translations.skinType[language]}
                                     </Text>
                                     <Text style={[styles.infoValue, { color: colors.text }]}>
-                                        {state.skinType === 'light'
+                                        {state.skinType === 'type2'
                                             ? (language === 'tr' ? 'Açık' : 'Light')
-                                            : state.skinType === 'medium'
+                                            : state.skinType === 'type4'
                                                 ? (language === 'tr' ? 'Orta' : 'Medium')
                                                 : (language === 'tr' ? 'Koyu' : 'Dark')}
                                     </Text>

@@ -82,10 +82,10 @@ const getSymptomOptions = (language: 'tr' | 'en') => [
 
 // Duration options
 const getDurationOptions = (language: 'tr' | 'en') => [
-    { id: 'days', label: language === 'tr' ? 'Günler' : 'Days' },
-    { id: 'weeks', label: language === 'tr' ? 'Haftalar' : 'Weeks' },
-    { id: 'months', label: language === 'tr' ? 'Aylar' : 'Months' },
-    { id: 'years', label: language === 'tr' ? 'Yıllar' : 'Years' },
+    { id: '1-7-days', label: language === 'tr' ? 'Günler' : 'Days' },
+    { id: '1-4-weeks', label: language === 'tr' ? 'Haftalar' : 'Weeks' },
+    { id: '1-6-months', label: language === 'tr' ? 'Aylar' : 'Months' },
+    { id: 'more-than-6-months', label: language === 'tr' ? 'Yıllar' : 'Years' },
 ];
 
 // Calculate dimensions for 3-column grid - use percentage-based width

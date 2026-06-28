@@ -12,18 +12,25 @@
       "distribution": "internal",
       "channel": "preview",
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://dermaai-1d9i.onrender.com"
+        "EXPO_PUBLIC_API_BASE_URL": "https://dermaai-1d9i.onrender.com",
+        "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_rGdQutlOQDvukSSXCQiKMxMwAyl"
       }
     },
     "production": {
       "autoIncrement": true,
       "channel": "production",
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://dermaai-1d9i.onrender.com"
+        "EXPO_PUBLIC_API_BASE_URL": "https://dermaai-1d9i.onrender.com",
+        "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_rGdQutlOQDvukSSXCQiKMxMwAyl"
       }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascAppId": "6784424769",
+        "appleTeamId": "9DRM5ZZ786"
+      }
+    }
   }
 }

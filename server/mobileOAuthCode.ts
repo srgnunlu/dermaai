@@ -16,6 +16,24 @@ export function isValidMobileExchangeCode(code: string): boolean {
 }
 
 /**
+ * Legacy TestFlight builds pass the raw text after `?` to URLSearchParams.
+ * When iOS appends an empty URL fragment, that parser treats the trailing `#`
+ * as part of the code. Accept only that exact, unambiguous legacy encoding.
+ */
+export function normalizeMobileExchangeCode(code: string): string | null {
+  if (isValidMobileExchangeCode(code)) {
+    return code;
+  }
+
+  if (code.length === 65 && code.endsWith('#')) {
+    const withoutEmptyFragment = code.slice(0, -1);
+    return isValidMobileExchangeCode(withoutEmptyFragment) ? withoutEmptyFragment : null;
+  }
+
+  return null;
+}
+
+/**
  * A short one-way identifier for correlating callback and exchange logs.
  * Never log the bearer code itself.
  */

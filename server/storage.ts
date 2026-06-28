@@ -33,11 +33,12 @@ import {
   lesionComparisons,
   studies,
   dermatologistReviews,
+  mobileAuthCodes,
   DEFAULT_OPENAI_MODEL,
   DEFAULT_CLAUDE_MODEL,
 } from '@shared/schema';
 import { db } from './db';
-import { count, desc, eq, and, or, sql, inArray, gte } from 'drizzle-orm';
+import { count, desc, eq, and, or, sql, inArray, gte, lte } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import logger from './logger';
 import * as cache from './cache';
@@ -49,6 +50,18 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByAppleSubject(appleSubject: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+
+  // Mobile OAuth exchange codes (short-lived, single-use)
+  saveMobileAuthCode(record: {
+    code: string;
+    userId: string;
+    email: string;
+    role: string;
+    expiresAt: Date;
+  }): Promise<void>;
+  consumeMobileAuthCode(
+    code: string
+  ): Promise<{ userId: string; email: string; role: string; expiresAt: Date } | null>;
 
   // Profile operations
   getUserProfile(userId: string): Promise<User | undefined>;
@@ -215,6 +228,43 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return user;
+  }
+
+  // Mobile OAuth exchange codes (short-lived, single-use)
+  async saveMobileAuthCode(record: {
+    code: string;
+    userId: string;
+    email: string;
+    role: string;
+    expiresAt: Date;
+  }): Promise<void> {
+    await db.insert(mobileAuthCodes).values(record);
+
+    // Best-effort cleanup of expired codes; never block the auth flow on it.
+    db.delete(mobileAuthCodes)
+      .where(lte(mobileAuthCodes.expiresAt, new Date()))
+      .catch((error) => logger.debug('[AUTH] mobile_auth_codes cleanup failed:', error));
+  }
+
+  async consumeMobileAuthCode(
+    code: string
+  ): Promise<{ userId: string; email: string; role: string; expiresAt: Date } | null> {
+    // Single-use: delete the row and return it in one statement.
+    const [record] = await db
+      .delete(mobileAuthCodes)
+      .where(eq(mobileAuthCodes.code, code))
+      .returning({
+        userId: mobileAuthCodes.userId,
+        email: mobileAuthCodes.email,
+        role: mobileAuthCodes.role,
+        expiresAt: mobileAuthCodes.expiresAt,
+      });
+
+    if (!record || record.expiresAt <= new Date()) {
+      return null;
+    }
+
+    return record;
   }
 
   // Profile operations

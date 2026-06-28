@@ -32,7 +32,7 @@ type MobileAuthCodeRecord = {
   userId: string;
   email: string;
   role: string;
-  expiresAt: number;
+  expiresAt: Date;
 };
 
 const sessionCookieSettings = {
@@ -193,51 +193,31 @@ export function parseSignedOAuthState(state: unknown): OAuthStatePayload | null 
   }
 }
 
-// Stateless, signed one-time exchange code: survives any instance/cold-start
-// because nothing is kept in process memory (the previous in-memory Map was
-// empty by exchange time in production, causing every mobile Google login to 401).
-function createMobileAuthCode(user: { id: string; email: string; role?: string }): string {
-  const payload = {
+// Short random opaque one-time exchange code, persisted in Postgres.
+// Two reasons over the previous approaches:
+//  - Short, no '.' char: survives iOS deep-link delivery intact (a long
+//    HMAC-signed token with a '.' got corrupted, causing every exchange to 401).
+//  - Persisted (not an in-memory Map): survives instance/cold-start, so the
+//    exchange works regardless of which server instance handles it.
+async function createMobileAuthCode(user: {
+  id: string;
+  email: string;
+  role?: string;
+}): Promise<string> {
+  const code = crypto.randomBytes(32).toString('base64url');
+  await storage.saveMobileAuthCode({
+    code,
     userId: user.id,
     email: user.email,
     role: user.role || 'user',
-    nonce: crypto.randomUUID(),
-    expiresAt: Date.now() + mobileOAuthCodeTtlMs,
-  };
-  const encodedPayload = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
-  const signature = signValue(encodedPayload);
-  return `${encodedPayload}.${signature}`;
+    expiresAt: new Date(Date.now() + mobileOAuthCodeTtlMs),
+  });
+  return code;
 }
 
-function consumeMobileAuthCode(code: string): MobileAuthCodeRecord | null {
-  const [encodedPayload, signature] = code.split('.');
-  if (!encodedPayload || !signature) {
-    return null;
-  }
-
-  const expectedSignature = signValue(encodedPayload);
-  if (!safeCompare(signature, expectedSignature)) {
-    return null;
-  }
-
-  try {
-    const payload = JSON.parse(
-      Buffer.from(encodedPayload, 'base64url').toString('utf8')
-    ) as MobileAuthCodeRecord & { nonce: string };
-
-    if (!payload.userId || payload.expiresAt <= Date.now()) {
-      return null;
-    }
-
-    return {
-      userId: payload.userId,
-      email: payload.email,
-      role: payload.role,
-      expiresAt: payload.expiresAt,
-    };
-  } catch {
-    return null;
-  }
+async function consumeMobileAuthCode(code: string): Promise<MobileAuthCodeRecord | null> {
+  const record = await storage.consumeMobileAuthCode(code);
+  return record ? { ...record } : null;
 }
 
 function buildMobileRedirectUrl(redirectUri: string | undefined, code: string): string {
@@ -499,7 +479,7 @@ export async function setupAuth(app: Express) {
         return res.status(400).json({ error: 'Missing exchange code' });
       }
 
-      const record = consumeMobileAuthCode(code);
+      const record = await consumeMobileAuthCode(code);
       if (!record) {
         return res.status(401).json({ error: 'Invalid or expired exchange code' });
       }
@@ -549,7 +529,7 @@ export async function setupAuth(app: Express) {
               return res.redirect('/login?error=invalid_redirect_uri');
             }
 
-            const code = createMobileAuthCode({
+            const code = await createMobileAuthCode({
               id: user.id,
               email: user.email,
               role: user.role,

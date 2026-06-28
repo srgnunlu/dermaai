@@ -359,6 +359,25 @@ export const pushTokens = pgTable(
   ]
 );
 
+// Short-lived, single-use mobile OAuth exchange codes.
+// The code is a short random opaque id (no '.'), safe to transport through
+// iOS deep links (ASWebAuthenticationSession). Persisted in Postgres so it
+// survives across instances/cold-starts (the previous in-memory Map was empty
+// by exchange time in production). Consumed once, 60s TTL.
+export const mobileAuthCodes = pgTable(
+  'mobile_auth_codes',
+  {
+    code: varchar('code').primaryKey(),
+    userId: varchar('user_id').notNull(),
+    email: text('email').notNull(),
+    role: text('role').notNull(),
+    expiresAt: timestamp('expires_at').notNull(),
+  },
+  (table) => [index('idx_mobile_auth_codes_expires_at').on(table.expiresAt)]
+);
+
+export type MobileAuthCode = typeof mobileAuthCodes.$inferSelect;
+
 // ============================================
 // PRO FEATURE: Lesion Tracking System
 // ============================================

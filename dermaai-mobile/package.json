@@ -65,7 +65,18 @@
   "private": true,
   "pnpm": {
     "overrides": {
+      "@babel/core": "7.29.6",
+      "@expo/cli>tar": "7.5.16",
+      "@expo/cli>undici": "6.27.0",
+      "@expo/cli>ws": "8.21.0",
+      "@expo/xcpretty>js-yaml": "4.2.0",
+      "@istanbuljs/load-nyc-config>js-yaml": "4.2.0",
+      "@react-native/dev-middleware>ws": "6.2.4",
+      "metro>ws": "7.5.11",
       "postcss": "^8.5.10",
+      "react-devtools-core>shell-quote": "1.8.4",
+      "react-devtools-core>ws": "7.5.11",
+      "react-native>ws": "6.2.4",
       "uuid": "^11.1.1"
     }
   }

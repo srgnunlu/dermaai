@@ -9,6 +9,11 @@ import crypto from 'crypto';
 import logger from './logger';
 import { verifyAccessToken } from './mobileAuth';
 import { csrfProtection } from './csrf';
+import {
+  createMobileExchangeCode,
+  fingerprintMobileExchangeCode,
+  isValidMobileExchangeCode,
+} from './mobileOAuthCode';
 
 const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
 const isProduction = process.env.NODE_ENV === 'production';
@@ -133,10 +138,7 @@ export function isAllowedMobileRedirectUri(rawUri?: string): boolean {
         return true;
       }
 
-      if (
-        parsed.protocol === 'http:' &&
-        ['localhost', '127.0.0.1'].includes(parsed.hostname)
-      ) {
+      if (parsed.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(parsed.hostname)) {
         return true;
       }
     } catch {
@@ -147,10 +149,7 @@ export function isAllowedMobileRedirectUri(rawUri?: string): boolean {
   return false;
 }
 
-export function createSignedOAuthState(input: {
-  mobile: boolean;
-  redirectUri?: string;
-}): string {
+export function createSignedOAuthState(input: { mobile: boolean; redirectUri?: string }): string {
   const payload: OAuthStatePayload = {
     mobile: input.mobile,
     redirectUri: input.redirectUri,
@@ -193,10 +192,10 @@ export function parseSignedOAuthState(state: unknown): OAuthStatePayload | null 
   }
 }
 
-// Short random opaque one-time exchange code, persisted in Postgres.
+// Punctuation-free random opaque one-time exchange code, persisted in Postgres.
 // Two reasons over the previous approaches:
-//  - Short, no '.' char: survives iOS deep-link delivery intact (a long
-//    HMAC-signed token with a '.' got corrupted, causing every exchange to 401).
+//  - Hex-only, no punctuation: avoids custom-scheme URL normalization after
+//    signed and base64url codes failed to survive the iOS handoff end-to-end.
 //  - Persisted (not an in-memory Map): survives instance/cold-start, so the
 //    exchange works regardless of which server instance handles it.
 async function createMobileAuthCode(user: {
@@ -204,13 +203,17 @@ async function createMobileAuthCode(user: {
   email: string;
   role?: string;
 }): Promise<string> {
-  const code = crypto.randomBytes(32).toString('base64url');
+  const code = createMobileExchangeCode();
   await storage.saveMobileAuthCode({
     code,
     userId: user.id,
     email: user.email,
     role: user.role || 'user',
     expiresAt: new Date(Date.now() + mobileOAuthCodeTtlMs),
+  });
+  logger.info('[AUTH] Mobile OAuth exchange code issued', {
+    fingerprint: fingerprintMobileExchangeCode(code),
+    codeLength: code.length,
   });
   return code;
 }
@@ -474,15 +477,33 @@ export async function setupAuth(app: Express) {
     });
 
     app.post('/api/auth/mobile/exchange', async (req, res) => {
-      const code = typeof req.body?.code === 'string' ? req.body.code : '';
+      const code = typeof req.body?.code === 'string' ? req.body.code.trim() : '';
       if (!code) {
         return res.status(400).json({ error: 'Missing exchange code' });
       }
 
-      const record = await consumeMobileAuthCode(code);
-      if (!record) {
+      const fingerprint = fingerprintMobileExchangeCode(code);
+      if (!isValidMobileExchangeCode(code)) {
+        logger.warn('[AUTH] Rejected malformed mobile OAuth exchange code', {
+          fingerprint,
+          codeLength: code.length,
+        });
         return res.status(401).json({ error: 'Invalid or expired exchange code' });
       }
+
+      const record = await consumeMobileAuthCode(code);
+      if (!record) {
+        logger.warn('[AUTH] Mobile OAuth exchange code not found or expired', {
+          fingerprint,
+          codeLength: code.length,
+        });
+        return res.status(401).json({ error: 'Invalid or expired exchange code' });
+      }
+
+      logger.info('[AUTH] Mobile OAuth exchange code consumed', {
+        fingerprint,
+        codeLength: code.length,
+      });
 
       const { generateTokens } = await import('./mobileAuth');
       const tokens = generateTokens({
@@ -536,7 +557,6 @@ export async function setupAuth(app: Express) {
             });
             const mobileRedirectUrl = buildMobileRedirectUrl(state.redirectUri, code);
 
-            logger.debug('[AUTH] Mobile OAuth exchange code issued');
             return res.redirect(mobileRedirectUrl);
           }
         } catch (e) {
@@ -547,7 +567,6 @@ export async function setupAuth(app: Express) {
         res.redirect('/');
       }
     );
-
   }
 
   // Logout endpoint
@@ -616,7 +635,7 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
       req.user = {
         id: payload.userId,
         email: payload.email,
-        role: payload.role
+        role: payload.role,
       } as any;
 
       logger.debug('[AUTH] User authenticated via JWT:', payload.email);
